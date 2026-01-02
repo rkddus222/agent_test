@@ -1,0 +1,17 @@
+model_name: sales_analysis
+description: Sales data analysis model
+dimensions:
+  - name: date
+    type: string
+  - name: product_id
+    type: int
+metrics:
+  - name: count_orders
+    expr: count(order_id)
+    description: Total number of orders
+  - name: total_sales
+    expr: sum(order_value)
+    description: Total sales value
+  - name: average_order_value
+    expr: sum(order_value) / count(order_id)
+    description: Average value of orders

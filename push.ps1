@@ -23,9 +23,14 @@ git commit -m "$commitMessage"
 
 # 푸시
 Write-Host "> git push" -ForegroundColor Gray
-git push
+git push 2>&1 | Tee-Object -Variable pushOutput
 
-if ($LASTEXITCODE -eq 0) {
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "일반 푸시 실패, Upstream 설정을 시도합니다..." -ForegroundColor Yellow
+    git push --set-upstream origin main
+}
+
+if ($?) {
     Write-Host "--- 업로드 완료! ---" -ForegroundColor Green
 } else {
     Write-Host "--- 오류 발생: 업로드 실패 ---" -ForegroundColor Red

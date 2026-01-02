@@ -8,17 +8,131 @@ st.set_page_config(page_title="Semantic Agent Playground", layout="wide")
 
 st.title("Semantic Model Engineer Agent")
 
+# Helper to save playground file
+def save_playground_file(file_path, content):
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return True
+    except Exception as e:
+        st.sidebar.error(f"파일 저장 실패: {str(e)}")
+        return False
+
+# Helper to create new playground file
+def create_playground_file(file_name):
+    if not file_name.endswith('.yml'):
+        file_name += '.yml'
+    file_path = os.path.join(os.path.dirname(__file__), 'playground', file_name)
+    try:
+        if os.path.exists(file_path):
+            st.sidebar.error("이미 존재하는 파일명입니다.")
+            return False
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write("# New Semantic Model\n")
+        return True
+    except Exception as e:
+        st.sidebar.error(f"파일 생성 실패: {str(e)}")
+        return False
+
+# Helper to rename playground file
+def rename_playground_file(old_path, new_filename):
+    if not new_filename.endswith('.yml'):
+        new_filename += '.yml'
+    
+    playground_dir = os.path.dirname(old_path)
+    new_path = os.path.join(playground_dir, new_filename)
+    
+    try:
+        if os.path.exists(new_path):
+            st.sidebar.error("이미 존재하는 파일명입니다.")
+            return False
+        os.rename(old_path, new_path)
+        return True
+    except Exception as e:
+        st.sidebar.error(f"이름 변경 실패: {str(e)}")
+        return False
+
+# Helper to delete playground file
+def delete_playground_file(file_path):
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return True
+        else:
+            st.sidebar.error("파일을 찾을 수 없습니다.")
+            return False
+    except Exception as e:
+        st.sidebar.error(f"파일 삭제 실패: {str(e)}")
+        return False
+
 # Sidebar: File Explorer
 st.sidebar.title("Playground Files")
 playground_dir = os.path.join(os.path.dirname(__file__), 'playground')
+
+# New File UI
+with st.sidebar.expander("➕ 새 파일 만들기", expanded=False):
+    new_filename = st.text_input("파일 이름 (예: model.yml)", key="new_file_name")
+    if st.button("파일 생성", key="create_file_btn"):
+        if new_filename:
+            if create_playground_file(new_filename):
+                st.sidebar.success(f"{new_filename} 파일이 생성되었습니다!")
+                st.rerun()
+        else:
+            st.sidebar.warning("파일 이름을 입력해주세요.")
+
 files = glob.glob(os.path.join(playground_dir, "**/*"), recursive=True)
 
-selected_file = st.sidebar.selectbox("View File", [os.path.relpath(f, playground_dir) for f in files if os.path.isfile(f)])
+selected_file_rel = st.sidebar.selectbox("View File", [os.path.relpath(f, playground_dir) for f in files if os.path.isfile(f)])
 
-if selected_file:
-    file_path = os.path.join(playground_dir, selected_file)
+if selected_file_rel:
+    file_path = os.path.join(playground_dir, selected_file_rel)
+    
+    # 편집 모드 및 삭제 버튼
+    col_edit1, col_edit2 = st.sidebar.columns([1, 1])
+    with col_edit1:
+        edit_mode = st.checkbox("편집 모드", key="edit_mode")
+    with col_edit2:
+        if st.button("🚨 영구 삭제", key="delete_file_btn", use_container_width=True):
+            if delete_playground_file(file_path):
+                st.sidebar.success("삭제됨")
+                st.rerun()
+    
     with open(file_path, 'r', encoding='utf-8') as f:
-        st.sidebar.code(f.read(), language='yaml')
+        file_content = f.read()
+    
+    if edit_mode:
+        # 파일 이름 수정 UI
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("파일 이름 수정")
+        new_file_name_input = st.sidebar.text_input("새 파일 이름:", value=os.path.basename(file_path), key="rename_input")
+        if st.sidebar.button("📝 이름 변경", key="rename_btn"):
+            if new_file_name_input and new_file_name_input != os.path.basename(file_path):
+                if rename_playground_file(file_path, new_file_name_input):
+                    st.sidebar.success("파일 이름이 변경되었습니다!")
+                    st.rerun()
+        
+        st.sidebar.markdown("---")
+        # 편집 가능한 텍스트 영역
+        edited_content = st.sidebar.text_area(
+            "파일 내용 편집:",
+            value=file_content,
+            height=400,
+            key="file_editor"
+        )
+        
+        # 저장 버튼
+        col1, col2 = st.sidebar.columns(2)
+        with col1:
+            if st.button("💾 저장", key="save_file"):
+                if save_playground_file(file_path, edited_content):
+                    st.sidebar.success("파일이 저장되었습니다!")
+                    st.rerun()
+        with col2:
+            if st.button("🔄 되돌리기", key="reset_file"):
+                st.rerun()
+    else:
+        # 읽기 전용 모드
+        st.sidebar.code(file_content, language='yaml')
 
 # Helper to load/save prompt
 PROMPT_FILE = os.path.join(os.path.dirname(__file__), 'system_prompt.txt')

@@ -49,24 +49,23 @@ def edit_file(proposals):
         
         try:
             with open(target_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
+                original_content = f.read()
             
-            # Apply edits using Search & Replace matching
-            # This is safer than line-based editing as it verifies context.
-            
-            full_text = "".join(lines)
+            # Normalize line endings to \n for consistent matching
+            full_text = original_content.replace('\r\n', '\n')
             
             for edit in edits:
-                old_text = edit.get('oldText')
-                new_text = edit.get('newText')
+                old_text = edit.get('oldText', '')
+                new_text = edit.get('newText', '')
                 
-                if old_text is None:
-                    return {"success": False, "error": "Missing oldText for edit."}
+                # Normalize edit texts as well
+                old_text = old_text.replace('\r\n', '\n')
+                new_text = new_text.replace('\r\n', '\n')
 
                 # Check for occurrences
                 count = full_text.count(old_text)
                 if count == 0:
-                     return {"success": False, "error": f"Target content not found: '{old_text[:50]}...'"}
+                     return {"success": False, "error": f"Target content not found. Check indentation and exact characters."}
                 elif count > 1:
                      return {"success": False, "error": f"Target content found {count} times. Please provide more context to make it unique."}
                 
@@ -75,7 +74,7 @@ def edit_file(proposals):
             new_full_text = full_text
 
             # Save the new text directly
-            with open(target_path, 'w', encoding='utf-8') as f:
+            with open(target_path, 'w', encoding='utf-8', newline='\n') as f:
                 f.write(new_full_text)
                 
             # Lint Check (YAML Syntax only)
@@ -94,12 +93,13 @@ def edit_file(proposals):
         except Exception as e:
              return {"success": False, "error": str(e)}
 
-        # Generate Diff (outside try/except, assuming new_full_text is valid if no exception)
-        # However, new_full_text is defined inside try. 
-        # If exception occurs, we returned early. So we are safe here.
+        # Generate Diff
+        original_lines = original_content.replace('\r\n', '\n').splitlines(keepends=True)
+        new_lines = new_full_text.splitlines(keepends=True)
+        
         diff = "".join(difflib.unified_diff(
-            lines, 
-            new_full_text.splitlines(keepends=True),
+            original_lines, 
+            new_lines,
             fromfile=f"a/{path}", 
             tofile=f"b/{path}"
         ))

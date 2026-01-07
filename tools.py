@@ -414,6 +414,15 @@ def convert_smq_to_sql(smq_json: str, manifest_path: str = None, dialect: str = 
         dict: 변환 결과 (success, sql, error 등)
     """
     try:
+        # sqlglot 모듈 확인
+        try:
+            import sqlglot
+        except ImportError:
+            return {
+                "success": False,
+                "error": "sqlglot 모듈이 설치되지 않았습니다. 'pip install sqlglot' 명령으로 설치해주세요."
+            }
+        
         # Import hook을 먼저 로드하고 등록 확인
         import sys
         try:

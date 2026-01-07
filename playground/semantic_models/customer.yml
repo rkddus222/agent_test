@@ -1,0 +1,78 @@
+semantic_models:
+  - name: customer
+    table: test_daquv('customer_info')
+    description: 테이블(customer_info)을 기반으로 한 semantic 모델
+
+    entities:
+      - name: customer
+        type: primary
+        expr: customer_id
+
+    dimensions:
+      - name: customer_id
+        type: varchar
+        label: 고객 고유 ID
+        description: 고객 고유 ID
+      - name: customer_name
+        type: varchar
+        label: 고객명
+        description: 고객명
+      - name: gender
+        type: varchar
+        label: 성별
+        description: 성별 (M/F)
+      - name: customer_grade
+        type: varchar
+        label: 고객 등급
+        description: 고객 등급 (VIP, GOLD, NORMAL 등)
+
+      # 생년월일 관련
+      - name: birth_date
+        type: varchar
+        label: 생년월일
+        description: 생년월일 (YYYYMMDD)
+      - name: birth_year
+        type: varchar
+        label: 출생 연도
+        expr: SUBSTR(birth_date, 1, 4)
+        description: 출생 연도 (YYYY)
+      - name: birth_month
+        type: varchar
+        label: 출생 월
+        expr: SUBSTR(birth_date, 5, 2)
+        description: 출생 월 (MM)
+      - name: age
+        type: integer
+        label: 나이
+        expr: >
+          EXTRACT(YEAR FROM CURRENT_DATE) - CAST(SUBSTR(birth_date, 1, 4) AS INTEGER)
+        description: 현재 기준 나이
+      - name: age_group
+        type: varchar
+        label: 연령대
+        expr: >
+          CASE
+            WHEN EXTRACT(YEAR FROM CURRENT_DATE) - CAST(SUBSTR(birth_date, 1, 4) AS INTEGER) < 20 THEN '10대'
+            WHEN EXTRACT(YEAR FROM CURRENT_DATE) - CAST(SUBSTR(birth_date, 1, 4) AS INTEGER) < 30 THEN '20대'
+            WHEN EXTRACT(YEAR FROM CURRENT_DATE) - CAST(SUBSTR(birth_date, 1, 4) AS INTEGER) < 40 THEN '30대'
+            WHEN EXTRACT(YEAR FROM CURRENT_DATE) - CAST(SUBSTR(birth_date, 1, 4) AS INTEGER) < 50 THEN '40대'
+            WHEN EXTRACT(YEAR FROM CURRENT_DATE) - CAST(SUBSTR(birth_date, 1, 4) AS INTEGER) < 60 THEN '50대'
+            WHEN EXTRACT(YEAR FROM CURRENT_DATE) - CAST(SUBSTR(birth_date, 1, 4) AS INTEGER) < 70 THEN '60대'
+            ELSE '70대 이상'
+          END
+        description: 연령대 (10대, 20대, 30대, 40대, 50대, 60대, 70대 이상)
+
+    measures:
+      - name: customer_count
+        type: integer
+        label: 고객 수
+        description: 고객 수
+        expr: customer_id
+
+metrics:
+  - name: total_customer_count
+    description: 총 고객 수
+    type: integer
+    metric_type: simple
+    label: 총 고객 수
+    expr: COUNT_DISTINCT(customer__customer_count)

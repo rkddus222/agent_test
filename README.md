@@ -25,10 +25,26 @@ pip install -r requirements.txt
 ```
 
 ### 3. API 키 설정
-`.env.example`을 `.env`로 변경하고 키 입력:
+프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 OpenAI API Key를 입력하세요:
+
+**방법 1: .env.example을 복사**
+```bash
+# Windows PowerShell:
+Copy-Item .env.example .env
+
+# Mac/Linux:
+cp .env.example .env
 ```
-OPENAI_API_KEY=sk-xxxx
+
+**방법 2: 직접 생성**
+프로젝트 루트 디렉토리에 `.env` 파일을 만들고 다음 내용을 입력:
 ```
+OPENAI_API_KEY=sk-your-api-key-here
+```
+
+그 다음 `.env` 파일을 열어서 `your-api-key-here` 부분을 실제 OpenAI API Key로 교체하세요.
+
+**중요**: `.env` 파일은 Git에 커밋하지 마세요. 이미 `.gitignore`에 포함되어 있습니다.
 
 ### 4. 실행
 ```bash

@@ -1,0 +1,170 @@
+semantic_models:
+  - name: example
+    table: test_daquv('shop_transaction')
+    description: |
+      쇼핑몰 거래내역 데이터.
+      - 주문, 결제, 취소, 환불 등 트랜잭션 데이터를 포함.
+      - 상품별, 회원별, 일자별 매출 및 거래건수 분석에 사용.
+
+    entities:
+      - name: shop_trsc
+        type: primary
+        expr: order_id
+      - name: customer
+        type: foreign
+        expr: customer_id
+      - name: product
+        type: foreign
+        expr: product_id
+
+    dimensions:
+      - name: trsc_dt
+        type: varchar
+        label: 거래일자
+        expr: trsc_dt
+        description: |
+          거래가 발생한 날짜.(YYYYMMDD)
+          
+      - name: order_id
+        type: varchar
+        label: 주문번호ID
+        expr: order_id
+        description: 주문 고유번호 (주문한 고유 번호)
+
+      - name: customer_id
+        type: varchar
+        label: 고객ID
+        expr: customer_id
+        description: |
+          거래를 발생시킨 고객의 고유 ID.
+          - 고객별 매출/거래 건수 집계 시 group_by 포함
+          - ex) "고객별 구매금액", "회원별 주문수"
+
+      - name: customer_nm
+        type: varchar
+        label: 고객명
+        expr: customer_nm
+        description: 고객 이름 (실명 또는 닉네임)
+
+      - name: product_id
+        type: varchar
+        label: 상품ID
+        expr: product_id
+        description: 상품 고유 식별자
+
+      - name: product_nm
+        type: varchar
+        label: 상품명
+        expr: product_nm
+        description: |
+          주문한 상품명.
+          - "상품별 매출" → group_by 포함
+          - 특정 상품 질의 시 filter: product_nm like '%상품명%'
+
+      - name: category_nm
+        type: varchar
+        label: 카테고리명
+        expr: category_nm
+        description: |
+          상품 카테고리 (예: 패션, 전자, 식품 등)
+          - 카테고리별 분석 시 group_by 포함
+          - ex) "카테고리별 매출", "의류 상품 주문건수"
+
+      - name: pay_method
+        type: varchar
+        label: 결제수단
+        expr: pay_method
+        description: |
+          결제수단 (카드, 계좌이체, 간편결제 등)
+          - 결제수단별 분석 시 group_by 포함
+          - ex) "카드 결제 금액", "간편결제 비중"
+
+      - name: trsc_status
+        type: varchar
+        label: 거래상태
+        expr: trsc_status
+        description: |
+          거래 상태 (결제완료, 취소, 환불 등)
+          - 거래 상태별 집계 시 필터 필요
+          - ex) "취소 건수", "환불 금액"
+        
+      - name: region_nm
+        type: varchar
+        label: 지역명
+        expr: region_nm
+        description: |
+          고객의 지역 (서울, 경기 등)
+          - 지역별 분석 시 group_by 포함
+          - ex) "지역별 매출", "서울 고객 주문수"
+
+      - name: trsc_month
+        type: varchar
+        label: 거래월
+        expr: TO_CHAR(TO_DATE(trsc_dt, 'YYYYMMDD'), 'YYYYMM')
+        description: |
+          거래월(YYYYMM).
+          - 월별 트렌드, 월간 매출 분석 시 group_by 포함
+          - ex) "월별 매출 추이"
+
+    measures:
+      - name: order_amt
+        type: decimal
+        label: 주문금액
+        description: |
+          주문 시 발생한 총 금액.
+          - ex) 상품가격 * 수량
+        expr: order_amt
+
+      - name: refund_amt
+        type: decimal
+        label: 환불금액
+        description: 환불 처리된 금액 합계
+        expr: refund_amt
+
+      - name: quantity
+        type: decimal
+        label: 상품수량
+        description: 거래된 상품 수량 총합
+        expr: quantity
+
+metrics:
+  - name: total_order_amt
+    description: |
+      총 주문금액.
+      - 기본 매출 지표
+      - ex) "이번 달 매출", "상품별 매출"
+    type: decimal
+    metric_type: simple   
+    label: 총주문금액
+    expr: SUM(example__order_amt)
+    
+  - name: total_refund_amt
+    description: |
+      총 환불금액.
+      - 환불 내역 분석 시 사용
+      - ex) "지난달 환불액"
+    type: decimal
+    metric_type: simple
+    label: 총환불금액
+    expr: SUM(example__refund_amt)
+
+  - name: total_order_cnt
+    description: |
+      총 주문 건수.
+      - 주문 건수 관련 질문 시 사용
+      - ex) "이번 달 주문건수"
+    type: integer
+    metric_type: simple
+    label: 총주문건수
+    expr: COUNT(DISTINCT example__order_id)
+
+
+  - name: total_product_cnt
+    description: |
+      총 거래 상품 수량.
+      - 판매된 상품 총 개수
+    type: integer
+    metric_type: simple
+    label: 총상품수량
+    expr: COUNT(DISTINCT example__quantity)
+

@@ -67,7 +67,32 @@ def delete_playground_file(file_path):
 
 # Sidebar: File Explorer
 st.sidebar.title("Playground Files")
-playground_dir = os.path.join(os.path.dirname(__file__), 'playground')
+playground_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'playground'))
+
+# 파싱 기능
+st.sidebar.markdown("---")
+st.sidebar.subheader("🔧 Semantic Model 파싱")
+if st.sidebar.button("📦 Manifest 생성", key="parse_btn", use_container_width=True):
+    from tools import parse_semantic_models
+    with st.sidebar:
+        with st.spinner("Semantic models를 파싱하는 중..."):
+            result = parse_semantic_models(playground_dir)
+            if result.get("success"):
+                st.success("✅ 파싱 완료!")
+                models_count = result.get("semantic_models_count", 0)
+                metrics_count = result.get("metrics_count", 0)
+                st.info(f"📊 {models_count}개 모델, {metrics_count}개 메트릭")
+                manifest_path = result.get("manifest_path", "")
+                if manifest_path:
+                    st.caption(f"📄 {os.path.basename(manifest_path)}")
+            else:
+                error_msg = result.get('error', 'Unknown error')
+                st.error(f"❌ 파싱 실패")
+                st.caption(error_msg)
+                # 상세 에러 정보가 있으면 표시
+                if result.get("traceback"):
+                    with st.expander("상세 에러 정보"):
+                        st.code(result.get("traceback"), language="python")
 
 # New File UI
 with st.sidebar.expander("➕ 새 파일 만들기", expanded=False):
@@ -138,12 +163,14 @@ if selected_file_rel:
 PROMPT_FILE = os.path.join(os.path.dirname(__file__), 'system_prompt.txt')
 
 def load_prompt():
+    """프롬프트를 불러옵니다."""
     if os.path.exists(PROMPT_FILE):
         with open(PROMPT_FILE, 'r', encoding='utf-8') as f:
             return f.read()
     return ""
 
 def save_prompt(content):
+    """프롬프트를 저장합니다."""
     with open(PROMPT_FILE, 'w', encoding='utf-8') as f:
         f.write(content)
 
@@ -152,6 +179,8 @@ tab1, tab2 = st.tabs(["Chat Interface", "Prompt Settings"])
 
 with tab2:
     st.header("System Prompt Editor")
+    
+    # 프롬프트 편집기
     current_prompt = load_prompt()
     new_prompt = st.text_area("Edit the system prompt here:", value=current_prompt, height=400)
     if st.button("Save Prompt"):

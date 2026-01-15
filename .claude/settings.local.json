@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m py_compile:*)",
+      "Bash(python test_smq2sql.py:*)",
+      "Bash(python test_smq2sql_debug.py:*)",
+      "Bash(python:*)",
+      "Bash(del:*)",
+      "Bash(tasklist:*)",
+      "Bash(taskkill:*)",
+      "Bash(find:*)"
+    ]
+  }
+}

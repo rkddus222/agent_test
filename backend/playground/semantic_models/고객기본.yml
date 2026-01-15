@@ -1,0 +1,219 @@
+semantic_models:
+  - name: customer
+    table: kjbank_daquv('wapcu_cusmt_mn')
+    description: 고객번호(cstno)를 기준으로 고객 식별, 상태, 개인/법인 구분 등 고객 단위 분석의 기준이 되는 semantic 모델
+    defaults:
+      agg_time_dimension: base_dt
+    entities:
+      - name: customer
+        type: primary
+        expr: cstno
+    dimensions:
+      - name: base_dt
+        type: varchar
+        expr: base_dt
+        label: 기준일자
+        description: 기준조회일자
+      - name: cstno
+        type: varchar
+        expr: cstno
+        label: 고객번호
+        description: 당행고객별로 채번하여 관리하는 고객의 관리번호
+      - name: com_tx_dt
+        type: varchar
+        expr: com_tx_dt
+        label: 공통거래일자
+        description: 시스템 공통 속성으로 모든 테이블에 등록되는 공통 거래일자
+      - name: cust_stcd
+        type: varchar
+        expr: cust_stcd
+        label: 고객상태코드
+        description: 고객의 상태를 구분하는 코드 00-정상 01-사고신고(과거에 사고신고가 발생했던 고객에게 메시지 처리용으로 사용했으며, 정상고객으로 처리함) 07-대표자미신규(실명제 실시전 고객, 사업자번호만 신규되어진 고객) 09-해지 99-확인필요'
+      - name: tx_cust_yn
+        type: varchar
+        expr: tx_cust_yn
+        label: 거래고객여부
+        description: 거래고객인지, 잠재고객인지의 여부(거래고객인경우 Yes) (Y/N)
+      - name: cust_idvd_crpt_dvcd
+        type: varchar
+        expr: cust_idvd_crpt_dvcd
+        label: 고객개인법인구분코드
+        description: 고객이 개인, 개인사업자, 법인, 법인사업자인지를 구분하는 구분코드
+      - name: cust_rnno_dvcd
+        type: varchar
+        expr: cust_rnno_dvcd
+        label: 고객실명번호구분코드
+        description: 입력된 고객의 실명번호가 주민등록번호, 사업자번호, 법인등록번호, 여권번호 등을 구분하는 구분코드
+      - name: rnno
+        type: varchar
+        expr: rnno
+        label: 실명번호
+        description: 주민등록번호, 사업자번호, 여권번호등 고객의 실명번호
+      - name: cust_kor_nm
+        type: varchar
+        expr: cust_kor_nm
+        label: 고객한글명
+        description: 고객의 한글명
+      - name: cust_ennm
+        type: varchar
+        expr: cust_ennm
+        label: 고객영문명
+        description: 고객의 영문명
+      - name: chtr_cd
+        type: varchar
+        expr: chtr_cd
+        label: 인격코드
+        description: 고객의 인격을 세분화하여 구분하는 코드
+      - name: ntnt_nat_cd
+        type: varchar
+        expr: ntnt_nat_cd
+        label: 국적국가코드
+        description: 고객이 소속된 국가의 구성원으로서의 자격을 갖는 국가의 국가코드
+      - name: rsdn_nat_cd
+        type: varchar
+        expr: rsdn_nat_cd
+        label: 거주지국가코드
+        description: 고객이 거주하는 국가의 국가코드
+      - name: cust_psml_rcpp_dvcd
+        type: varchar
+        expr: cust_psml_rcpp_dvcd
+        label: 고객우편물수령지구분코드
+        description: 고객우편물의 수령지를 구분하는 구분코드
+      - name: cust_new_dt
+        type: varchar
+        expr: cust_new_dt
+        label: 고객신규일자
+        description: 고객신규일자
+      - name: cust_new_brcd
+        type: varchar
+        expr: cust_new_brcd
+        label: 고객신규부점코드
+        description: 고객신규부점코드
+      - name: cust_new_empno
+        type: varchar
+        expr: cust_new_empno
+        label: 고객신규직원번호
+        description: 고객을 신규한 직원의 직원번호
+      - name: exrs_mgmt_brcd
+        type: varchar
+        expr: exrs_mgmt_brcd
+        label: 전담관리부점코드
+        description: 전담 관리하는 관리부점의 부점코드
+      - name: exrs_mgmt_empno
+        type: varchar
+        expr: exrs_mgmt_empno
+        label: 전담관리직원번호
+        description: 전담관리 직원의 직원번호
+      - name: exrs_choic_rscd
+        type: varchar
+        expr: exrs_choic_rscd
+        label: 전담선정사유코드
+        description: 전담으로 선정되어진 사유코드
+      - name: nxtr_exrs_mgmt_brn_stdd
+        type: varchar
+        expr: nxtr_exrs_mgmt_brn_stdd
+        label: 차기전담관리부점시작일자
+        description: 차기 전담관리부점이 선정되어진 경우 유효시작일자
+      - name: nxtr_exrs_mgmt_brcd
+        type: varchar
+        expr: nxtr_exrs_mgmt_brcd
+        label: 차기전담관리부점코드
+        description: 차기 전담관리부점으로 선정되어진 영업점의 부점코드
+      - name: nxtr_exrs_choic_rscd
+        type: varchar
+        expr: nxtr_exrs_choic_rscd
+        label: 차기전담선정사유코드
+        description: 차기 전담으로 선정되어진 사유코드
+      - name: same_cstno
+        type: varchar
+        expr: same_cstno
+        label: 동일고객번호
+        description: 동일한 고객의 고객번호
+      - name: chnl_dtls_clcd
+        type: varchar
+        expr: chnl_dtls_clcd
+        label: 채널세부분류코드
+        description: 채널세부분류코드
+      - name: sgst_cust_cstno
+        type: varchar
+        expr: sgst_cust_cstno
+        label: 권유고객고객번호
+        description: 권유자 고객의 고객번호
+      - name: cust_endp_cd
+        type: varchar
+        expr: cust_endp_cd
+        label: 고객사업부코드
+        description: 고객의 규모 및 성격에 따라 통계 및 영업 활동을 위해 사업부를 구분하는 코드
+      - name: cdd_cnfr_dt
+        type: varchar
+        expr: cdd_cnfr_dt
+        label: CDD확인일자
+        description: AML CDD 목적의 확인일자
+      - name: edd_cnfr_dt
+        type: varchar
+        expr: edd_cnfr_dt
+        label: EDD확인일자
+        description: 강화된 고객 확인제도(EDD)의  확인일자
+      - name: loan_nprql_cd
+        type: varchar
+        expr: loan_nprql_cd
+        label: 대출비적격코드
+        description: 위변조사기자, 부적격보증인 등 대출비적격자에 대한 코드
+      - name: tx_endt
+        type: varchar
+        expr: tx_endt
+        label: 거래종료일자
+        description: 거래종료일자
+      - name: frst_reg_dt
+        type: varchar
+        expr: frst_reg_dt
+        label: 최초등록일자
+        description: 데이터를 최초 등록한 일자
+      - name: frst_reg_time
+        type: varchar
+        expr: frst_reg_time
+        label: 최초등록시각
+        description: 데이터를 최초 등록한 시각
+      - name: frst_reg_brcd
+        type: varchar
+        expr: frst_reg_brcd
+        label: 최초등록부점코드
+        description: 데이터를 최초 등록한 부점코드
+      - name: frst_reg_empno
+        type: varchar
+        expr: frst_reg_empno
+        label: 최초등록직원번호
+        description: 데이터를 최초 등록한 직원의 직원번호
+      - name: last_chng_dt
+        type: varchar
+        expr: last_chng_dt
+        label: 최종변경일자
+        description: 데이터를 최종 변경한 일자
+      - name: last_chng_time
+        type: varchar
+        expr: last_chng_time
+        label: 최종변경시각
+        description: 데이터를 최종 변경한 시각
+      - name: last_chng_brcd
+        type: varchar
+        expr: last_chng_brcd
+        label: 최종변경부점코드
+        description: 데이터를 최종 변경한 부점코드
+      - name: last_chng_empno
+        type: varchar
+        expr: last_chng_empno
+        label: 최종변경직원번호
+        description: 데이터를 최종 변경한 직원의 직원번호
+    measures:
+      - name: cstno_count
+        type: varchar
+        expr: cstno
+        label: 고객관리번호 건수
+        description: 고객 건수 (고객 수 카운트)
+metrics:
+  - name: total_customer_count
+    metric_type: simple
+    type: integer
+    expr: COUNT(DISTINCT customer__cstno_count)
+    label: 총 customer 수
+    description: 총 customer 수(중복 제거)

@@ -1,0 +1,82 @@
+.test-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #f5f5f5;
+  overflow: hidden;
+}
+
+.test-header {
+  padding: 1.5rem;
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.test-header h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  color: #1f2937;
+}
+
+.test-header p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.ws-status {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.status-connected {
+  color: #059669;
+  font-weight: 500;
+}
+
+.status-disconnected {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.test-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1.5rem;
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.test-tab {
+  padding: 0.75rem 1.5rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #6b7280;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.test-tab:hover {
+  color: #3b82f6;
+  background-color: #f9fafb;
+}
+
+.test-tab.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+  background-color: #f9fafb;
+}
+
+.test-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f5f5;
+}
+

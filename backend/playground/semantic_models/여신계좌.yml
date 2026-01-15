@@ -1,0 +1,375 @@
+semantic_models:
+- name: loan
+  table: kjbank_daquv('wailn_d1030_l')
+  description: 대출·여신 계좌의 일별 스냅샷 정보를 관리하며, 기준일자(base_dt) 기준 대출잔액, 한도, 금리 분석에 사용되는 semantic 모델
+  defaults:
+    agg_time_dimension: base_dt
+
+  entities: 
+  - name: loan
+    type: primary
+    expr: acno
+
+  dimensions:
+  - name: base_dt
+    type: varchar
+    label: 기준일자
+    expr: base_dt
+    description: 기준조회일자
+  - name: acno
+    label: 계좌번호
+    type: varchar
+    description: 계좌원장을 갖는 업무별로 계좌에 부여되는 유일한 식별번호
+    expr: acno
+  - name: bs_accd
+    label: BS계정코드
+    type: varchar
+    description: BS계정코드
+    expr: bs_accd
+  - name: cstno
+    label: 고객번호
+    type: varchar
+    description: 거래고객에게 부여하는 유일한 식별번호
+    expr: cstno
+  - name: acco_sbcd
+    label: 계좌과목코드
+    type: varchar
+    description: 대과목코드
+    expr: acco_sbcd
+  - name: aff_cd
+    label: 계열코드
+    type: varchar
+    description: 업체계열사번호
+    expr: aff_cd
+  - name: aff_nm
+    label: 계열명
+    type: varchar
+    description: 계열의 명칭
+    expr: aff_nm
+  - name: sinds_cd
+    label: 표준산업분류코드
+    type: varchar
+    description: 표준산업분류코드
+    expr: sinds_cd
+  - name: lnbz_corp_scal_cd
+    label: 여신기업규모코드
+    type: varchar
+    description: select cvol_cd, cvol_nm from cipcvol
+    expr: lnbz_corp_scal_cd
+  - name: ltly_corp_cred_gd20_cd
+    label: 최근기업신용20등급코드
+    type: varchar
+    description: 기준일자 기준으로 가장 최근 시점의 신용등급을 말한다.
+    expr: ltly_corp_cred_gd20_cd
+  - name: lnbz_new_dvcd
+    label: 여신신규구분코드
+    type: varchar
+    description: 여신 ASS(Application Scoring system) 에서 사용하는 여신상담신청구분코드입니다.
+    expr: lnbz_new_dvcd
+  - name: int_paym_dt
+    label: 이자납부일자
+    type: varchar
+    description: 여신 상품에 대해 이자를 납부한 날짜를 말한다
+    expr: int_paym_dt
+  - name: hq_aprv_yn
+    label: 본부승인여부
+    type: varchar
+    description: 본부에서 승인여부를 관리한다 (Y/N)
+    expr: hq_aprv_yn
+  - name: frst_new_acqs_dt
+    label: 최초신규취득일자
+    type: varchar
+    description: 최초로 신규 취득한 일자를 말한다.
+    expr: frst_new_acqs_dt
+  - name: last_tx_dt
+    label: 최종거래일자
+    type: varchar
+    description: 최종이자원금일자
+    expr: last_tx_dt
+  - name: trst_cmbn_cd
+    label: 신탁합동코드
+    type: varchar
+    description: 은행신탁합동구분코드
+    expr: trst_cmbn_cd
+  - name: lnbz_hndl_frst_appr_empno
+    label: 여신취급최초승인권자직원번호
+    type: varchar
+    description: 여신에 대한 최초 승인권자의 직원번호
+    expr: lnbz_hndl_frst_appr_empno
+  - name: lnbz_hndl_abdr_empno
+    label: 여신취급전결권자직원번호
+    type: varchar
+    description: 여신을 취급하는 전결권자의 직원번호
+    expr: lnbz_hndl_abdr_empno
+  - name: nrom_acco_yn
+    label: 정상계좌여부
+    type: varchar
+    description: 계좌의 정상 여부를 관리 [Y.정상계좌 N.비정상계좌(해지)]
+    expr: nrom_acco_yn
+  - name: curn_cd
+    label: 통화코드
+    type: varchar
+    description: 통화코드
+    expr: curn_cd
+  - name: expr_dt
+    label: 만기일자
+    type: varchar
+    description: 분할금 주기에 따른 상환일자(월중 상환일자)
+    expr: expr_dt
+  - name: pcpl_repay_mtcd
+    label: 원금상환방법코드
+    type: varchar
+    description: 여신대출의 상환방법을 구분하여 처리내역을 관리함
+    expr: pcpl_repay_mtcd
+  - name: gu_corp_cred_gd20_cd
+    label: 구기업신용20등급코드
+    type: varchar
+    description: 보증구분코드
+    expr: gu_corp_cred_gd20_cd
+  - name: lnbz_cpt_usg_div_cd
+    label: 여신자금용도구분코드
+    type: varchar
+    description: 여신에서 대출받기위해 자금용도를 구분용도로 사용
+    expr: lnbz_cpt_usg_div_cd
+  - name: cpt_kind_dvcd
+    label: 자금종류구분코드
+    type: varchar
+    description: 자금종류를 구분하는 코드
+    expr: cpt_kind_dvcd
+  - name: bond_clcd
+    label: 채권분류코드
+    type: varchar
+    description: 채권을 분류하는 코드
+    expr: bond_clcd
+  - name: bnmn_no
+    label: 채권관리번호
+    type: varchar
+    description: 유가증권 매매거래시 채권관리번호
+    expr: bnmn_no
+  - name: limt_tx_yn
+    label: 한도거래여부
+    type: varchar
+    description: 계좌 계약에서 한도 거래 계좌인지 관리하는 속성 (Y/N)
+    expr: limt_tx_yn
+  - name: corp_lnbz_sbcd
+    label: 기업여신과목코드
+    type: varchar
+    description: 기업여신과목코드
+    expr: corp_lnbz_sbcd
+  - name: sgsr_empno1
+    label: 권유자직원번호1
+    type: varchar
+    description: 권유자직원번호
+    expr: sgsr_empno1
+  - name: sof_cd
+    label: 자금원코드
+    type: varchar
+    description: 여신에서 사용하는 이율코드
+    expr: sof_cd
+  - name: lnbz_prgr_cd
+    label: 여신상품군코드
+    type: varchar
+    description: 여신상품군코드
+    expr: lnbz_prgr_cd
+  - name: sgsr_empno2
+    label: 권유자직원번호2
+    type: varchar
+    description: 권유자직원번호
+    expr: sgsr_empno2
+  - name: etc_supr_kncd
+    label: 기타지원종류코드
+    type: varchar
+    description: 대외기관코드
+    expr: etc_supr_kncd
+  - name: lnbz_cnsl_no
+    label: 여신상담번호
+    type: varchar
+    description: 여신상담번호
+    expr: lnbz_cnsl_no
+  - name: cnsl_dt
+    label: 상담일자
+    type: varchar
+    description: 상담일자
+    expr: cnsl_dt
+  - name: mgmt_brcd
+    label: 관리부점코드
+    type: varchar
+    description: 카드에 대한 관리를 위한 부점코드
+    expr: mgmt_brcd
+  - name: kncd_gds_cd
+    label: 상품코드
+    type: varchar
+    description: 상품코드
+    expr: gds_cd
+  - name: gds_dtls_cd
+    label: 상품세부코드
+    type: varchar
+    description: 상품팩토리에서 상품코드의 세부코드로 나누기 위한 코드로 여신의 자금원코드, 수신의 서브상품코드 등의 목적으로 관리
+    expr: gds_dtls_cd
+  - name: cust_idvd_crpt_dvcd
+    label: 고객개인법인구분코드
+    type: varchar
+    description: 고객이 개인, 개인사업자, 법인, 법인사업자인지를 구분하는 구분코드
+    expr: cust_idvd_crpt_dvcd
+  - name: cust_nm
+    label: 고객명
+    type: varchar
+    description: 고객명
+    expr: cust_nm
+  - name: mrtg_cred_dvcd
+    label: 담보신용구분코드
+    type: varchar
+    description: 담보신용구분코드
+    expr: mrtg_cred_dvcd
+  - name: exst_limt_cd
+    label: 기존한도코드
+    type: varchar
+    description: TOBE전환 이전의 ASIS 한도코드를 보관하기 위한 용도로 사용하는 코드이다.(코드 메타 관리 없음)
+    expr: exst_limt_cd
+  - name: exst_hclo_cd
+    label: 기존하이클러스터론코드
+    type: varchar
+    description: TOBE전환 이전의 ASIS 하이클러스터론코드를 보관하기 위한 용도로 사용하는 코드이다.(코드 메타 관리 없음)
+    expr: exst_hclo_cd
+  - name: gu_rt_cd_val
+    label: 구이율코드값
+    type: varchar
+    description: 차세대 시스템 오픈 이후 참고용으로 여신영역의 舊이율코드(iyulcd)를 보관하기 위한 항목이다.
+    expr: gu_rt_cd_val
+    
+  measures:
+  - name: frst_lbam
+    label: 최초여신금액
+    type: integer
+    description: 맨처음 대출 금액
+    expr: frst_lbam
+  - name: rt
+    label: 이율
+    type: integer
+    description: 이율
+    expr: rt
+  - name: limt_amt
+    label: 한도금액
+    type: integer
+    description: 미사용약정(한도)에 대한 충당부채금액을 산출하기 위한 기준금액
+    expr: limt_amt
+  - name: bs_bal
+    label: BS잔액
+    type: integer
+    description: BS잔액
+    expr: bs_bal
+  - name: srce_div_no
+    label: 원천구분번호
+    type: integer
+    description: 요약집계,보고서 데이터 산출 시 원천을 구분하기위한 번호이다.
+    expr: srce_div_no
+  - name: tot_lbam
+    label: 총여신금액
+    type: integer
+    description: 총여신금액
+    expr: tot_lbam
+  - name: tot_lnam
+    label: 총대출금액
+    type: integer
+    description: 총대출금액
+    expr: tot_lnam
+  - name: prcy_bs_bal
+    label: 통화별BS잔액
+    type: integer
+    description: 통화코드별 BS잔액을 말한다.
+    expr: prcy_bs_bal
+  - name: fxccy_hndl_amt
+    label: 외화취급금액
+    type: integer
+    description: 외화를 취급하고 있는 금액
+    expr: fxccy_hndl_amt
+  - name: fxccy_limt_amt
+    label: 외화한도금액
+    type: integer
+    description: 외화 취급 가능한 한도 금액
+    expr: fxccy_limt_amt
+  - name: fxbal
+    label: 외화잔액
+    type: integer
+    description: 외화잔액
+    expr: fxbal
+
+metrics:
+- name: total_loan_account_count
+  description: 총 대출계좌 수(중복 제거)
+  type: integer
+  metric_type: simple
+  label: 총 대출계좌 수
+  expr: COUNT(DISTINCT loan__acno)
+- name: total_frst_lbam
+  description: 총 최초여신금액
+  type: integer
+  metric_type: simple
+  label: 총 최초여신금액
+  expr: SUM(loan__frst_lbam)
+- name: total_rt
+  description: 총 이율
+  type: integer
+  metric_type: simple
+  label: 총 이율
+  expr: SUM(loan__rt)
+- name: avg_rt
+  description: 평균 이율
+  type: integer
+  metric_type: simple
+  label: 평균 이율
+  expr: AVG(loan__rt)
+- name: total_limt_amt
+  description: 총 한도금액
+  type: integer
+  metric_type: simple
+  label: 총 한도금액
+  expr: SUM(loan__limt_amt)
+- name: total_bs_bal_wailn
+  description: 총 BS잔액
+  type: integer
+  metric_type: simple
+  label: 총 BS잔액
+  expr: SUM(loan__bs_bal)
+- name: total_srce_div_no
+  description: 총 원천구분번호
+  type: integer
+  metric_type: simple
+  label: 총 원천구분번호
+  expr: SUM(loan__srce_div_no)
+- name: total_tot_lbam
+  description: 총 총여신금액
+  type: integer
+  metric_type: simple
+  label: 총 총여신금액
+  expr: SUM(loan__tot_lbam)
+- name: total_tot_lnam
+  description: 총 총대출금액
+  type: integer
+  metric_type: simple
+  label: 총 총대출금액
+  expr: SUM(loan__tot_lnam)
+- name: total_prcy_bs_bal
+  description: 총 통화별BS잔액
+  type: integer
+  metric_type: simple
+  label: 총 통화별BS잔액
+  expr: SUM(loan__prcy_bs_bal)
+- name: total_fxccy_hndl_amt
+  description: 총 외화취급금액
+  type: integer
+  metric_type: simple
+  label: 총 외화취급금액
+  expr: SUM(loan__fxccy_hndl_amt)
+- name: total_fxccy_limt_amt
+  description: 총 외화한도금액
+  type: integer
+  metric_type: simple
+  label: 총 외화한도금액
+  expr: SUM(loan__fxccy_limt_amt)
+- name: total_fxbal
+  description: 총 외화잔액
+  type: integer
+  metric_type: simple
+  label: 총 외화잔액
+  expr: SUM(loan__fxbal)

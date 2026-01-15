@@ -1,0 +1,22 @@
+❌
+오류 발생
+SQL 실행 오류: Binder Error: Values list "t1" does not have a column named "goods"
+
+LINE 11:     t1.goods = t2.goods
+             ^
+생성된 SQL / 결과
+SELECT 
+    t1.base_dt AS "기준일: 날짜",
+    CAST(t1.deposit_balance AS DOUBLE) / 100000000 AS "6월 잔액: 원화",
+    CAST(t2.deposit_balance AS DOUBLE) / 100000000 AS "7월 잔액: 원화",
+    (CAST(t2.deposit_balance AS DOUBLE) - CAST(t1.deposit_balance AS DOUBLE)) / 100000000 AS "잔액 증감: 원화"
+FROM 
+    result1 t1
+JOIN 
+    result1 t2
+ON 
+    t1.goods = t2.goods
+WHERE 
+    t1.base_dt = '20250630' 
+    AND t2.base_dt = '20250731'
+    AND t1.goods = '직장인급여통장'

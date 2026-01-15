@@ -1,0 +1,5 @@
+models:
+- name: time_spine_daily
+  columns:
+  - name: date_day
+    granularity: day

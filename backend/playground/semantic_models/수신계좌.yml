@@ -1,0 +1,1369 @@
+semantic_models:
+  - name: deposit
+    table: kjbank_daquv('waidp_d1010_l')
+    description: 요구불예금·보통예금 등 예수금 계좌의 일별 스냅샷 정보를 관리하며, 기준일자(base_dt) 기준 평균잔액, 신규·해지 금액, 금리 분석에 사용되는 semantic 모델
+    defaults:
+      agg_time_dimension: base_dt
+    entities:
+      - name: deposit
+        type: primary
+        expr: acno
+      - name: customer
+        type: foreign
+        expr: cstno
+      - name: branch
+        type: foreign
+        expr: acco_mgmt_brcd
+      - name: gds_cd
+        type: foreign
+        expr: gds_cd
+    dimensions:
+      - name: base_dt
+        type: varchar
+        expr: base_dt
+        label: 기준일자
+        description: 기준조회일자 (YYYYMMDD). 사용자가 월말 기준 데이터를 요청 했을 경우 IN 조건을 활용하여 월말 날짜만 조건으로 걸어야 합니다.
+      - name: acno
+        type: varchar
+        expr: acno
+        label: 계좌번호
+        description: 계좌원장을 갖는 업무별로 계좌에 부여되는 유일한 식별번호. 기본적으로 LIKE '%%' 조건을 활용하여 조회하세요.
+      - name: fxccy_mcurn_acco_yn
+        type: varchar
+        expr: fxccy_mcurn_acco_yn
+        label: 외화다통화계좌여부
+        description: 외화다통화계좌여부 (Y/N)
+      - name: mnus_loan_acco_yn
+        type: varchar
+        expr: mnus_loan_acco_yn
+        label: 마이너스대출계좌여부
+        description: 마이너스대출이 설정된 요구불예금 계좌인지 여부 (Y/N)
+      - name: tx_chnl_dvcd
+        type: varchar
+        expr: tx_chnl_dvcd
+        label: 거래채널구분코드
+        description: 거래채널구분코드
+      - name: dep_acco_stcd
+        type: varchar
+        expr: dep_acco_stcd
+        label: 수신계좌상태코드
+        description: 수신계좌상태코드
+      - name: bchn_dep_acco_stcd
+        type: varchar
+        expr: bchn_dep_acco_stcd
+        label: 변경전수신계좌상태코드
+        description: 변경전수신계좌상태코드
+      - name: cstno
+        type: varchar
+        expr: cstno
+        label: 고객번호
+        description: 거래고객에게 부여하는 유일한 식별번호
+      - name: corp_dprm_no
+        type: varchar
+        expr: corp_dprm_no
+        label: 기업부서번호
+        description: 기업(사업자) 고객의 부서 또는 부문별로 당행에서 부여 되어진 고유한 부서 식별번호
+      - name: odnw_acco_dvcd
+        type: varchar
+        expr: odnw_acco_dvcd
+        label: 신구계좌구분코드
+        description: 신/구계좌번호 구분코드
+      - name: orded_acno
+        type: varchar
+        expr: orded_acno
+        label: 맞춤계좌번호
+        description: 고객이 예금 계좌번호를 편리하게 사용하기 위해 본인의 휴대폰번호,전화번호,생일,기타번호 등으로 계좌번호를 등록하고 이 번호로 거래를 한다. 이렇게 등록된 계좌번호를 맞춤계좌번호라 한다.
+      - name: acco_mgmt_brcd
+        type: varchar
+        expr: acco_mgmt_brcd
+        label: 계좌관리부점코드
+        description: 계좌관리부점코드
+      - name: acco_mgmt_mth_brcd
+        type: varchar
+        expr: acco_mgmt_mth_brcd
+        label: 계좌관리모부점코드
+        description: 계좌를 관리하는 부점의 모점코드를 나타낸다.
+      - name: cust_idvd_crpt_dvcd
+        type: varchar
+        expr: cust_idvd_crpt_dvcd
+        label: 고객개인법인구분코드
+        description: 고객이 개인, 개인사업자, 법인, 법인사업자인지를 구분하는 구분코드
+      - name: acco_antt_brcd
+        type: varchar
+        expr: acco_antt_brcd
+        label: 계좌계정처리부점코드
+        description: 계좌계정처리부점코드
+      - name: new_mgmt_brcd
+        type: varchar
+        expr: new_mgmt_brcd
+        label: 신규관리부점코드
+        description: 신규관리부점코드
+      - name: new_tx_brcd
+        type: varchar
+        expr: new_tx_brcd
+        label: 신규거래부점코드
+        description: 신규거래부점코드
+      - name: curn_cd
+        type: varchar
+        expr: curn_cd
+        label: 통화코드
+        description: 통화코드
+      - name: acco_sbcd
+        type: varchar
+        expr: acco_sbcd
+        label: 계좌과목코드
+        description: 계좌 과목에 해당되는 코드
+      - name: gds_cd
+        type: varchar
+        expr: gds_cd
+        label: 상품코드
+        description: 상품코드
+      - name: gds_dtls_cd
+        type: varchar
+        expr: gds_dtls_cd
+        label: 상품세부코드
+        description: 상품팩토리에서 상품코드의 세부코드로 나누기 위한 코드로 여신의 자금원코드, 수신의 서브상품코드 등의 목적으로 관리
+      - name: gds_brnd_cd
+        type: varchar
+        expr: gds_brnd_cd
+        label: 상품브랜드코드
+        description: 광주은행 전체의 상품에 대하여 상품별 브랜드를 식별하기 위하여 부여한 코드이며, 상품업무유형코드(2)+일련번호(5)의 형태로 채번
+      - name: bank_trst_cmbn_dvcd
+        type: varchar
+        expr: bank_trst_cmbn_dvcd
+        label: 은행신탁합동구분코드
+        description: 은행신탁합동구분코드
+      - name: dep_gds_bzwk_dvcd
+        type: varchar
+        expr: dep_gds_bzwk_dvcd
+        label: 수신상품업무구분코드
+        description: 수신상품업무구분코드
+      - name: dep_gds_ledgr_mgmt_cd
+        type: varchar
+        expr: dep_gds_ledgr_mgmt_cd
+        label: 수신상품원장관리코드
+        description: 수신선처리시 상품별로 관련정보를 가지기 위한 코드
+      - name: pnsn_acco_yn
+        type: varchar
+        expr: pnsn_acco_yn
+        label: 연금계좌여부
+        description: 연금계좌여부 (Y/N)
+      - name: accd
+        type: varchar
+        expr: accd
+        label: 계정코드
+        description: BS상의 계정코드
+      - name: lnbz_bs_accd
+        type: varchar
+        expr: lnbz_bs_accd
+        label: 여신BS계정코드
+        description: 여신계정코드
+      - name: intg_accd
+        type: varchar
+        expr: intg_accd
+        label: 통합계정코드
+        description: 통합계정코드
+      - name: fxmn_acnt_dvcd
+        type: varchar
+        expr: fxmn_acnt_dvcd
+        label: 외화예금계정구분코드
+        description: 외화예금계정구분코드
+      - name: pbmn_mndp_rt_dvcd
+        type: varchar
+        expr: pbmn_mndp_rt_dvcd
+        label: 공금예금이율구분코드
+        description: 공금예금이율구분코드
+      - name: prfr_rt_aply_yn
+        type: varchar
+        expr: prfr_rt_aply_yn
+        label: 우대이율적용여부
+        description: 우대이율적용여부 (Y/N)
+      - name: new_dt
+        type: varchar
+        expr: new_dt
+        label: 신규일자
+        description: 카드 신규일자
+      - name: new_time
+        type: varchar
+        expr: new_time
+        label: 신규시각
+        description: 신규시각
+      - name: new_tx_dt
+        type: varchar
+        expr: new_tx_dt
+        label: 신규거래일자
+        description: 신규거래일자
+      - name: new_tx_time
+        type: varchar
+        expr: new_tx_time
+        label: 신규거래시각
+        description: 신규거래시각
+      - name: cls_dt
+        type: varchar
+        expr: cls_dt
+        label: 해지일자
+        description: 카드해지일자
+      - name: txtn_dvcd
+        type: varchar
+        expr: txtn_dvcd
+        label: 과세구분코드
+        description: 과세구분코드
+      - name: lvtp_dvcd
+        type: varchar
+        expr: lvtp_dvcd
+        label: 생계형구분코드
+        description: 생계형구분코드
+      - name: taxp_svng_gds_cd
+        type: varchar
+        expr: taxp_svng_gds_cd
+        label: 세금우대저축상품코드
+        description: 세금우대저축상품코드
+      - name: loan_setp_yn
+        type: varchar
+        expr: loan_setp_yn
+        label: 대출설정여부
+        description: 대출설정여부 (Y/N)
+      - name: vlac_dvcd
+        type: varchar
+        expr: vlac_dvcd
+        label: 임의단체구분코드
+        description: 임의단체여부
+      - name: pub_mndp_cd
+        type: varchar
+        expr: pub_mndp_cd
+        label: 공공예금코드
+        description: 공공예금코드
+      - name: last_trrc_dt
+        type: varchar
+        expr: last_trrc_dt
+        label: 최종거래기록일자
+        description: 최종거래기록일자
+      - name: last_tx_dt
+        type: varchar
+        expr: last_tx_dt
+        label: 최종거래일자
+        description: 최종이자원금일자
+      - name: obrn_tx_dt
+        type: varchar
+        expr: obrn_tx_dt
+        label: 타점거래일자
+        description: 타점거래일자
+      - name: last_int_calc_dt
+        type: varchar
+        expr: last_int_calc_dt
+        label: 최종이자계산일자
+        description: 최종 이자계산을 한일자(마이너스가발생한 일자로 갱신됨)
+      - name: last_int_prvs_dt
+        type: varchar
+        expr: last_int_prvs_dt
+        label: 최종이자지급일자
+        description: 최종이자지급일자
+      - name: mact_enrl_dt
+        type: varchar
+        expr: mact_enrl_dt
+        label: 잡좌편입일자. 잡수입계좌.
+        description: 잡좌편입일자
+      - name: pb_ctfc_dvcd
+        type: varchar
+        expr: pb_ctfc_dvcd
+        label: 통장증서구분코드
+        description: 통장증서구분코드
+      - name: pb_dvcd
+        type: varchar
+        expr: pb_dvcd
+        label: 통장구분코드
+        description: 통장구분코드
+      - name: dep_fxccy_resi_dvcd
+        type: varchar
+        expr: dep_fxccy_resi_dvcd
+        label: 수신외화거주구분코드
+        description: 수신외화거주구분코드
+      - name: fxmn_open_prps_dvcd
+        type: varchar
+        expr: fxmn_open_prps_dvcd
+        label: 외화예금개설목적구분코드
+        description: 외화예금계좌 개설목적 구분코드
+      - name: tuc_yn
+        type: varchar
+        expr: tuc_yn
+        label: 이수관여부
+        description: 이수관여부 (Y/N)
+      - name: remit_fee_exmpt_dvcd
+        type: varchar
+        expr: remit_fee_exmpt_dvcd
+        label: 송금수수료면제구분코드
+        description: 송금수수료면제구분코드
+      - name: insr_excp_cd
+        type: varchar
+        expr: insr_excp_cd
+        label: 부보제외코드
+        description: 부보제외코드
+      - name: tlntf_aply_trgt_yn
+        type: varchar
+        expr: tlntf_aply_trgt_yn
+        label: 국고단수법적용대상여부
+        description: 국가의 세입(세금 등)으로 납입된 현금이나 현금과 동등한 자산을 효율적으로 관리하기 위해 적용되는 법률 및 관련 규정. 이자 10원미만 절사 (Y/N)
+      - name: new_tlrno
+        type: varchar
+        expr: new_tlrno
+        label: 신규텔러번호
+        description: 신규텔러번호
+      - name: sgst_brcd
+        type: varchar
+        expr: sgst_brcd
+        label: 권유부점코드
+        description: 권유부점코드
+      - name: sgsr_empno1
+        type: varchar
+        expr: sgsr_empno1
+        label: 권유자직원번호1
+        description: 권유자직원번호
+      - name: sgsr_empno2
+        type: varchar
+        expr: sgsr_empno2
+        label: 권유자직원번호2
+        description: 권유자직원번호
+      - name: emp_acco_yn
+        type: varchar
+        expr: emp_acco_yn
+        label: 직원계좌여부
+        description: 직원계좌여부 (Y/N)
+      - name: bizu_acco_yn
+        type: varchar
+        expr: bizu_acco_yn
+        label: 사업용계좌여부
+        description: 사업용계좌 여부 (Y/N)
+      - name: busi_cstno
+        type: varchar
+        expr: busi_cstno
+        label: 사업자고객번호
+        description: 사업자번호에 해당하는 고객번호
+      - name: bisno
+        type: varchar
+        expr: bisno
+        label: 사업자등록번호
+        description: 사업자등록번호
+      - name: corp_scal_cd
+        type: varchar
+        expr: corp_scal_cd
+        label: 기업규모코드
+        description: 금융결제원이 국내 은행을 식별하기 위해 부여하는 고유 식별 번호. select cvol_cd, cvol_nm from cipcvol
+      - name: auto_redp_yn
+        type: varchar
+        expr: auto_redp_yn
+        label: 자동재예치여부
+        description: 자동재예치여부 (Y/N)
+      - name: gds_sprd_cd
+        type: varchar
+        expr: gds_sprd_cd
+        label: 상품스프레드코드
+        description: 상품스프레드코드
+      - name: endp_sprd_cd
+        type: varchar
+        expr: endp_sprd_cd
+        label: 사업부스프레드코드
+        description: 사업부스프레드코드
+      - name: secu_acco_dvcd
+        type: varchar
+        expr: secu_acco_dvcd
+        label: 보안계좌구분코드
+        description: 보안계좌구분코드
+      - name: iqry_rstrc_acco_reg_dvcd
+        type: varchar
+        expr: iqry_rstrc_acco_reg_dvcd
+        label: 조회제한계좌등록구분코드
+        description: 조회제한계좌등록구분코드
+      - name: fntr_noti_dvcd
+        type: varchar
+        expr: fntr_noti_dvcd
+        label: 금융거래통지구분코드
+        description: 금융거래통지구분코드
+      - name: sfdep_yn
+        type: varchar
+        expr: sfdep_yn
+        label: 보호예수여부
+        description: 보호예수여부 (Y/N)
+      - name: bchn_mgmt_brcd
+        type: varchar
+        expr: bchn_mgmt_brcd
+        label: 변경전관리부점코드
+        description: 변경전관리부점코드
+      - name: brn_chng_rscd
+        type: varchar
+        expr: brn_chng_rscd
+        label: 부점변경사유코드
+        description: 부점변경사유코드
+      - name: acco_bkkp_yn
+        type: varchar
+        expr: acco_bkkp_yn
+        label: 계좌부기여부
+        description: 계좌부기여부 (Y/N)
+      - name: acco_bkkp_nm
+        type: varchar
+        expr: acco_bkkp_nm
+        label: 계좌부기명
+        description: 계좌부기명
+      - name: tx_cust_yn
+        type: varchar
+        expr: tx_cust_yn
+        label: 거래고객여부 (Y/N)
+        description: 당행의 금융거래가 가능한 고객인지의 여부
+      - name: cust_kor_nm
+        type: varchar
+        expr: cust_kor_nm
+        label: 고객한글명
+        description: 고객한글명
+      - name: chtr_cd
+        type: varchar
+        expr: chtr_cd
+        label: 인격코드
+        description: 금융기관 및 공공기관을 식별하기 위해 부여되는 고유 코드 체계
+      - name: cust_endp_cd
+        type: varchar
+        expr: cust_endp_cd
+        label: 고객사업부코드
+        description: 고객의 규모 및 성격에 따라 통계 및 영업 활동을 위해 사업부를 구분하는 코드
+      - name: same_cstno
+        type: varchar
+        expr: same_cstno
+        label: 동일고객번호
+        description: 동일한 고객의 고객번호
+      - name: slry_trsf_acco_yn
+        type: varchar
+        expr: slry_trsf_acco_yn
+        label: 급여이체계좌여부
+        description: 급여이체계좌여부 (Y/N)
+      - name: slry_dd
+        type: varchar
+        expr: slry_dd
+        label: 급여일
+        description: 급여계좌등록여부/급여일자
+      - name: nego_dvcd
+        type: varchar
+        expr: nego_dvcd
+        label: 네고구분코드
+        description: 요구불 기업자유MMDA계좌중 네고이율을 적용하는 계좌를 구분하기위한 코드
+      - name: expr_dt
+        type: varchar
+        expr: expr_dt
+        label: 만기일자
+        description: 분할금 주기에 따른 상환일자(월중 상환일자)
+      - name: frst_expr_dt
+        type: varchar
+        expr: frst_expr_dt
+        label: 최초만기일자
+        description: 최초만기일자
+      - name: nxtr_pymn_dt
+        type: varchar
+        expr: nxtr_pymn_dt
+        label: 차기불입일자.
+        description: 차기불입일자. 이번 거래의 납입이 끝난 후, 다음 번 언제 돈을 입금해야 하는지를 정하는 날짜
+      - name: nxtr_int_prvs_sche_dt
+        type: varchar
+        expr: nxtr_int_prvs_sche_dt
+        label: 차기이자지급예정일자
+        description: 차기이자지급예정일자
+      - name: mrtg_ofr_yn
+        type: varchar
+        expr: mrtg_ofr_yn
+        label: 담보제공여부
+        description: 담보신용구분코드 (Y/N)
+      - name: bond_nth_nm
+        type: varchar
+        expr: bond_nth_nm
+        label: 채권회차명
+        description: 채권회차명
+      - name: issu_dt
+        type: varchar
+        expr: issu_dt
+        label: 발행일자
+        description: 발행일자
+      - name: bkdbt_kncd
+        type: varchar
+        expr: bkdbt_kncd
+        label: 금융채종류코드
+        description: 금융채의 종류(복리채,이표채, 할인채 등)
+      - name: pbin_spsh_noti_dvcd
+        type: varchar
+        expr: pbin_spsh_noti_dvcd
+        label: 공익후원통지구분코드
+        description: 공익후원통지구분코드
+      - name: infl_cpt_dvcd
+        type: varchar
+        expr: infl_cpt_dvcd
+        label: 유입자금구분코드
+        description: 신규유입, 타예금
+      - name: infl_cpt_dtl_dvcd
+        type: varchar
+        expr: infl_cpt_dtl_dvcd
+        label: 유입자금상세구분코드
+        description: 만기로인한 재가입, 중도해지후 재가입, 요구불예금으로 이동으로 인한 재가입, 전액신규, 일부 유입
+      - name: dep_gds_gpcd
+        type: varchar
+        expr: dep_gds_gpcd
+        label: 수신상품그룹코드
+        description: 수신상품그룹코드
+      - name: dep_bzwk_dvcd
+        type: varchar
+        expr: dep_bzwk_dvcd
+        label: 수신업무구분코드
+        description: 수신상품을 요구불, 거치식, 적립식으로 분류한 코드
+      - name: fund_svng_kncd
+        type: varchar
+        expr: fund_svng_kncd
+        label: 펀드저축종류코드
+        description: 펀드상품이 거치식, 적립식, 임의식인지를 구분하는 코드
+      - name: fund_snpr_gds_intr_cd
+        type: varchar
+        expr: fund_snpr_gds_intr_cd
+        label: 펀드기준가상품금리코드
+        description: 펀드 기준가를 관리하는 금리팩토리의 금리코드
+      - name: fund_gds_tycd
+        type: varchar
+        expr: fund_gds_tycd
+        label: 펀드상품유형코드
+        description: 펀드상품 유형코드
+      - name: fund_gds_kncd
+        type: varchar
+        expr: fund_gds_kncd
+        label: 펀드상품종류코드
+        description: 펀드 상품종류를 구분하는 코드
+      - name: dep_instl_tycd
+        type: varchar
+        expr: dep_instl_tycd
+        label: 수신적립유형코드
+        description: 적립식 수신상품의 적립방법(주기,금액) 유형코드
+      - name: instl_dvcd
+        type: varchar
+        expr: instl_dvcd
+        label: 적립구분코드
+        description: 적립구분코드
+      - name: acng_dvcd
+        type: varchar
+        expr: acng_dvcd
+        label: 회계구분코드
+        description: 회계구분코드
+      - name: old_sbcd
+        type: varchar
+        expr: old_sbcd
+        label: 구과목코드
+        description: as-is의 수신상품(과목코드)을 관리하기 위한 코드
+      - name: dep_gds_grp_ftr_cd
+        type: varchar
+        expr: dep_gds_grp_ftr_cd
+        label: 수신상품과목특성코드
+        description: 수신상품과목특성코드
+      - name: trm_dvcd
+        type: varchar
+        expr: trm_dvcd
+        label: 기간구분코드
+        description: 기간구분코드
+      - name: scfc_tcfnd_mnin_aset_cd1
+        type: varchar
+        expr: scfc_tcfnd_mnin_aset_cd1
+        label: 특정금전신탁운용자산코드1
+        description: 특정_금전신탁_운용_자산코드
+      - name: scfc_tcfnd_mnin_aset_cd2
+        type: varchar
+        expr: scfc_tcfnd_mnin_aset_cd2
+        label: 특정금전신탁운용자산코드2
+        description: 특정_금전신탁_운용_자산코드
+      - name: scfc_tcfnd_mnin_aset_cd3
+        type: varchar
+        expr: scfc_tcfnd_mnin_aset_cd3
+        label: 특정금전신탁운용자산코드3
+        description: 특정_금전신탁_운용_자산코드
+      - name: safe_kncd
+        type: varchar
+        expr: safe_kncd
+        label: 금고종류코드
+        description: 금고종류코드
+      - name: acng_yr
+        type: varchar
+        expr: acng_yr
+        label: 회계년도
+        description: 회계년도
+      - name: safe_acng_dvcd
+        type: varchar
+        expr: safe_acng_dvcd
+        label: 금고회계구분코드
+        description: 금고회계구분코드
+      - name: safe_acng_kncd
+        type: varchar
+        expr: safe_acng_kncd
+        label: 금고회계종류코드
+        description: 금고의 회계종류를 구분하는코드
+      - name: rcvg_atcl_cd
+        type: varchar
+        expr: rcvg_atcl_cd
+        label: 징수관코드
+        description: '1'
+      - name: add_intr_aprv_dvcd
+        type: varchar
+        expr: add_intr_aprv_dvcd
+        label: 가산금리승인구분코드
+        description: 금리 가산 요청에 대한 금리승인 주체(본부, 영업점)를 구분하는 코드이다.
+      - name: int_prvs_kncd
+        type: varchar
+        expr: int_prvs_kncd
+        label: 이자지급종류코드
+        description: 이자지급종류코드
+    measures:
+      - name: aply_rt
+        type: integer
+        expr: aply_rt
+        label: 적용이율
+        description: 업무팀 결산작업시 적용된 이율
+      - name: pref_rt
+        type: integer
+        expr: pref_rt
+        label: 실효이율
+        description: 실효이율
+      - name: new_mnrc_amt
+        type: integer
+        expr: new_mnrc_amt
+        label: 신규입금금액
+        description: 신규입금금액
+      - name: cls_pcpl
+        type: integer
+        expr: cls_pcpl
+        label: 해지원금
+        description: 해지원금
+      - name: cls_int
+        type: integer
+        expr: cls_int
+        label: 해지이자
+        description: 해지이자
+      - name: cls_txam
+        type: integer
+        expr: cls_txam
+        label: 해지세액
+        description: 해지세액
+      - name: tax_prfr_amt
+        type: integer
+        expr: tax_prfr_amt
+        label: 세금우대금액
+        description: 세금우대금액
+      - name: info_ccnt
+        type: integer
+        expr: info_ccnt
+        label: 정보건수
+        description: 정보건수
+      - name: prvs_stop_ccnt
+        type: integer
+        expr: prvs_stop_ccnt
+        label: 지급정지건수
+        description: 지급정지건수
+      - name: prvs_stop_amt
+        type: integer
+        expr: prvs_stop_amt
+        label: 지급정지금액
+        description: 지급정지금액
+      - name: tx_stop_ccnt
+        type: integer
+        expr: tx_stop_ccnt
+        label: 거래정지건수
+        description: 거래정지건수
+      - name: card_setp_ccnt
+        type: integer
+        expr: card_setp_ccnt
+        label: 카드설정건수
+        description: 카드설정건수
+      - name: atrsf_setp_ccnt
+        type: integer
+        expr: atrsf_setp_ccnt
+        label: 자동이체설정건수
+        description: 자동이체설정건수
+      - name: sgsr_rate
+        type: integer
+        expr: sgsr_rate
+        label: 권유자비율
+        description: 권유자비율
+      - name: ftp_aply_rt
+        type: integer
+        expr: ftp_aply_rt
+        label: FTP적용이율
+        description: FTP적용이율
+      - name: gds_sprd_intr
+        type: integer
+        expr: gds_sprd_intr
+        label: 상품스프레드금리
+        description: 상품스프레드금리
+      - name: endp_sprd_intr
+        type: integer
+        expr: endp_sprd_intr
+        label: 사업부스프레드금리
+        description: 사업부스프레드금리
+      - name: cntr_mcnt
+        type: integer
+        expr: cntr_mcnt
+        label: 계약개월수
+        description: 계약개월수
+      - name: cntr_days
+        type: integer
+        expr: cntr_days
+        label: 계약일수
+        description: 계약일수
+      - name: ftmp_dsam
+        type: integer
+        expr: ftmp_dsam
+        label: 정기성예치금액
+        description: 정기성예치금액
+      - name: prvs_splm_amt
+        type: integer
+        expr: prvs_splm_amt
+        label: 지급보충금액
+        description: 예상되는 이자 지급금액
+      - name: cntr_amt
+        type: integer
+        expr: cntr_amt
+        label: 계약금액
+        description: 계약금액
+      - name: frst_dpsy_amt
+        type: integer
+        expr: frst_dpsy_amt
+        label: 최초예치금액
+        description: 최초예치금액
+      - name: ftmp_prtl_prvs_tmcnt
+        type: integer
+        expr: ftmp_prtl_prvs_tmcnt
+        label: 정기성일부지급횟수
+        description: 정기성일부지급횟수
+      - name: ti1_int_prvs_amt
+        type: integer
+        expr: ti1_int_prvs_amt
+        label: 1회이자지급금액
+        description: 1회이자지급금액
+      - name: int_prvs_cycl_mcnt
+        type: integer
+        expr: int_prvs_cycl_mcnt
+        label: 이자지급주기개월수
+        description: 이자지급주기개월수
+      - name: int_prvs_tmcnt
+        type: integer
+        expr: int_prvs_tmcnt
+        label: 이자지급횟수
+        description: 이자지급횟수
+      - name: dep_intr_rttn_cycl_mcnt
+        type: integer
+        expr: dep_intr_rttn_cycl_mcnt
+        label: 수신금리회전주기개월수
+        description: 금리회전식 수신상품인 경우 금리회전 단위 개월수
+      - name: mm_instl_amt
+        type: integer
+        expr: mm_instl_amt
+        label: 월적립금액
+        description: 월적립금액
+      - name: instl_cycl_mcnt
+        type: integer
+        expr: instl_cycl_mcnt
+        label: 적립주기개월수
+        description: 적립주기개월수
+      - name: instl_tmcnt
+        type: integer
+        expr: instl_tmcnt
+        label: 적립횟수
+        description: 적립횟수
+      - name: dep_rlov_tmcnt
+        type: integer
+        expr: dep_rlov_tmcnt
+        label: 수신만기연장횟수
+        description: 수신만기연장횟수
+      - name: extns_mcnt
+        type: integer
+        expr: extns_mcnt
+        label: 연장개월수
+        description: 연장개월수
+      - name: spcl_int
+        type: integer
+        expr: spcl_int
+        label: 특별이자
+        description: 특별이자
+      - name: sale_amt
+        type: integer
+        expr: sale_amt
+        label: 매출금액
+        description: 매출금액
+      - name: expr_repay_amt
+        type: integer
+        expr: expr_repay_amt
+        label: 만기상환금액
+        description: 만기상환금액
+      - name: prsal_trm_dsf
+        type: integer
+        expr: prsal_trm_dsf
+        label: 선매출기간할인료
+        description: 선매출이 발생한 경우 할인된 금액
+      - name: trst_pymn_pcpl
+        type: integer
+        expr: trst_pymn_pcpl
+        label: 신탁불입원금
+        description: 신탁불입원금
+      - name: ntst_stck_cnt
+        type: integer
+        expr: ntst_stck_cnt
+        label: 국민주주식수
+        description: 국민주주식수
+      - name: csrrt
+        type: integer
+        expr: csrrt
+        label: 지급준비율
+        description: 지급준비율
+      - name: pnsn_prvs_yrcn
+        type: integer
+        expr: pnsn_prvs_yrcn
+        label: 연금지급년수
+        description: 연금지급년수
+      - name: pnsn_prvs_mcnt
+        type: integer
+        expr: pnsn_prvs_mcnt
+        label: 연금지급개월수
+        description: 연금지급개월수
+      - name: pnsn_prvs_cycl_mcnt
+        type: integer
+        expr: pnsn_prvs_cycl_mcnt
+        label: 연금지급주기개월수
+        description: 연금지급식 상품의 연금지급주기 개월수
+      - name: evmm_qtr_pnsn_prvs_amt
+        type: integer
+        expr: evmm_qtr_pnsn_prvs_amt
+        label: 매월분기연금지급금액
+        description: 매월분기연금지급금액
+      - name: acco_bal
+        type: integer
+        expr: acco_bal
+        label: 계좌잔액
+        description: 계좌잔액
+      - name: bs_bal
+        type: integer
+        expr: bs_bal
+        label: BS잔액
+        description: BS잔액
+      - name: avail_bal
+        type: integer
+        expr: avail_bal
+        label: 가용잔액
+        description: 수신 지급가능 잔액
+      - name: cls_bal
+        type: integer
+        expr: cls_bal
+        label: 해지잔액
+        description: 해지잔액
+      - name: wcuc_bal
+        type: integer
+        expr: wcuc_bal
+        label: 원화환산잔액
+        description: 원화로 환산한 잔액
+      - name: usd_unch_bal
+        type: integer
+        expr: usd_unch_bal
+        label: 미화환산잔액
+        description: 미화환산잔액
+      - name: prvs_int
+        type: integer
+        expr: prvs_int
+        label: 지급이자
+        description: 지급이자
+      - name: eval_amt
+        type: integer
+        expr: eval_amt
+        label: 평가금액
+        description: 평가금액
+      - name: remn_annt
+        type: integer
+        expr: remn_annt
+        label: 잔존좌수
+        description: 잔존좌수
+      - name: yield
+        type: integer
+        expr: yield
+        label: 수익률
+        description: 수익률
+      - name: add_intr
+        type: integer
+        expr: add_intr
+        label: 가산금리
+        description: 당좌대출의 가산금리
+      - name: bs_acmbal
+        type: integer
+        expr: bs_acmbal
+        label: BS적수
+        description: BS적수
+      - name: bs_avgbal
+        type: integer
+        expr: bs_avgbal
+        label: BS평잔
+        description: BS 평잔 금액을 관리
+      - name: qtr_bs_acmbal
+        type: integer
+        expr: qtr_bs_acmbal
+        label: 분기BS적수
+        description: 분기BS적수
+      - name: qtr_bs_avgbal
+        type: integer
+        expr: qtr_bs_avgbal
+        label: 분기BS평잔
+        description: 분기 BS 평잔 금액
+      - name: hft_bs_acmbal
+        type: integer
+        expr: hft_bs_acmbal
+        label: 반기BS적수
+        description: 당년도 반기말일자 BS적수를 나타낸다.
+      - name: hft_bs_avgbal
+        type: integer
+        expr: hft_bs_avgbal
+        label: 반기BS평잔
+        description: 당년도 반기말일자 BS평잔을 나타낸다.
+      - name: mdpr_bs_acmbal
+        type: integer
+        expr: mdpr_bs_acmbal
+        label: 기중BS적수
+        description: 기중(1월1일~해당말일) BS 적수 금액 관리
+      - name: mdpr_bs_avgbal
+        type: integer
+        expr: mdpr_bs_avgbal
+        label: 기중BS평잔
+        description: 기중(1월1일~해당말일) BS 평잔 금액 관리
+      - name: tot_dep_amt
+        type: integer
+        expr: tot_dep_amt
+        label: 총수신금액
+        description: 총수신금액
+      - name: cor_mndp_amt
+        type: integer
+        expr: cor_mndp_amt
+        label: 핵심예금금액
+        description: 은행의 과거 1년간의 요구불성예금의 월중평잔을 기간가중하여 연간 평잔및 표준편차를 산출한 후 최근월 평잔에서 연간 표준편차의 2.33배를 차감하여 산출한다
+metrics:
+  - name: total_account_count
+    metric_type: simple
+    type: integer
+    expr: COUNT(DISTINCT deposit__acno)
+    label: 총 계좌 수
+    description: 총 계좌 수(중복 제거)
+  - name: total_aply_rt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__aply_rt)
+    label: 총 적용이율
+    description: 총 적용이율
+  - name: avg_aply_rt
+    metric_type: simple
+    type: integer
+    expr: AVG(deposit__aply_rt)
+    label: 평균 적용이율
+    description: 평균 적용이율
+  - name: total_pref_rt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__pref_rt)
+    label: 총 실효이율
+    description: 총 실효이율
+  - name: avg_pref_rt
+    metric_type: simple
+    type: integer
+    expr: AVG(deposit__pref_rt)
+    label: 평균 실효이율
+    description: 평균 실효이율
+  - name: total_new_mnrc_amt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__new_mnrc_amt)
+    label: 총 신규입금금액
+    description: 총 신규입금금액
+  - name: total_cls_pcpl
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__cls_pcpl)
+    label: 총 해지원금
+    description: 총 해지원금
+  - name: total_cls_int
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__cls_int)
+    label: 총 해지이자
+    description: 총 해지이자
+  - name: total_cls_txam
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__cls_txam)
+    label: 총 해지세액
+    description: 총 해지세액
+  - name: total_tax_prfr_amt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__tax_prfr_amt)
+    label: 총 세금우대금액
+    description: 총 세금우대금액
+  - name: total_info_ccnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__info_ccnt)
+    label: 총 정보건수
+    description: 총 정보건수
+  - name: total_prvs_stop_ccnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__prvs_stop_ccnt)
+    label: 총 지급정지건수
+    description: 총 지급정지건수
+  - name: total_prvs_stop_amt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__prvs_stop_amt)
+    label: 총 지급정지금액
+    description: 총 지급정지금액
+  - name: total_tx_stop_ccnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__tx_stop_ccnt)
+    label: 총 거래정지건수
+    description: 총 거래정지건수
+  - name: total_card_setp_ccnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__card_setp_ccnt)
+    label: 총 카드설정건수
+    description: 총 카드설정건수
+  - name: total_atrsf_setp_ccnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__atrsf_setp_ccnt)
+    label: 총 자동이체설정건수
+    description: 총 자동이체설정건수
+  - name: total_sgsr_rate
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__sgsr_rate)
+    label: 총 권유자비율
+    description: 총 권유자비율
+  - name: avg_sgsr_rate
+    metric_type: simple
+    type: integer
+    expr: AVG(deposit__sgsr_rate)
+    label: 평균 권유자비율
+    description: 평균 권유자비율
+  - name: total_ftp_aply_rt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__ftp_aply_rt)
+    label: 총 FTP적용이율
+    description: 총 FTP적용이율
+  - name: avg_ftp_aply_rt
+    metric_type: simple
+    type: integer
+    expr: AVG(deposit__ftp_aply_rt)
+    label: 평균 FTP적용이율
+    description: 평균 FTP적용이율
+  - name: total_gds_sprd_intr
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__gds_sprd_intr)
+    label: 총 상품스프레드금리
+    description: 총 상품스프레드금리
+  - name: total_endp_sprd_intr
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__endp_sprd_intr)
+    label: 총 사업부스프레드금리
+    description: 총 사업부스프레드금리
+  - name: total_cntr_mcnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__cntr_mcnt)
+    label: 총 계약개월수
+    description: 총 계약개월수
+  - name: total_cntr_days
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__cntr_days)
+    label: 총 계약일수
+    description: 총 계약일수
+  - name: total_ftmp_dsam
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__ftmp_dsam)
+    label: 총 정기성예치금액
+    description: 총 정기성예치금액
+  - name: total_prvs_splm_amt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__prvs_splm_amt)
+    label: 총 지급보충금액
+    description: 총 지급보충금액
+  - name: total_cntr_amt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__cntr_amt)
+    label: 총 계약금액
+    description: 총 계약금액
+  - name: total_frst_dpsy_amt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__frst_dpsy_amt)
+    label: 총 최초예치금액
+    description: 총 최초예치금액
+  - name: total_ftmp_prtl_prvs_tmcnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__ftmp_prtl_prvs_tmcnt)
+    label: 총 정기성일부지급횟수
+    description: 총 정기성일부지급횟수
+  - name: total_ti1_int_prvs_amt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__ti1_int_prvs_amt)
+    label: 총 1회이자지급금액
+    description: 총 1회이자지급금액
+  - name: total_int_prvs_cycl_mcnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__int_prvs_cycl_mcnt)
+    label: 총 이자지급주기개월수
+    description: 총 이자지급주기개월수
+  - name: total_int_prvs_tmcnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__int_prvs_tmcnt)
+    label: 총 이자지급횟수
+    description: 총 이자지급횟수
+  - name: total_dep_intr_rttn_cycl_mcnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__dep_intr_rttn_cycl_mcnt)
+    label: 총 수신금리회전주기개월수
+    description: 총 수신금리회전주기개월수
+  - name: total_mm_instl_amt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__mm_instl_amt)
+    label: 총 월적립금액
+    description: 총 월적립금액
+  - name: total_instl_cycl_mcnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__instl_cycl_mcnt)
+    label: 총 적립주기개월수
+    description: 총 적립주기개월수
+  - name: total_instl_tmcnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__instl_tmcnt)
+    label: 총 적립횟수
+    description: 총 적립횟수
+  - name: total_dep_rlov_tmcnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__dep_rlov_tmcnt)
+    label: 총 수신만기연장횟수
+    description: 총 수신만기연장횟수
+  - name: total_extns_mcnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__extns_mcnt)
+    label: 총 연장개월수
+    description: 총 연장개월수
+  - name: total_spcl_int
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__spcl_int)
+    label: 총 특별이자
+    description: 총 특별이자
+  - name: total_sale_amt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__sale_amt)
+    label: 총 매출금액
+    description: 총 매출금액
+  - name: total_expr_repay_amt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__expr_repay_amt)
+    label: 총 만기상환금액
+    description: 총 만기상환금액
+  - name: total_prsal_trm_dsf
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__prsal_trm_dsf)
+    label: 총 선매출기간할인료
+    description: 총 선매출기간할인료
+  - name: total_trst_pymn_pcpl
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__trst_pymn_pcpl)
+    label: 총 신탁불입원금
+    description: 총 신탁불입원금
+  - name: total_ntst_stck_cnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__ntst_stck_cnt)
+    label: 총 국민주주식수
+    description: 총 국민주주식수
+  - name: total_csrrt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__csrrt)
+    label: 총 지급준비율
+    description: 총 지급준비율
+  - name: avg_csrrt
+    metric_type: simple
+    type: integer
+    expr: AVG(deposit__csrrt)
+    label: 평균 지급준비율
+    description: 평균 지급준비율
+  - name: total_pnsn_prvs_yrcn
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__pnsn_prvs_yrcn)
+    label: 총 연금지급년수
+    description: 총 연금지급년수
+  - name: total_pnsn_prvs_mcnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__pnsn_prvs_mcnt)
+    label: 총 연금지급개월수
+    description: 총 연금지급개월수
+  - name: total_pnsn_prvs_cycl_mcnt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__pnsn_prvs_cycl_mcnt)
+    label: 총 연금지급주기개월수
+    description: 총 연금지급주기개월수
+  - name: total_evmm_qtr_pnsn_prvs_amt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__evmm_qtr_pnsn_prvs_amt)
+    label: 총 매월분기연금지급금액
+    description: 총 매월분기연금지급금액
+  - name: total_acco_bal
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__acco_bal)
+    label: 총 계좌잔액
+    description: 총 계좌잔액
+  - name: total_bs_bal_waidp
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__bs_bal)
+    label: 총 BS잔액
+    description: 총 BS잔액. 사용자가 BS잔액을 질문했을 경우 metric에 total_avail_bal도 같이 출력하세요.
+  - name: total_avail_bal
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__avail_bal)
+    label: 총 가용잔액
+    description: 총 가용잔액
+  - name: total_cls_bal
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__cls_bal)
+    label: 총 해지잔액
+    description: 총 해지잔액
+  - name: total_wcuc_bal
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__wcuc_bal)
+    label: 총 원화환산잔액
+    description: 총 원화환산잔액
+  - name: total_usd_unch_bal
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__usd_unch_bal)
+    label: 총 미화환산잔액
+    description: 총 미화환산잔액
+  - name: total_prvs_int
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__prvs_int)
+    label: 총 지급이자
+    description: 총 지급이자
+  - name: total_eval_amt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__eval_amt)
+    label: 총 평가금액
+    description: 총 평가금액
+  - name: total_remn_annt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__remn_annt)
+    label: 총 잔존좌수
+    description: 총 잔존좌수
+  - name: total_yield
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__yield)
+    label: 총 수익률
+    description: 총 수익률
+  - name: total_add_intr
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__add_intr)
+    label: 총 가산금리
+    description: 총 가산금리
+  - name: total_bs_acmbal
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__bs_acmbal)
+    label: 총 BS적수
+    description: 총 BS적수
+  - name: total_bs_avgbal
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__bs_avgbal)
+    label: 총 BS평잔
+    description: 총 BS평잔
+  - name: total_qtr_bs_acmbal
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__qtr_bs_acmbal)
+    label: 총 분기BS적수
+    description: 총 분기BS적수
+  - name: total_qtr_bs_avgbal
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__qtr_bs_avgbal)
+    label: 총 분기BS평잔
+    description: 총 분기BS평잔
+  - name: total_hft_bs_acmbal
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__hft_bs_acmbal)
+    label: 총 반기BS적수
+    description: 총 반기BS적수
+  - name: total_hft_bs_avgbal
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__hft_bs_avgbal)
+    label: 총 반기BS평잔
+    description: 총 반기BS평잔
+  - name: total_mdpr_bs_acmbal
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__mdpr_bs_acmbal)
+    label: 총 기중BS적수
+    description: 총 기중BS적수
+  - name: total_mdpr_bs_avgbal
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__mdpr_bs_avgbal)
+    label: 총 기중BS평잔
+    description: 총 기중BS평잔
+  - name: total_tot_dep_amt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__tot_dep_amt)
+    label: 총 총수신금액
+    description: 총 총수신금액
+  - name: total_cor_mndp_amt
+    metric_type: simple
+    type: integer
+    expr: SUM(deposit__cor_mndp_amt)
+    label: 총 핵심예금금액
+    description: 총 핵심예금금액
+  - name: average_aply_rt
+    metric_type: simple
+    type: integer
+    expr: AVG(deposit__aply_rt)
+    label: 평균 금리
+    description: 평균 금리

@@ -1,0 +1,36 @@
+sources:
+- name: test_daquv
+  database: default_db
+  schema: default_schema
+  tables:
+  - name: account_detail
+  - name: bank_transaction
+  - name: branch_info
+  - name: customer_info
+  - name: shop_transaction
+  - name: WAIDP_D1010_L
+  - name: WAPCU_CUSMT_MN
+  - name: COPPF_GDSBS_M
+  - name: WAILN_D1030_L
+  - name: WAPCO_BRNCD_CN
+  - name: WAHPN_PINFO_MN
+  - name: PTD_INS_CRIT
+- name: kjbank_daquv
+  database: default_db
+  schema: default_schema
+  tables:
+  - name: coppf_gdsbs_m
+  - name: wahpn_pinfo_mn
+  - name: waidp_d1010_l
+  - name: wailn_d1030_l
+  - name: wapco_brncd_cn
+  - name: wapcu_cusmt_mn
+- name: seedbab_daquv
+  database: default_db
+  schema: default_schema
+  tables:
+  - name: tr_frcs_clsf_c
+- name: default
+  database: default_db
+  schema: default_schema
+  tables: []

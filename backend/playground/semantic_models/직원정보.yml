@@ -1,0 +1,192 @@
+semantic_models:
+- name: employee
+  table: kjbank_daquv('wahpn_pinfo_mn')
+  description: 직원번호(empno)를 기준으로 근무 상태, 직위, 고용 구분 등 직원 단위 분석의 기준이 되는 semantic 모델
+  defaults:
+    agg_time_dimension: base_dt
+
+  entities:
+  - name: employee
+    type: primary
+    expr: empno
+
+  dimensions:
+  - name: base_dt
+    type: varchar
+    label: 기준일자
+    expr: base_dt
+    description: 기준조회일자
+  - name: empno
+    label: 직원번호
+    type: varchar
+    description: 직원번호
+    expr: empno
+  - name: com_tx_dt
+    label: 공통거래일자
+    type: varchar
+    description: 시스템 공통 속성으로 모든 테이블에 등록되는 공통 거래일자
+    expr: com_tx_dt
+  - name: work_stcd
+    label: 근무상태코드
+    type: varchar
+    description: 근무상태코드
+    expr: work_stcd
+  - name: emp_kor_flnm
+    label: 직원한글성명
+    type: varchar
+    description: 직원한글성명
+    expr: emp_kor_flnm
+  - name: emp_chch_flnm
+    label: 직원한자성명
+    type: varchar
+    description: 직원한자성명
+    expr: emp_chch_flnm
+  - name: emp_ennm
+    label: 직원영문명
+    type: varchar
+    description: 직원영문명
+    expr: emp_ennm
+  - name: rsdt_no
+    label: 주민등록번호
+    type: varchar
+    description: 주민등록번호 암호화 표준 용어
+    expr: rsdt_no
+  - name: brdd
+    label: 생년월일
+    type: varchar
+    description: 개인:생일,법인:설립일
+    expr: brdd
+  - name: emp_lnsl_dvcd
+    label: 직원음양구분코드
+    type: varchar
+    description: 직원음양구분코드
+    expr: emp_lnsl_dvcd
+  - name: prab_zpcd
+    label: 원적우편번호
+    type: varchar
+    description: 원적우편번호
+    expr: prab_zpcd
+  - name: prab_addr
+    label: 원적주소
+    type: varchar
+    description: 원적주소 암호화 표준 용어
+    expr: prab_addr
+  - name: onhm_tlno
+    label: 자택전화번호
+    type: varchar
+    description: 자택전화번호 암호화 표준 용어
+    expr: onhm_tlno
+  - name: vhcno
+    label: 차량번호
+    type: varchar
+    description: 차량번호
+    expr: vhcno
+  - name: atmb_own_yn
+    label: 자동차소유여부
+    type: varchar
+    description: 자동차소유여부 (Y/N)
+    expr: atmb_own_yn
+  - name: blng_brcd
+    label: 소속부점코드
+    type: varchar
+    description: 소속부점코드
+    expr: blng_brcd
+  - name: blng_acof_dt
+    label: 소속부임일자
+    type: varchar
+    description: 소속부임일자
+    expr: blng_acof_dt
+  - name: ojbb_emp_dvcd
+    label: 당행직원구분코드
+    type: varchar
+    description: 당행직원구분코드
+    expr: ojbb_emp_dvcd
+  - name: emp_slry_prvs_dvcd
+    label: 직원급여지급구분코드
+    type: varchar
+    description: 직원급여지급구분코드
+    expr: emp_slry_prvs_dvcd
+  - name: hra_pstn_cd
+    label: 인사직위코드
+    type: varchar
+    description: 인사업무에서 관리하는 당행 직원의 직위의 코드
+    expr: hra_pstn_cd
+  - name: jobcls_lccd
+    label: 직급대분류코드
+    type: varchar
+    description: 직급대분류코드
+    expr: jobcls_lccd
+  - name: jobcls_mccd
+    label: 직급중분류코드
+    type: varchar
+    description: 직급중분류코드
+    expr: jobcls_mccd
+  - name: emp_jobcls_cd
+    label: 직원직급코드
+    type: varchar
+    description: 직원직급코드
+    expr: emp_jobcls_cd
+  - name: prcg_empno
+    label: 책임자직원번호
+    type: varchar
+    description: 책임자직원번호
+    expr: prcg_empno
+  - name: ofic_tlno
+    label: 사무실전화번호
+    type: varchar
+    description: 사무실전화번호 암호화 표준 용어
+    expr: ofic_tlno
+  - name: reg_dt
+    label: 등록일자
+    type: varchar
+    description: 정보등록일자
+    expr: reg_dt
+  - name: reg_tlrno
+    label: 등록텔러번호
+    type: varchar
+    description: 예상손실율 등록자 행번
+    expr: reg_tlrno
+  - name: cpno
+    label: 휴대전화번호
+    type: varchar
+    description: 휴대전화번호 암호화 표준 용어
+    expr: cpno
+  - name: iwir_tlno
+    label: 내선전화번호
+    type: varchar
+    description: 내선 전화번호
+    expr: iwir_tlno
+  - name: afor_brn_iwir_tlno
+    label: 산하부점내선전화번호
+    type: varchar
+    description: 인사원장의 산하부점 내선전화번호관리
+    expr: afor_brn_iwir_tlno
+  - name: emp_dsin_nm
+    label: 직원호칭명
+    type: varchar
+    description: 직원을 호칭하는 명칭
+    expr: emp_dsin_nm
+  - name: brn_duty_cd
+    label: 부점직무코드
+    type: varchar
+    description: 부점에 부여되는 직무를 관리
+    expr: brn_duty_cd
+  - name: tx_dttm
+    label: 거래일시
+    type: varchar
+    description: 거래일시
+    expr: tx_dttm
+  measures:
+  - name: empno_count
+    label: 직원번호
+    type: varchar
+    description: 직원번호
+    expr: empno_count
+    
+metrics:
+- name: total_empno_count
+  description: 총 직원 수(중복 제거)
+  type: integer
+  metric_type: simple
+  label: 총 직원 수
+  expr: COUNT(DISTINCT employee__empno_count)

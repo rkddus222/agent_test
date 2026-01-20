@@ -60,22 +60,56 @@ class AgentState(TypedDict):
     final_response: Optional[str]
     error: Optional[str]
     processed_prompt: Optional[str]  # 변수 치환된 프롬프트 저장
+    postprocess_result: Optional[str]  # 후처리 노드의 LLM 응답 (SQL 또는 "pass")
 
 
 class LangGraphAgent:
     """LangGraph를 사용한 에이전트"""
     
-    def __init__(self, model_name: str = "gpt-4o", temperature: float = 0.0):
+    def __init__(self, model_name: str = "gpt-4o", temperature: float = 0.0, llm_config: dict = None, **kwargs):
         """
         Args:
             model_name: 사용할 LLM 모델명
             temperature: LLM temperature 설정
+            llm_config: LLM 설정 딕셔너리 (vLLM 사용 시)
+                - url: vLLM 서버 URL
+                - model_name: 모델 이름
+                - model_type: 'vllm'
+                - temperature: temperature 설정
+                - max_tokens: 최대 토큰 수
+            **kwargs: 추가 키워드 인자 (하위 호환성을 위해 무시됨)
         """
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다.")
+        # 하위 호환성: llm_config가 kwargs에 있을 수 있음
+        if llm_config is None:
+            llm_config = kwargs.get("llm_config")
+        self.llm_config = llm_config
         
-        self.llm = ChatOpenAI(model=model_name, temperature=temperature, api_key=api_key)
+        if llm_config and llm_config.get("model_type") == "vllm":
+            # vLLM 사용
+            base_url = llm_config.get("url", "http://localhost:8000/v1")
+            if not base_url.endswith("/v1"):
+                base_url = base_url.rstrip("/") + "/v1"
+            model_name = llm_config.get("model_name", model_name)
+            temperature = llm_config.get("temperature", temperature)
+            max_tokens = llm_config.get("max_tokens", 1000)
+            
+            # vLLM은 OpenAI 호환 API를 제공하므로 base_url만 설정하면 됨
+            # API 키는 필요 없지만, OpenAI 클라이언트가 요구하므로 더미 값 사용
+            api_key = os.getenv("OPENAI_API_KEY", "dummy-key-for-vllm")
+            self.llm = ChatOpenAI(
+                model=model_name,
+                temperature=temperature,
+                api_key=api_key,
+                base_url=base_url,
+                max_tokens=max_tokens
+            )
+        else:
+            # OpenAI 사용
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다.")
+            self.llm = ChatOpenAI(model=model_name, temperature=temperature, api_key=api_key)
+        
         self.playground_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'playground'))
         
         # LangGraph 워크플로우 생성
@@ -96,6 +130,7 @@ class LangGraphAgent:
         workflow.add_node("manipulation", self._manipulation_node)
         workflow.add_node("smq2sql", self._smq2sql_node)
         workflow.add_node("executeQuery", self._execute_query_node)
+        workflow.add_node("postprocess", self._postprocess_node)
         workflow.add_node("respondent", self._respondent_node)
         
         # 엣지 추가
@@ -116,8 +151,17 @@ class LangGraphAgent:
         workflow.add_edge("extractFilters", "extractOrderByAndLimit")
         workflow.add_edge("extractOrderByAndLimit", "manipulation")
         workflow.add_edge("manipulation", "smq2sql")
-        workflow.add_edge("smq2sql", "executeQuery")
-        workflow.add_edge("executeQuery", "respondent")
+        # smq2sql 이후 에러가 있으면 종료, 없으면 계속 진행
+        workflow.add_conditional_edges(
+            "smq2sql",
+            self._should_continue_after_smq2sql,
+            {
+                "continue": "executeQuery",
+                "error": END
+            }
+        )
+        workflow.add_edge("executeQuery", "postprocess")
+        workflow.add_edge("postprocess", "respondent")
         workflow.add_edge("respondent", END)
         
         return workflow.compile()
@@ -129,6 +173,13 @@ class LangGraphAgent:
         if intent == "YES":
             return "continue"
         return "killjoy"
+    
+    def _should_continue_after_smq2sql(self, state: AgentState) -> Literal["continue", "error"]:
+        """smq2sql 이후 계속 진행할지 결정"""
+        # 에러가 있으면 종료
+        if state.get("error"):
+            return "error"
+        return "continue"
     
     def _get_all_semantic_models_info(self) -> str:
         """semantic_manifest.json에서 모든 semantic_models 정보 추출"""
@@ -297,6 +348,14 @@ class LangGraphAgent:
     def _load_extract_order_by_and_limit_prompt(self) -> str:
         """extractOrderByAndLimit 프롬프트 파일 로드"""
         prompt_file = os.path.join(os.path.dirname(__file__), 'prompts', 'extract_order_by_and_limit_prompt.txt')
+        if os.path.exists(prompt_file):
+            with open(prompt_file, 'r', encoding='utf-8') as f:
+                return f.read()
+        return ""
+    
+    def _load_postprocess_prompt(self) -> str:
+        """postprocess 프롬프트 파일 로드"""
+        prompt_file = os.path.join(os.path.dirname(__file__), 'prompts', 'postprocess_prompt.txt')
         if os.path.exists(prompt_file):
             with open(prompt_file, 'r', encoding='utf-8') as f:
                 return f.read()
@@ -1140,6 +1199,196 @@ entity별 활용할 수 있는 metrics:
                 "current_step": "executeQuery"
             }
     
+    def _postprocess_node(self, state: AgentState) -> AgentState:
+        """후처리 노드 - 예시 데이터를 프롬프트에 넣어서 후처리 할지 말지 결정"""
+        user_query = state.get("user_query", "")
+        query_result = state.get("query_result", {})
+        
+        if not query_result or not query_result.get("rows"):
+            # query_result가 없으면 그대로 통과
+            return {
+                "messages": [],
+                "query_result": query_result,
+                "current_step": "postprocess"
+            }
+        
+        # query_result를 마크다운 테이블 형식으로 변환
+        rows = query_result.get("rows", [])
+        columns = query_result.get("columns", [])
+        
+        # columns가 없으면 rows에서 추출
+        if not columns and rows:
+            columns = list(rows[0].keys())
+        
+        # 실제 컬럼명 목록 생성
+        actual_column_names = ", ".join(columns)
+        
+        # 마크다운 테이블 생성
+        markdown_table = ""
+        markdown_table += f"**⚠️ 중요: 실제 컬럼명 목록**\n"
+        markdown_table += f"실제 데이터프레임의 컬럼명은 다음과 같습니다: {actual_column_names}\n"
+        markdown_table += f"SQL 작성 시 반드시 이 컬럼명을 정확히 사용하세요.\n\n"
+        
+        # 헤더
+        markdown_table += "| " + " | ".join(columns) + " |\n"
+        markdown_table += "| " + " | ".join(["---"] * len(columns)) + " |\n"
+        
+        # 데이터 행
+        for row in rows:
+            if isinstance(row, dict):
+                values = [str(row.get(col, "")) for col in columns]
+            else:
+                # 리스트 형식인 경우
+                values = [str(val) if val is not None else "" for val in row]
+            markdown_table += "| " + " | ".join(values) + " |\n"
+        
+        # 프롬프트 파일 로드
+        prompt_template = self._load_postprocess_prompt()
+        if not prompt_template:
+            # 프롬프트 파일이 없으면 기본 프롬프트 사용
+            prompt = f"""당신은 데이터베이스 조회 결과를 가공하여 사용자에게 최적화된 답변을 제공하는 데이터 분석 전문가입니다.
+
+사용자의 질문을 해결하기 위해 다음 과정을 거쳤습니다.
+
+1. 사용자의 질문에서 의도를 파악하고 필요한 데이터 항목을 추출했습니다.
+2. 데이터베이스를 조회하여 아래와 같은 **Dataframe**을 메모리에 확보했습니다.
+
+{markdown_table}
+
+**3. 이제 해당 Dataframe을 바탕으로 최종 결과를 도출해야 합니다.**
+아래의 **[처리 판단 기준]**에 따라 SQL 생성 여부를 결정하세요.
+
+#### **[처리 판단 기준]**
+
+**1. "pass"만 출력하는 경우**
+* **조건**: 사용자의 질문에 대해 **추가적인 가공 없이** 현재 Dataframe만으로 완벽한 답변이 가능한 경우.
+* **행동**: 소문자로 `"pass"`라고만 출력하세요.
+
+**2. SQL을 생성해야 하는 경우**
+* **조건**: Dataframe의 데이터를 가공, 변형, 재집계해야 사용자의 의도에 부합하는 경우.
+* **행동**: 실행 가능한 DuckDB SQL 쿼리문을 출력하세요.
+
+### **사용자의 질문**
+
+{user_query}
+
+### **답변 형식**
+* **부가적인 문장, 설명, 마크다운 코드 블록(```sql)을 절대 포함하지 마세요.**
+* 오직 실행 가능한 **DuckDB SQL 쿼리문** 또는 **"pass"** 문자열만 출력하세요."""
+        else:
+            # 프롬프트 템플릿의 플레이스홀더 치환
+            from datetime import datetime
+            today = datetime.now().strftime("%Y%m%d")
+            data_base_date = datetime.now().strftime("%Y-%m-%d")
+            
+            prompt = prompt_template.replace("{today}", today)
+            prompt = prompt.replace("{data_base_date}", data_base_date)
+            prompt = prompt.replace("{result_df}", markdown_table)
+            prompt = prompt.replace("{user_question}", user_query)
+        
+        messages = [
+            SystemMessage(content="You are a data analysis expert who processes database query results. Return only executable DuckDB SQL query or 'pass' string."),
+            HumanMessage(content=prompt)
+        ]
+        
+        try:
+            response = self.llm.invoke(messages)
+            content = response.content.strip()
+            
+            # 마크다운 코드 블록 제거
+            cleaned_content = content.strip()
+            if cleaned_content.startswith('```sql'):
+                cleaned_content = cleaned_content[6:].lstrip()
+            elif cleaned_content.startswith('```'):
+                cleaned_content = cleaned_content[3:].lstrip()
+            if cleaned_content.endswith('```'):
+                cleaned_content = cleaned_content[:-3].rstrip()
+            cleaned_content = cleaned_content.strip()
+            
+            # "pass"인 경우 그대로 query_result 유지
+            if cleaned_content.lower() == "pass":
+                return {
+                    "messages": [response],
+                    "query_result": query_result,  # 그대로 유지
+                    "current_step": "postprocess",
+                    "processed_prompt": prompt,
+                    "postprocess_result": cleaned_content  # LLM 응답 저장
+                }
+            
+            # SQL이 생성된 경우 DuckDB에서 실행
+            try:
+                import duckdb
+                import pandas as pd
+                
+                # DataFrame 생성
+                df_data = []
+                for row in rows:
+                    if isinstance(row, dict):
+                        df_data.append(row)
+                    else:
+                        # 리스트 형식인 경우 딕셔너리로 변환
+                        df_data.append({col: val for col, val in zip(columns, row)})
+                
+                df = pd.DataFrame(df_data)
+                
+                # DuckDB 연결
+                conn = duckdb.connect()
+                
+                # DataFrame을 DuckDB 테이블로 등록
+                conn.register("result_table", df)
+                
+                # SQL 실행
+                result = conn.execute(cleaned_content).fetchdf()
+                
+                # 결과를 query_result 형식으로 변환
+                result_columns = result.columns.tolist()
+                result_rows = []
+                for _, row in result.iterrows():
+                    result_rows.append(row.to_dict())
+                
+                new_query_result = {
+                    "columns": result_columns,
+                    "rows": result_rows
+                }
+                
+                conn.close()
+                
+                return {
+                    "messages": [response],
+                    "query_result": new_query_result,  # 업데이트된 결과
+                    "current_step": "postprocess",
+                    "processed_prompt": prompt,
+                    "postprocess_result": cleaned_content  # LLM 응답 저장
+                }
+            except ImportError:
+                # duckdb나 pandas가 없는 경우 원본 결과 유지
+                logger.warning("duckdb 또는 pandas가 설치되지 않아 SQL 실행을 건너뜁니다.")
+                return {
+                    "messages": [response],
+                    "query_result": query_result,  # 원본 유지
+                    "current_step": "postprocess",
+                    "processed_prompt": prompt,
+                    "postprocess_result": cleaned_content  # LLM 응답 저장
+                }
+            except Exception as sql_error:
+                # SQL 실행 오류 시 원본 결과 유지
+                logger.error(f"SQL 실행 오류: {str(sql_error)}")
+                return {
+                    "messages": [response],
+                    "query_result": query_result,  # 원본 유지
+                    "current_step": "postprocess",
+                    "processed_prompt": prompt,
+                    "postprocess_result": cleaned_content  # LLM 응답 저장
+                }
+        except Exception as e:
+            # LLM 호출 오류 시 원본 결과 유지
+            logger.error(f"후처리 노드 오류: {str(e)}")
+            return {
+                "messages": [],
+                "query_result": query_result,  # 원본 유지
+                "current_step": "postprocess"
+            }
+    
     def _respondent_node(self, state: AgentState) -> AgentState:
         """응답 생성 노드"""
         user_query = state.get("user_query", "")
@@ -1203,7 +1452,8 @@ entity별 활용할 수 있는 metrics:
             "sql_result": None,
             "query_result": None,
             "final_response": None,
-            "error": None
+            "error": None,
+            "postprocess_result": None
         }
         
         try:
@@ -1211,6 +1461,23 @@ entity별 활용할 수 있는 metrics:
             async for state in self.app.astream(initial_state):
                 # 각 노드의 상태 업데이트를 이벤트로 전송
                 for node_name, node_state in state.items():
+                    # 에러 체크: 어떤 노드에서든 에러가 발생하면 즉시 에러 이벤트 전송
+                    if isinstance(node_state, dict) and node_state.get("error"):
+                        error_msg = node_state.get("error", "알 수 없는 오류가 발생했습니다.")
+                        step = node_state.get("current_step", node_name)
+                        logger.error(f"[LangGraph 에이전트] 에러 감지: step={step}, error={error_msg}, node_name={node_name}")
+                        logger.error(f"[LangGraph 에이전트] 에러 이벤트 yield 시작")
+                        error_event = {
+                            "type": "error",
+                            "content": error_msg,
+                            "step": step
+                        }
+                        logger.error(f"[LangGraph 에이전트] 에러 이벤트 yield: {error_event}")
+                        yield error_event
+                        logger.error(f"[LangGraph 에이전트] 에러 이벤트 yield 완료, return 실행")
+                        # 에러 발생 시 즉시 종료
+                        return
+                    
                     if isinstance(node_state, dict) and "current_step" in node_state:
                         step = node_state.get("current_step", "")
                         
@@ -1331,11 +1598,15 @@ entity별 활용할 수 있는 metrics:
                             }
                         elif step == "smq2sql":
                             if node_state.get("error"):
+                                error_msg = node_state.get("error", "SQL 변환 실패")
+                                logger.error(f"[LangGraph 에이전트] smq2sql 노드에서 에러 발생: {error_msg}")
                                 yield {
                                     "type": "error",
-                                    "content": node_state.get("error"),
+                                    "content": error_msg,
                                     "step": step
                                 }
+                                # 에러 발생 시 즉시 종료
+                                return
                             else:
                                 sql_result = node_state.get("sql_result", {})
                                 yield {
@@ -1351,6 +1622,34 @@ entity별 활용할 수 있는 metrics:
                                 "content": "쿼리 실행 완료",
                                 "step": step,
                                 "result": node_state.get("query_result")
+                            }
+                        elif step == "postprocess":
+                            # postprocess_result를 node_state에서 가져오거나, messages에서 추출
+                            postprocess_result = node_state.get("postprocess_result", "")
+                            
+                            # postprocess_result가 없으면 messages에서 LLM 응답 추출 시도
+                            if not postprocess_result:
+                                messages = node_state.get("messages", [])
+                                if messages:
+                                    # 마지막 메시지가 LLM 응답일 가능성이 높음
+                                    last_message = messages[-1]
+                                    if hasattr(last_message, 'content'):
+                                        content = last_message.content.strip()
+                                        # 마크다운 코드 블록 제거
+                                        if content.startswith('```sql'):
+                                            content = content[6:].lstrip()
+                                        elif content.startswith('```'):
+                                            content = content[3:].lstrip()
+                                        if content.endswith('```'):
+                                            content = content[:-3].rstrip()
+                                        postprocess_result = content.strip()
+                            
+                            yield {
+                                "type": "thought",
+                                "content": postprocess_result if postprocess_result else "후처리 완료",
+                                "step": step,
+                                "result": node_state.get("query_result"),
+                                "postprocess_result": postprocess_result  # LLM 응답 포함
                             }
                         elif step == "respondent":
                             yield {

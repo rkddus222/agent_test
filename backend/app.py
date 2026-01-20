@@ -780,7 +780,11 @@ async def websocket_chat(websocket: WebSocket):
                 else:
                     system_prompt_to_use = "SMQ 프롬프트 파일을 찾을 수 없습니다."
             elif agent_type == "langgraph":
-                agent = LangGraphAgent(llm_config=llm_config)
+                # llm_config가 있으면 전달, 없으면 기본값 사용
+                if llm_config:
+                    agent = LangGraphAgent(llm_config=llm_config)
+                else:
+                    agent = LangGraphAgent()
                 system_prompt_to_use = ""  # LangGraph 에이전트는 내부적으로 프롬프트를 관리
             else:
                 agent = SemanticAgent(llm_config=llm_config)

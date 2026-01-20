@@ -190,3 +190,9 @@ metrics:
   metric_type: simple
   label: 총 직원 수
   expr: COUNT(DISTINCT employee__empno_count)
+- name: sum_empno_count
+  description: 직원 수의 합계
+  type: integer
+  metric_type: simple
+  label: 직원 수 합계
+  expr: SUM(employee__empno_count)

@@ -41,15 +41,37 @@ function SMQTest() {
           metadata: response.data.metadata,
           all_queries: response.data.all_queries
         })
+        setError(null)
       } else {
-        setError(response.data.error || 'SMQ 변환에 실패했습니다.')
+        // SMQ 변환 실패 시 명확한 에러 메시지 표시
+        const errorMessage = response.data.error || 'SMQ 변환에 실패했습니다.'
+        setError(`❌ 실패: ${errorMessage}`)
+        setResult(null)
       }
     } catch (err) {
-      if (err.response?.status === 404) {
-        setError('API 엔드포인트를 찾을 수 없습니다. 백엔드 서버를 재시작해주세요.')
+      // HTTP 에러 또는 네트워크 에러 처리
+      let errorMessage = 'SMQ 변환 중 오류가 발생했습니다.'
+      
+      if (err.response) {
+        // 서버에서 응답을 받았지만 에러 상태 코드인 경우
+        if (err.response.status === 404) {
+          errorMessage = '❌ 실패: API 엔드포인트를 찾을 수 없습니다. 백엔드 서버를 재시작해주세요.'
+        } else if (err.response.data) {
+          // 백엔드에서 반환한 에러 메시지 사용
+          errorMessage = `❌ 실패: ${err.response.data.detail || err.response.data.error || err.message || errorMessage}`
+        } else {
+          errorMessage = `❌ 실패: ${err.message || errorMessage}`
+        }
+      } else if (err.request) {
+        // 요청은 보냈지만 응답을 받지 못한 경우
+        errorMessage = '❌ 실패: 서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.'
       } else {
-        setError(err.response?.data?.detail || err.response?.data?.error || err.message || 'SMQ 변환 중 오류가 발생했습니다.')
+        // 요청 설정 중 에러가 발생한 경우
+        errorMessage = `❌ 실패: ${err.message || errorMessage}`
       }
+      
+      setError(errorMessage)
+      setResult(null)
       console.error('SMQ 변환 오류:', err)
     } finally {
       setLoading(false)
@@ -127,7 +149,7 @@ function SMQTest() {
             )}
             {error && (
               <div className="smq-test-error">
-                <strong>오류:</strong>
+                <strong>❌ 변환 실패</strong>
                 <pre>{error}</pre>
               </div>
             )}

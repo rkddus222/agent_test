@@ -5,9 +5,12 @@ semantic_models:
     defaults:
       agg_time_dimension: base_dt
     entities:
-      - name: branch
+      - name: branch1
         type: primary
         expr: brcd
+      - name: branch2
+        type: primary
+        expr: base_dt
     dimensions:
       - name: base_dt
         type: varchar
@@ -18,7 +21,7 @@ semantic_models:
         type: varchar
         expr: brcd
         label: 부점코드
-        description: 부점코드
+        description: 부점코드.(점번) 코드만 보면 어떤 부점인지 알 수 업습니다. group by에 부점한글명과 같이 출력해주세요.
       - name: com_tx_dt
         type: varchar
         expr: com_tx_dt

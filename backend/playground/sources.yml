@@ -1,4 +1,15 @@
 sources:
+- name: kjbank_daquv
+  database: default_db
+  schema: default_schema
+  tables:
+  - name: coppf_gdsbs_m
+  - name: wahpn_pinfo_mn
+  - name: waidp_d1010_l
+  - name: wailn_d1030_l
+  - name: wapco_brncd_cn
+  - name: wapcu_cusmt_mn
+  - name: gds_cd
 - name: test_daquv
   database: default_db
   schema: default_schema
@@ -15,16 +26,6 @@ sources:
   - name: WAPCO_BRNCD_CN
   - name: WAHPN_PINFO_MN
   - name: PTD_INS_CRIT
-- name: kjbank_daquv
-  database: default_db
-  schema: default_schema
-  tables:
-  - name: coppf_gdsbs_m
-  - name: wahpn_pinfo_mn
-  - name: waidp_d1010_l
-  - name: wailn_d1030_l
-  - name: wapco_brncd_cn
-  - name: wapcu_cusmt_mn
 - name: seedbab_daquv
   database: default_db
   schema: default_schema

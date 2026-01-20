@@ -11,12 +11,18 @@ semantic_models:
       - name: customer
         type: foreign
         expr: cstno
-      - name: branch
+      - name: branch1
         type: foreign
         expr: acco_mgmt_brcd
       - name: gds_cd
         type: foreign
         expr: gds_cd
+      - name: employee
+        type: foreign
+        expr: sgsr_empno1
+      - name: branch2
+        type: foreign
+        expr: base_dt
     dimensions:
       - name: base_dt
         type: varchar
@@ -77,7 +83,7 @@ semantic_models:
         type: varchar
         expr: acco_mgmt_brcd
         label: 계좌관리부점코드
-        description: 계좌관리부점코드
+        description: 계좌관리부점코드 (점번)
       - name: acco_mgmt_mth_brcd
         type: varchar
         expr: acco_mgmt_mth_brcd
@@ -608,6 +614,16 @@ semantic_models:
         expr: int_prvs_kncd
         label: 이자지급종류코드
         description: 이자지급종류코드
+      - name: biz_dt
+        type: varchar
+        expr: MAX( CASE WHEN ISODOW(strptime(base_dt, '%Y%m%d')) < 6 THEN base_dt ELSE NULL END ) OVER ()
+        label: 최근 영업일
+        description: 가장 최근 영업일
+      - name: prev_biz_dt
+        type: varchar
+        expr: TO_CHAR(   CASE      WHEN EXTRACT(ISODOW FROM TO_DATE(MAX(CASE WHEN EXTRACT(ISODOW FROM TO_DATE(base_dt, 'YYYYMMDD')) < 6 THEN base_dt ELSE NULL END) OVER (), 'YYYYMMDD')) = 1      THEN TO_DATE(MAX(CASE WHEN EXTRACT(ISODOW FROM TO_DATE(base_dt, 'YYYYMMDD')) < 6 THEN base_dt ELSE NULL END) OVER (), 'YYYYMMDD') - INTERVAL '3 DAY'     ELSE TO_DATE(MAX(CASE WHEN EXTRACT(ISODOW FROM TO_DATE(base_dt, 'YYYYMMDD')) < 6 THEN base_dt ELSE NULL END) OVER (), 'YYYYMMDD') - INTERVAL '1 DAY'   END,   'YYYYMMDD' )
+        label: 전영업일
+        description: 영업일 기준 전일
     measures:
       - name: aply_rt
         type: integer
@@ -1241,7 +1257,7 @@ metrics:
     expr: SUM(deposit__acco_bal)
     label: 총 계좌잔액
     description: 총 계좌잔액
-  - name: total_bs_bal_waidp
+  - name: total_bs_bal
     metric_type: simple
     type: integer
     expr: SUM(deposit__bs_bal)

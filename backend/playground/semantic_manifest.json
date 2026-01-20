@@ -1,189 +1,6 @@
 {
   "semantic_models": [
     {
-      "name": "PTD_INS_CRIT",
-      "description": "Semantic model for PTD_INS_CRIT",
-      "node_relation": {
-        "alias": "PTD_INS_CRIT",
-        "schema_name": "default_schema",
-        "database": "default_db"
-      },
-      "primary_entity": null,
-      "entities": [
-        {
-          "name": "pdt_cd",
-          "type": "primary",
-          "expr": "PDT_CD",
-          "description": null,
-          "role": null,
-          "label": null
-        },
-        {
-          "name": "plan_cd",
-          "type": "primary",
-          "expr": "PLAN_CD",
-          "description": null,
-          "role": null,
-          "label": null
-        },
-        {
-          "name": "bas_cvg_cd",
-          "type": "primary",
-          "expr": "BAS_CVG_CD",
-          "description": null,
-          "role": null,
-          "label": null
-        }
-      ],
-      "measures": [
-        {
-          "name": "start_age",
-          "type": "number",
-          "expr": "ENT_AG1",
-          "label": "가입연령 min",
-          "description": "가입연령 min"
-        },
-        {
-          "name": "end_age",
-          "type": "number",
-          "expr": "ENT_AG2",
-          "label": "가입연령 max",
-          "description": "가입연령 max"
-        },
-        {
-          "name": "ins_ent_amt1",
-          "type": "number",
-          "expr": "INS_ENT_AMT1",
-          "label": "가입금액1",
-          "description": "가입금액1"
-        },
-        {
-          "name": "ins_ent_amt2",
-          "type": "number",
-          "expr": "INS_ENT_AMT2",
-          "label": "가입금액2",
-          "description": "가입금액2"
-        },
-        {
-          "name": "ins_ent_amt3",
-          "type": "number",
-          "expr": "INS_ENT_AMT3",
-          "label": "가입금액3",
-          "description": "가입금액3"
-        },
-        {
-          "name": "ins_ent_amt4",
-          "type": "number",
-          "expr": "INS_ENT_AMT4",
-          "label": "가입금액4",
-          "description": "가입금액4"
-        },
-        {
-          "name": "ins_ent_amt5",
-          "type": "number",
-          "expr": "INS_ENT_AMT5",
-          "label": "가입금액5",
-          "description": "가입금액5"
-        },
-        {
-          "name": "ins_ent_amt6",
-          "type": "number",
-          "expr": "INS_ENT_AMT6",
-          "label": "가입금액6",
-          "description": "가입금액6"
-        },
-        {
-          "name": "ins_ent_amt7",
-          "type": "number",
-          "expr": "INS_ENT_AMT7",
-          "label": "가입금액7",
-          "description": "가입금액7"
-        },
-        {
-          "name": "ins_ent_amt8",
-          "type": "number",
-          "expr": "INS_ENT_AMT8",
-          "label": "가입금액8",
-          "description": "가입금액8"
-        },
-        {
-          "name": "ins_ent_amt9",
-          "type": "number",
-          "expr": "INS_ENT_AMT9",
-          "label": "가입금액9",
-          "description": "가입금액9"
-        },
-        {
-          "name": "ins_ent_amt10",
-          "type": "number",
-          "expr": "INS_ENT_AMT10",
-          "label": "가입금액10",
-          "description": "가입금액10"
-        },
-        {
-          "name": "pdt_cd_count",
-          "type": "number",
-          "expr": "PDT_CD",
-          "label": "상품코드",
-          "description": "상품코드"
-        }
-      ],
-      "dimensions": [
-        {
-          "name": "pdt_cd",
-          "type": "varchar",
-          "expr": "PDT_CD",
-          "label": "상품코드",
-          "description": "상품코드",
-          "type_params": null
-        },
-        {
-          "name": "plan_cd",
-          "type": "varchar",
-          "expr": "PLAN_CD",
-          "label": "플랜종류",
-          "description": "플랜종류",
-          "type_params": null
-        },
-        {
-          "name": "bas_cvg_cd",
-          "type": "varchar",
-          "expr": "BAS_CVG_CD",
-          "label": "담보코드",
-          "description": "담보코드",
-          "type_params": null
-        },
-        {
-          "name": "inj_rtn_cd1",
-          "type": "varchar",
-          "expr": "INJ_RTN_CD1",
-          "label": "상해급수1",
-          "description": "상해급수1",
-          "type_params": null
-        },
-        {
-          "name": "inj_rtn_cd2",
-          "type": "varchar",
-          "expr": "INJ_RTN_CD2",
-          "label": "상해급수2",
-          "description": "상해급수2",
-          "type_params": null
-        },
-        {
-          "name": "injury_grade",
-          "type": "varchar",
-          "expr": "CASE WHEN INJ_RTN_CD1 = '1' AND INJ_RTN_CD2 = '2' THEN '1~2급' WHEN INJ_RTN_CD1 = '3' AND INJ_RTN_CD2 = '3' THEN '3급' ELSE '기타' END",
-          "label": "상해급수",
-          "description": "상해급수에 따른 분류",
-          "type_params": null
-        }
-      ],
-      "label": null,
-      "config": {
-        "meta": {}
-      }
-    },
-    {
       "name": "customer",
       "description": "고객번호(cstno)를 기준으로 고객 식별, 상태, 개인/법인 구분 등 고객 단위 분석의 기준이 되는 semantic 모델",
       "node_relation": {
@@ -541,9 +358,17 @@
       "primary_entity": null,
       "entities": [
         {
-          "name": "branch",
+          "name": "branch1",
           "type": "primary",
           "expr": "brcd",
+          "description": null,
+          "role": null,
+          "label": null
+        },
+        {
+          "name": "branch2",
+          "type": "primary",
+          "expr": "base_dt",
           "description": null,
           "role": null,
           "label": null
@@ -600,7 +425,7 @@
           "type": "varchar",
           "expr": "brcd",
           "label": "부점코드",
-          "description": "부점코드",
+          "description": "부점코드.(점번) 코드만 보면 어떤 부점인지 알 수 업습니다. group by에 부점한글명과 같이 출력해주세요.",
           "type_params": null
         },
         {
@@ -1083,9 +908,9 @@
     },
     {
       "name": "gds_cd",
-      "description": "상품코드(gds_cd)를 기준으로 상품 유형, 판매 상태, 적용 상태 등 상품 속성 분석의 기준이 되는 semantic 모델.",
+      "description": "테이블(WRPPF_GDSBS_M)을 기반으로 한 상품 유형, 판매 상태, 적용 상태 등 상품 속성 분석의 기준이 되는 semantic 모델",
       "node_relation": {
-        "alias": "coppf_gdsbs_m",
+        "alias": "gds_cd",
         "schema_name": "default_schema",
         "database": "default_db"
       },
@@ -1102,20 +927,25 @@
       ],
       "measures": [
         {
-          "name": "gds_cd_count",
+          "name": "gds_cd_cnt",
           "type": "integer",
           "expr": "gds_cd",
-          "label": "상품 수",
-          "description": "상품 수"
+          "label": "상품코드 카운트용"
+        },
+        {
+          "name": "gds_dtls_cd_cnt",
+          "type": "integer",
+          "expr": "gds_dtls_cd",
+          "label": "상품세부코드 카운트용"
         }
       ],
       "dimensions": [
         {
-          "name": "gds_cd",
+          "name": "m_gds_cd",
           "type": "varchar",
           "expr": "gds_cd",
           "label": "상품코드",
-          "description": "전행 차원에서  금융상품에 대하여 통일된 기준으로 부여하여 관리하는 코드",
+          "description": "상품코드",
           "type_params": null
         },
         {
@@ -1123,7 +953,7 @@
           "type": "varchar",
           "expr": "gds_dtls_cd",
           "label": "상품세부코드",
-          "description": "상품코드를 세분화하여 사용하는 코드로, 상품코드=母상품, 상품세부코드=子상품의 개념을 갖음",
+          "description": "상품팩토리에서 상품코드의 세부코드로 나누기 위한 코드로 여신의 자금원코드, 수신의 서브상품코드 등의 목적으로 관리",
           "type_params": null
         },
         {
@@ -1139,7 +969,7 @@
           "type": "varchar",
           "expr": "gds_aply_stcd",
           "label": "상품적용상태코드",
-          "description": "해당 DATA ROW의 상태를 구분하는 코드 01-초기등록, 02-승인, 10-정상, 21-등록취소",
+          "description": "해당 레코드의 상태를 구분하는 코드",
           "type_params": null
         },
         {
@@ -1147,23 +977,23 @@
           "type": "varchar",
           "expr": "gds_sle_stcd",
           "label": "상품판매상태코드",
-          "description": "상품의 판매상태를 관리하기 위한 구분코드 \n1-판매중, 2-판매중지, 3-판매예정, 9-폐지상",
+          "description": "상품의 판매상태를 관리하기 위한 구분코드 (1:판매중, 2:판매중지, 3:판매예정, 9:폐지상품)",
           "type_params": null
         },
         {
-          "name": "sle_start_dt",
+          "name": "sle_stdd",
           "type": "varchar",
           "expr": "sle_stdd",
           "label": "판매시작일자",
-          "description": "해당 상품의 판매를 시작하는 일자",
+          "description": "판매시작일자",
           "type_params": null
         },
         {
-          "name": "sle_end_dt",
+          "name": "sle_endt",
           "type": "varchar",
           "expr": "sle_endt",
           "label": "판매종료일자",
-          "description": "해당 상품의 판매를 종료하는 일자",
+          "description": "판매종료일자",
           "type_params": null
         },
         {
@@ -1176,10 +1006,10 @@
         },
         {
           "name": "mgmt_seqno",
-          "type": "integer",
+          "type": "varchar",
           "expr": "mgmt_seqno",
           "label": "관리일련번호",
-          "description": "상품승인대상내역 엔티티에서 상품승인관련 용도로 사용하기 위한 일련번호로, 테이블별 INSERT순으로 채번한다.",
+          "description": "관리일련번호",
           "type_params": null
         },
         {
@@ -1187,7 +1017,7 @@
           "type": "varchar",
           "expr": "reg_brcd",
           "label": "등록부점코드",
-          "description": "최초 등록한 부점코드",
+          "description": "실시간 처리등록점",
           "type_params": null
         },
         {
@@ -1195,7 +1025,7 @@
           "type": "varchar",
           "expr": "reg_tlrno",
           "label": "등록텔러번호",
-          "description": "최초 등록한 텔러번호",
+          "description": "예상손실율 등록자 행번",
           "type_params": null
         },
         {
@@ -1203,7 +1033,7 @@
           "type": "varchar",
           "expr": "reg_dt",
           "label": "등록일자",
-          "description": "최초 등록일자",
+          "description": "정보등록일자",
           "type_params": null
         },
         {
@@ -1211,7 +1041,7 @@
           "type": "varchar",
           "expr": "reg_time",
           "label": "등록시각",
-          "description": "최초 등록시각",
+          "description": "등록시각",
           "type_params": null
         },
         {
@@ -1219,7 +1049,7 @@
           "type": "varchar",
           "expr": "last_chng_brcd",
           "label": "최종변경부점코드",
-          "description": "최종 등록한 부점코드",
+          "description": "최종변경부점코드",
           "type_params": null
         },
         {
@@ -1227,7 +1057,7 @@
           "type": "varchar",
           "expr": "last_chng_tlrno",
           "label": "최종변경텔러번호",
-          "description": "최종 등록한 텔러번호",
+          "description": "최종변경텔러번호",
           "type_params": null
         },
         {
@@ -1235,7 +1065,7 @@
           "type": "varchar",
           "expr": "last_chng_dt",
           "label": "최종변경일자",
-          "description": "최종 등록일자",
+          "description": "최종변경일자",
           "type_params": null
         },
         {
@@ -1243,21 +1073,13 @@
           "type": "varchar",
           "expr": "last_chng_time",
           "label": "최종변경시각",
-          "description": "최종 등록시각",
-          "type_params": null
-        },
-        {
-          "name": "gds_sumry",
-          "type": "varchar",
-          "expr": "gds_sumry",
-          "label": "상품적요",
-          "description": "상품 부가 정보",
+          "description": "최종변경시각",
           "type_params": null
         },
         {
           "name": "gds_nm",
           "type": "varchar",
-          "expr": "gds_nm",
+          "expr": "gds_nm ",
           "label": "상품명",
           "description": "상품명",
           "type_params": null
@@ -1295,7 +1117,7 @@
           "label": null
         },
         {
-          "name": "branch",
+          "name": "branch1",
           "type": "foreign",
           "expr": "acco_mgmt_brcd",
           "description": null,
@@ -1306,6 +1128,22 @@
           "name": "gds_cd",
           "type": "foreign",
           "expr": "gds_cd",
+          "description": null,
+          "role": null,
+          "label": null
+        },
+        {
+          "name": "employee",
+          "type": "foreign",
+          "expr": "sgsr_empno1",
+          "description": null,
+          "role": null,
+          "label": null
+        },
+        {
+          "name": "branch2",
+          "type": "foreign",
+          "expr": "base_dt",
           "description": null,
           "role": null,
           "label": null
@@ -1862,7 +1700,7 @@
           "type": "varchar",
           "expr": "acco_mgmt_brcd",
           "label": "계좌관리부점코드",
-          "description": "계좌관리부점코드",
+          "description": "계좌관리부점코드 (점번)",
           "type_params": null
         },
         {
@@ -2712,6 +2550,22 @@
           "label": "이자지급종류코드",
           "description": "이자지급종류코드",
           "type_params": null
+        },
+        {
+          "name": "biz_dt",
+          "type": "varchar",
+          "expr": "MAX( CASE WHEN ISODOW(strptime(base_dt, '%Y%m%d')) < 6 THEN base_dt ELSE NULL END ) OVER ()",
+          "label": "최근 영업일",
+          "description": "가장 최근 영업일",
+          "type_params": null
+        },
+        {
+          "name": "prev_biz_dt",
+          "type": "varchar",
+          "expr": "TO_CHAR(   CASE      WHEN EXTRACT(ISODOW FROM TO_DATE(MAX(CASE WHEN EXTRACT(ISODOW FROM TO_DATE(base_dt, 'YYYYMMDD')) < 6 THEN base_dt ELSE NULL END) OVER (), 'YYYYMMDD')) = 1      THEN TO_DATE(MAX(CASE WHEN EXTRACT(ISODOW FROM TO_DATE(base_dt, 'YYYYMMDD')) < 6 THEN base_dt ELSE NULL END) OVER (), 'YYYYMMDD') - INTERVAL '3 DAY'     ELSE TO_DATE(MAX(CASE WHEN EXTRACT(ISODOW FROM TO_DATE(base_dt, 'YYYYMMDD')) < 6 THEN base_dt ELSE NULL END) OVER (), 'YYYYMMDD') - INTERVAL '1 DAY'   END,   'YYYYMMDD' )",
+          "label": "전영업일",
+          "description": "영업일 기준 전일",
+          "type_params": null
         }
       ],
       "label": null,
@@ -3486,22 +3340,6 @@
   ],
   "metrics": [
     {
-      "name": "total_ptd_ins_crit_count",
-      "metric_type": "simple",
-      "type": "integer",
-      "expr": "COUNT(DISTINCT PTD_INS_CRIT__pdt_cd_count)",
-      "label": "총 PTD_INS_CRIT 수",
-      "description": "총 PTD_INS_CRIT 수"
-    },
-    {
-      "name": "age_range",
-      "metric_type": "simple",
-      "type": "integer",
-      "expr": "MIN(PTD_INS_CRIT__start_age) || ' ~ ' || MAX(PTD_INS_CRIT__end_age)",
-      "label": "Age Range",
-      "description": "Minimum start age to maximum end age range"
-    },
-    {
       "name": "total_customer_count",
       "metric_type": "simple",
       "type": "integer",
@@ -3553,9 +3391,17 @@
       "name": "total_goods_count",
       "metric_type": "simple",
       "type": "integer",
-      "expr": "COUNT(DISTINCT goods__gds_cd_count)",
-      "label": "총 상품 수",
-      "description": "총 상품 수(중복 제거)"
+      "expr": "COUNT_DISTINCT(wrppf_gdsbs_m__gds_cd_cnt)",
+      "label": "상품 수",
+      "description": "상품코드 수(중복 제거)"
+    },
+    {
+      "name": "total_goods_detail_count",
+      "metric_type": "simple",
+      "type": "integer",
+      "expr": "COUNT_DISTINCT(wrppf_gdsbs_m__gds_dtls_cd_cnt)",
+      "label": "상품세부 수",
+      "description": "상품세부코드 수(중복 제거)"
     },
     {
       "name": "total_account_count",
@@ -3966,7 +3812,7 @@
       "description": "총 계좌잔액"
     },
     {
-      "name": "total_bs_bal_waidp",
+      "name": "total_bs_bal",
       "metric_type": "simple",
       "type": "integer",
       "expr": "SUM(deposit__bs_bal)",
@@ -4244,6 +4090,14 @@
       "metric_type": "simple",
       "label": "총 직원 수",
       "expr": "COUNT(DISTINCT employee__empno_count)"
+    },
+    {
+      "name": "sum_empno_count",
+      "description": "직원 수의 합계",
+      "type": "integer",
+      "metric_type": "simple",
+      "label": "직원 수 합계",
+      "expr": "SUM(employee__empno_count)"
     }
   ],
   "project_configuration": {

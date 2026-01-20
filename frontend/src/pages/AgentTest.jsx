@@ -39,6 +39,16 @@ function AgentTest() {
   
   // 현재 질문의 최종 데이터 저장
   const [currentQueryData, setCurrentQueryData] = useState(null)
+  
+  // LLM 설정 상태
+  const [llmProvider, setLlmProvider] = useState('devstral') // 'gpt' or 'devstral'
+  const [llmConfig, setLlmConfig] = useState({
+    url: 'http://183.102.124.135:8001/',
+    model_name: '/home/daquv/.cache/huggingface/hub/models--unsloth--Devstral-Small-2507-unsloth-bnb-4bit/snapshots/0578b9b52309df8ae455eb860a6cebe50dc891cd',
+    model_type: 'vllm',
+    temperature: 0.1,
+    max_tokens: 1000
+  })
 
   const addMessage = (role, content, toolCall = null, toolResult = null) => {
     setConversation(prev => [...prev, {
@@ -261,6 +271,14 @@ function AgentTest() {
           error: response.data.error || null
         }
         
+        // SMQ 변환 실패 시 에러 메시지 표시
+        if (!response.data.success) {
+          const errorMessage = response.data.error || 'SMQ 변환에 실패했습니다.'
+          addMessage('error', `❌ 실패: ${errorMessage}`, { tool: toolName, args }, result)
+        } else {
+          addMessage('tool', `🔄 SMQ → SQL 변환`, { tool: toolName, args }, result)
+        }
+        
         // smqState 업데이트
         const newSmqState = args.smq.map((smq, index) => ({
           smq,
@@ -269,7 +287,6 @@ function AgentTest() {
         }))
         setSmqState(newSmqState)
         
-        addMessage('tool', `🔄 SMQ → SQL 변환`, { tool: toolName, args }, result)
         return { smqState: newSmqState }
       }
       
@@ -286,8 +303,28 @@ function AgentTest() {
       }
       
     } catch (error) {
-      const errorMsg = error.response?.data?.detail || error.message
-      addMessage('error', `오류: ${errorMsg}`, { tool: toolName, args }, null)
+      // HTTP 에러 또는 네트워크 에러 처리
+      let errorMsg = '도구 실행 중 오류가 발생했습니다.'
+      
+      if (error.response) {
+        // 서버에서 응답을 받았지만 에러 상태 코드인 경우
+        if (error.response.status === 404) {
+          errorMsg = '❌ 실패: API 엔드포인트를 찾을 수 없습니다. 백엔드 서버를 재시작해주세요.'
+        } else if (error.response.data) {
+          // 백엔드에서 반환한 에러 메시지 사용
+          errorMsg = `❌ 실패: ${error.response.data.detail || error.response.data.error || error.message || errorMsg}`
+        } else {
+          errorMsg = `❌ 실패: ${error.message || errorMsg}`
+        }
+      } else if (error.request) {
+        // 요청은 보냈지만 응답을 받지 못한 경우
+        errorMsg = '❌ 실패: 서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.'
+      } else {
+        // 요청 설정 중 에러가 발생한 경우
+        errorMsg = `❌ 실패: ${error.message || errorMsg}`
+      }
+      
+      addMessage('error', errorMsg, { tool: toolName, args }, null)
       setCurrentStep(null)
       return { error: errorMsg }
     } finally {
@@ -312,7 +349,8 @@ function AgentTest() {
       // WebSocket을 통해 LLM에 질문 전송 (LangGraph 에이전트 사용)
       websocket.send(JSON.stringify({
         message: userMessage,
-        agent_type: 'langgraph'
+        agent_type: 'langgraph',
+        llm_config: llmProvider === 'devstral' ? llmConfig : null
       }))
     } catch (error) {
       addMessage('error', `처리 중 오류가 발생했습니다: ${error.message}`)
@@ -332,7 +370,8 @@ function AgentTest() {
     try {
       websocket.send(JSON.stringify({
         message: answer,
-        agent_type: 'langgraph'
+        agent_type: 'langgraph',
+        llm_config: llmProvider === 'devstral' ? llmConfig : null
       }))
     } catch (error) {
       addMessage('error', `답변 전송 중 오류: ${error.message}`)
@@ -344,10 +383,28 @@ function AgentTest() {
       <div className="agent-test-header">
         <h2>🤖 에이전트 테스트</h2>
         <p>시멘틱 모델 기반 쿼리(SMQ) 자동 생성 에이전트</p>
-        <div className="ws-status">
-          <span className={wsConnected ? 'status-connected' : 'status-disconnected'}>
-            {wsConnected ? '🟢 연결됨' : '🔴 연결 안 됨'}
-          </span>
+        <div className="header-controls">
+          <div className="llm-tabs">
+            <button
+              className={`llm-tab ${llmProvider === 'gpt' ? 'active' : ''}`}
+              onClick={() => setLlmProvider('gpt')}
+              disabled={loading}
+            >
+              GPT
+            </button>
+            <button
+              className={`llm-tab ${llmProvider === 'devstral' ? 'active' : ''}`}
+              onClick={() => setLlmProvider('devstral')}
+              disabled={loading}
+            >
+              Devstral
+            </button>
+          </div>
+          <div className="ws-status">
+            <span className={wsConnected ? 'status-connected' : 'status-disconnected'}>
+              {wsConnected ? '🟢 연결됨' : '🔴 연결 안 됨'}
+            </span>
+          </div>
         </div>
       </div>
 

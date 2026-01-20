@@ -4,7 +4,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import './ChatInterface.css'
 
-function ChatInterface({ promptType = "test", onConnectionChange }) {
+function ChatInterface({ promptType = "test", onConnectionChange, llmConfig = null }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isConnected, setIsConnected] = useState(false)
@@ -214,13 +214,21 @@ function ChatInterface({ promptType = "test", onConnectionChange }) {
     setStreamingContent('')
     skipDeltaRef.current = false // 새 메시지 시작 시 초기화
 
+    const messageData = {
+      message: userMessage,
+      prompt_type: promptType
+    }
+    if (llmConfig) {
+      messageData.llm_config = llmConfig
+    }
+    
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ message: userMessage, prompt_type: promptType }))
+      wsRef.current.send(JSON.stringify(messageData))
     } else {
       connectWebSocket()
       setTimeout(() => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          wsRef.current.send(JSON.stringify({ message: userMessage, prompt_type: promptType }))
+          wsRef.current.send(JSON.stringify(messageData))
         }
       }, 500)
     }

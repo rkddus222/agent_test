@@ -27,6 +27,16 @@ function PostProcessTest() {
   const [promptContent, setPromptContent] = useState('')
   const [promptLoading, setPromptLoading] = useState(false)
   const [promptSaving, setPromptSaving] = useState(false)
+  
+  // LLM 설정 상태
+  const [llmProvider, setLlmProvider] = useState('devstral') // 'gpt' or 'devstral'
+  const [llmConfig, setLlmConfig] = useState({
+    url: 'http://183.102.124.135:8001/',
+    model_name: '/home/daquv/.cache/huggingface/hub/models--unsloth--Devstral-Small-2507-unsloth-bnb-4bit/snapshots/0578b9b52309df8ae455eb860a6cebe50dc891cd',
+    model_type: 'vllm',
+    temperature: 0.1,
+    max_tokens: 1000
+  })
 
   // tableData 변경 시 ref 업데이트
   useEffect(() => {
@@ -161,7 +171,8 @@ function PostProcessTest() {
       
       const response = await axios.post('/api/postprocess/test', {
         dataframe_result: dataframeResult,
-        user_question: userQuestion
+        user_question: userQuestion,
+        llm_config: llmProvider === 'devstral' ? llmConfig : null
       })
 
       if (response.data.success) {
@@ -370,6 +381,24 @@ function PostProcessTest() {
       <div className="postprocess-test-header">
         <h2>📊 후처리 테스트</h2>
         <p>데이터프레임 결과와 사용자 질문을 입력하여 LLM 후처리 결과를 확인합니다</p>
+        <div className="header-controls">
+          <div className="llm-tabs">
+            <button
+              className={`llm-tab ${llmProvider === 'gpt' ? 'active' : ''}`}
+              onClick={() => setLlmProvider('gpt')}
+              disabled={loading}
+            >
+              GPT
+            </button>
+            <button
+              className={`llm-tab ${llmProvider === 'devstral' ? 'active' : ''}`}
+              onClick={() => setLlmProvider('devstral')}
+              disabled={loading}
+            >
+              Devstral
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* 탭 메뉴 */}

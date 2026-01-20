@@ -1,7 +1,7 @@
 import sqlglot
 from sqlglot import expressions as exp
 
-from service.semantic.utils import (
+from backend.semantic.utils import (
     append_node,
     is_metric_in_expr,
     find_measure_by_name,

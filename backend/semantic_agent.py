@@ -13,9 +13,32 @@ from tools import read_file, edit_file, get_random_yml_file, convert_smq_to_sql
 load_dotenv()
 
 class SemanticAgent:
-    def __init__(self):
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        self.client = AsyncOpenAI(api_key=self.api_key) if self.api_key else None
+    def __init__(self, llm_config: dict = None):
+        """
+        Args:
+            llm_config: LLM 설정 딕셔너리 (vLLM 사용 시)
+                - url: vLLM 서버 URL
+                - model_name: 모델 이름
+                - model_type: 'vllm'
+                - temperature: temperature 설정
+                - max_tokens: 최대 토큰 수
+        """
+        self.llm_config = llm_config
+        
+        if llm_config and llm_config.get("model_type") == "vllm":
+            # vLLM 사용
+            base_url = llm_config.get("url", "http://localhost:8000/v1")
+            if not base_url.endswith("/v1"):
+                base_url = base_url.rstrip("/") + "/v1"
+            # vLLM은 OpenAI 호환 API를 제공하므로 base_url만 설정하면 됨
+            # API 키는 필요 없지만, OpenAI 클라이언트가 요구하므로 더미 값 사용
+            api_key = os.getenv("OPENAI_API_KEY", "dummy-key-for-vllm")
+            self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        else:
+            # OpenAI 사용
+            self.api_key = os.getenv("OPENAI_API_KEY")
+            self.client = AsyncOpenAI(api_key=self.api_key) if self.api_key else None
+        
         self.tool_history = []
 
     def get_directory_structure(self):
@@ -57,14 +80,29 @@ class SemanticAgent:
                                   .replace("{request_type}", request_type_str)
             
             try:
-                response = await self.client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
+                # LLM 설정에서 model_name과 temperature 가져오기
+                model_name = "gpt-4o"
+                temperature = 0.0
+                max_tokens = None
+                if self.llm_config:
+                    model_name = self.llm_config.get("model_name", model_name)
+                    temperature = self.llm_config.get("temperature", temperature)
+                    max_tokens = self.llm_config.get("max_tokens")
+                
+                create_params = {
+                    "model": model_name,
+                    "messages": [
                         {"role": "system", "content": "You are a helpful Semantic Model Engineer."},
                         {"role": "user", "content": prompt}
                     ],
-                    response_format={ "type": "json_object" }
-                )
+                    "response_format": {"type": "json_object"}
+                }
+                if temperature is not None:
+                    create_params["temperature"] = temperature
+                if max_tokens is not None:
+                    create_params["max_tokens"] = max_tokens
+                
+                response = await self.client.chat.completions.create(**create_params)
             except asyncio.CancelledError:
                 yield {"type": "error", "content": "작업이 취소되었습니다."}
                 return

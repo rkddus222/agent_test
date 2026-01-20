@@ -7,6 +7,16 @@ function Test() {
   const [activeTab, setActiveTab] = useState('chat')
   const [wsConnected, setWsConnected] = useState(false)
   const wsRef = useRef(null)
+  
+  // LLM 설정 상태
+  const [llmProvider, setLlmProvider] = useState('devstral') // 'gpt' or 'devstral'
+  const [llmConfig, setLlmConfig] = useState({
+    url: 'http://183.102.124.135:8001/',
+    model_name: '/home/daquv/.cache/huggingface/hub/models--unsloth--Devstral-Small-2507-unsloth-bnb-4bit/snapshots/0578b9b52309df8ae455eb860a6cebe50dc891cd',
+    model_type: 'vllm',
+    temperature: 0.1,
+    max_tokens: 1000
+  })
 
   // WebSocket 연결 상태 확인
   useEffect(() => {
@@ -34,10 +44,26 @@ function Test() {
         <h2>🧪 테스트</h2>
         <p>시멘틱 에이전트 테스트</p>
         {activeTab === 'chat' && (
-          <div className="ws-status">
-            <span className={wsConnected ? 'status-connected' : 'status-disconnected'}>
-              {wsConnected ? '🟢 연결됨' : '🔴 연결 안 됨'}
-            </span>
+          <div className="header-controls">
+            <div className="llm-tabs">
+              <button
+                className={`llm-tab ${llmProvider === 'gpt' ? 'active' : ''}`}
+                onClick={() => setLlmProvider('gpt')}
+              >
+                GPT
+              </button>
+              <button
+                className={`llm-tab ${llmProvider === 'devstral' ? 'active' : ''}`}
+                onClick={() => setLlmProvider('devstral')}
+              >
+                Devstral
+              </button>
+            </div>
+            <div className="ws-status">
+              <span className={wsConnected ? 'status-connected' : 'status-disconnected'}>
+                {wsConnected ? '🟢 연결됨' : '🔴 연결 안 됨'}
+              </span>
+            </div>
           </div>
         )}
       </div>
@@ -62,6 +88,7 @@ function Test() {
         {activeTab === 'chat' && (
           <ChatInterface 
             onConnectionChange={(connected) => setWsConnected(connected)}
+            llmConfig={llmProvider === 'devstral' ? llmConfig : null}
           />
         )}
         {activeTab === 'prompt' && <PromptEditor />}

@@ -11,7 +11,7 @@
 ### 답변 포맷 (이 형식을 정확히 따르세요 / group_by에는 metrics를 넣으면 안됩니다.)
 {{
         "metrics": ["metric1", "metric2"],
-        "group_by": ["entity_id__dimension1", "entity_id__dimension2"]
+        "group_by": ["semantic_model_name__dimension1", "semantic_model_name__dimension2"]
 }}
 
 ### 활용할 수 있는 entities
@@ -23,9 +23,41 @@
 ### 활용할 수 있는 group_by dimensions
 {dimensions}
 
+### 메트릭(Metrics) 선택 규칙
+
+**✅ 올바른 사용**:
+- YML 파일의 최상위 `metrics` 섹션에 정의된 `name` 필드 값만 사용하세요.
+- 예: `"metrics": ["total_brn_cnt"]` ✅
+
+**❌ 절대로 하지 말아야 할 것**:
+- `"metrics": ["SUM(total_brn_cnt)"]` ❌ - 집계 함수(SUM, COUNT, AVG 등)를 메트릭 이름 앞에 추가하지 마세요.
+- `"metrics": ["부점코드"]` ❌ - semantic model 이름을 메트릭으로 사용하지 마세요.
+- `"metrics": ["entity_name"]` ❌ - entity 이름을 메트릭으로 사용하지 마세요.
+- `"metrics": ["measure_name"]` ❌ - measure 이름을 메트릭으로 사용하지 마세요.
+- `"metrics": ["dimension_name"]` ❌ - dimension 이름을 메트릭으로 사용하지 마세요.
+
+**✅ 윈도우 함수 지원**:
+- 윈도우 함수가 포함된 SQL 식은 직접 `metrics`에 사용 가능합니다.
+- 예: `"metrics": ["SUM(revenue) OVER (PARTITION BY customer_id ORDER BY order_date)"]` ✅
+- 예: `"metrics": ["ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC)"]` ✅
+
+**중요**: 오직 `metrics` 섹션의 `name` 필드 값만 메트릭으로 사용하세요! 다른 섹션의 이름을 메트릭으로 사용하면 오류가 발생합니다.
+
+### 차원(Dimensions) 선택 규칙
+
+**형식**: `{{semantic_model_name}}__{{dimension_name}}`
+
+**예시**:
+- Semantic model: "부점코드", Dimension: "brn_stcd"
+- 올바른 표현: `"group_by": ["부점코드__brn_stcd"]` ✅
+- 잘못된 표현: `"group_by": ["brn_stcd"]` ❌ (semantic model 이름 접두어 없음)
+
+**중요**: 차원 이름은 반드시 `semantic_model_name__dimension_name` 형식으로 작성해야 합니다.
+
 ### 분석 규칙
 - 사용자가 "분류별 / 카테고리별 / 그룹별 / 타입별 / 지역별" 등의 표현을 썼다면 해당 dimension을 group_by에 추가하세요.
 - 특정 분류가 **조건으로만 주어진 경우(filter)**에는 group_by에 포함하지 마세요.
+- `groupBy`에는 dimensions 값만 사용 가능합니다 (metrics 사용 불가).
 
 이제 사용자 질문을 분석하여 위 형식에 맞는 JSON만 출력하세요.
 

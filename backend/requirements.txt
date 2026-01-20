@@ -6,6 +6,7 @@ python-multipart==0.0.21
 
 # OpenAI & LangChain
 openai==1.108.0
+langchain==0.3.25
 langchain-core==0.3.83
 langchain-openai==0.3.33
 langgraph==0.4.8

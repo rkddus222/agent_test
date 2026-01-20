@@ -183,6 +183,7 @@ class EvaluationResult(BaseModel):
 class PostProcessTestRequest(BaseModel):
     dataframe_result: str
     user_question: str
+    llm_config: Optional[Dict[str, Any]] = None
 
 class ExecuteSQLRequest(BaseModel):
     table_name: str
@@ -763,13 +764,14 @@ async def websocket_chat(websocket: WebSocket):
             message = data.get("message", "")
             prompt_type = data.get("prompt_type", "test")  # 기본값은 "test" (테스트 케이스 생성용)
             agent_type = data.get("agent_type", "semantic")  # "semantic", "smq", or "langgraph"
+            llm_config = data.get("llm_config")  # LLM 설정 (vLLM 사용 시)
             
             if not message:
                 continue
             
             # agent_type에 따라 적절한 에이전트 선택
             if agent_type == "smq":
-                agent = SMQAgent()
+                agent = SMQAgent(llm_config=llm_config)
                 # load_smq_prompt는 app.py에 있으므로 직접 구현
                 smq_prompt_file = os.path.join(os.path.dirname(__file__), 'prompts', 'smq_prompt.txt')
                 if os.path.exists(smq_prompt_file):
@@ -778,10 +780,10 @@ async def websocket_chat(websocket: WebSocket):
                 else:
                     system_prompt_to_use = "SMQ 프롬프트 파일을 찾을 수 없습니다."
             elif agent_type == "langgraph":
-                agent = LangGraphAgent()
+                agent = LangGraphAgent(llm_config=llm_config)
                 system_prompt_to_use = ""  # LangGraph 에이전트는 내부적으로 프롬프트를 관리
             else:
-                agent = SemanticAgent()
+                agent = SemanticAgent(llm_config=llm_config)
                 system_prompt_to_use = load_prompt(prompt_type)
             
             full_response = ""
@@ -804,8 +806,9 @@ async def websocket_chat(websocket: WebSocket):
                     await asyncio.sleep(delay_s)
             
             # Agent 실행을 Task로 래핑하여 취소 가능하게 만들기
+            error_occurred = False  # 에러 발생 여부 추적
             async def run_agent():
-                nonlocal cancelled, full_response, steps
+                nonlocal cancelled, full_response, steps, error_occurred
                 try:
                     event_count = 0
                     async for event in agent.run(message, system_prompt=system_prompt_to_use):
@@ -815,6 +818,11 @@ async def websocket_chat(websocket: WebSocket):
                             
                         event_type = event.get("type")
                         content = event.get("content")
+                        
+                        # 디버깅: 모든 이벤트 로깅
+                        import logging
+                        logger = logging.getLogger("app")
+                        logger.info(f"[WebSocket] 이벤트 수신: type={event_type}, content={content[:100] if content else None}")
                         
                         # WebSocket으로 메시지 전송 시 오류 처리
                         try:
@@ -867,11 +875,19 @@ async def websocket_chat(websocket: WebSocket):
                                     "details": details
                                 })
                             elif event_type == "error":
+                                step = event.get("step", "")
+                                import logging
+                                logger = logging.getLogger("app")
+                                logger.error(f"[WebSocket] 에러 이벤트 수신: step={step}, content={content}")
+                                error_occurred = True  # 에러 발생 플래그 설정
                                 await websocket.send_json({
                                     "type": "error",
-                                    "content": content
+                                    "content": content,
+                                    "step": step
                                 })
                                 full_response += f"\n\nError: {content}"
+                                # 에러 발생 시 즉시 종료
+                                break
                             elif event_type == "success":
                                 # success 이벤트를 먼저 전송하여 프론트엔드가 즉시 받을 수 있도록 함
                                 await websocket.send_json({
@@ -912,8 +928,27 @@ async def websocket_chat(websocket: WebSocket):
                                 full_response = content
                         except (WebSocketDisconnect, Exception) as ws_error:
                             # WebSocket 연결이 끊어졌거나 오류가 발생하면 중단
+                            import logging
+                            logger = logging.getLogger("app")
+                            logger.error(f"[WebSocket] 메시지 전송 오류: {str(ws_error)}")
                             cancelled = True
                             break
+                except Exception as e:
+                    # run_agent 내부에서 예외 발생 시 에러 전송
+                    import logging
+                    import traceback
+                    logger = logging.getLogger("app")
+                    error_msg = f"Agent 실행 중 오류: {str(e)}"
+                    logger.error(f"[WebSocket] run_agent 예외: {error_msg}\n{traceback.format_exc()}")
+                    try:
+                        await websocket.send_json({
+                            "type": "error",
+                            "content": error_msg,
+                            "step": "unknown"
+                        })
+                    except Exception:
+                        pass
+                    cancelled = True
                 except asyncio.CancelledError:
                     cancelled = True
                     raise
@@ -940,7 +975,8 @@ async def websocket_chat(websocket: WebSocket):
                 })
                 continue
             
-            if not cancelled:
+            # 에러가 발생하지 않았고 취소되지 않은 경우에만 complete 이벤트 전송
+            if not cancelled and not error_occurred:
                 # 최종 메시지 전송
                 await websocket.send_json({
                     "type": "complete",
@@ -1412,7 +1448,7 @@ async def postprocess_test(request: PostProcessTestRequest):
         
         # 변수 치환
         from datetime import datetime
-        today = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        today = datetime.now().strftime("%Y%m%d")
         data_base_date = datetime.now().strftime("%Y-%m-%d")
         
         prompt = prompt_template.replace("{today}", today)
@@ -1421,23 +1457,45 @@ async def postprocess_test(request: PostProcessTestRequest):
         prompt = prompt.replace("{user_question}", request.user_question)
         
         # LLM 호출
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            return EvaluationResult(
-                success=False,
-                error="OPENAI_API_KEY가 설정되지 않았습니다."
-            )
+        llm_config = request.llm_config
         
-        client = AsyncOpenAI(api_key=api_key)
+        if llm_config and llm_config.get("model_type") == "vllm":
+            # vLLM 사용
+            base_url = llm_config.get("url", "http://localhost:8000/v1")
+            if not base_url.endswith("/v1"):
+                base_url = base_url.rstrip("/") + "/v1"
+            model_name = llm_config.get("model_name", "gpt-4o")
+            temperature = llm_config.get("temperature", 0.1)
+            max_tokens = llm_config.get("max_tokens", 1000)
+            api_key = os.getenv("OPENAI_API_KEY", "dummy-key-for-vllm")
+            client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        else:
+            # OpenAI 사용
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                return EvaluationResult(
+                    success=False,
+                    error="OPENAI_API_KEY가 설정되지 않았습니다."
+                )
+            client = AsyncOpenAI(api_key=api_key)
+            model_name = "gpt-4o"
+            temperature = 0.0
+            max_tokens = None
         
         try:
-            response = await client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
+            create_params = {
+                "model": model_name,
+                "messages": [
                     {"role": "system", "content": "You are a data analysis expert who processes database query results. Return only executable DuckDB SQL query or 'pass' string."},
                     {"role": "user", "content": prompt}
                 ]
-            )
+            }
+            if temperature is not None:
+                create_params["temperature"] = temperature
+            if max_tokens is not None:
+                create_params["max_tokens"] = max_tokens
+            
+            response = await client.chat.completions.create(**create_params)
         except Exception as e:
             return EvaluationResult(
                 success=False,

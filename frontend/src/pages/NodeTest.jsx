@@ -2,11 +2,158 @@ import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import './NodeTest.css'
 
+// 비교 결과 표시 컴포넌트
+function CompareResultDisplay({ displayedNodeStatuses, nodeNameMap, nodeOrder }) {
+  const completeStatus = displayedNodeStatuses['complete']
+  const isComplete = completeStatus && completeStatus.status === 'complete'
+  
+  // 모든 노드를 실행 순서대로 정렬
+  // complete 상태가 있으면 respondent 노드는 제외 (최종 결과에 포함되므로)
+  const allNodes = Object.keys(displayedNodeStatuses)
+    .filter(step => {
+      if (step === 'complete') return false
+      // complete 상태가 있으면 respondent 노드는 표시하지 않음
+      if (isComplete && step === 'respondent') return false
+      return true
+    })
+    .sort((a, b) => {
+      const indexA = nodeOrder.indexOf(a)
+      const indexB = nodeOrder.indexOf(b)
+      if (indexA === -1 && indexB === -1) return 0
+      if (indexA === -1) return 1
+      if (indexB === -1) return -1
+      return indexA - indexB
+    })
+  
+  return (
+    <div className="compare-result-display">
+      {/* 최종 결과를 최상단에 표시 */}
+      {isComplete && (
+        <div className="compare-final-result">
+          <h5>최종 결과</h5>
+          {completeStatus.result && (
+            <div className="compare-result-text">{completeStatus.result}</div>
+          )}
+          {completeStatus.toolResult && (
+            <div className="compare-result-data">
+              {/* 1. 생성된 예시 데이터 (기본 펼침) */}
+              {completeStatus.toolResult.query_result && (
+                <div className="compare-query-result">
+                  <details open>
+                    <summary><strong>📊 생성된 예시 데이터</strong></summary>
+                    {completeStatus.toolResult.query_result.rows && completeStatus.toolResult.query_result.rows.length > 0 ? (
+                      <div className="data-table-container">
+                        <table className="data-table">
+                          <thead>
+                            <tr>
+                              {completeStatus.toolResult.query_result.columns && completeStatus.toolResult.query_result.columns.map((col, colIdx) => (
+                                <th key={colIdx}>{col}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {completeStatus.toolResult.query_result.rows.map((row, rowIdx) => (
+                              <tr key={rowIdx}>
+                                {completeStatus.toolResult.query_result.columns && completeStatus.toolResult.query_result.columns.map((col, colIdx) => (
+                                  <td key={colIdx}>{row[col] !== null && row[col] !== undefined ? String(row[col]) : '-'}</td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p>데이터가 없습니다.</p>
+                    )}
+                  </details>
+                </div>
+              )}
+              {/* 2. 생성된 SMQ (기본 펼침) */}
+              {completeStatus.toolResult.smq && (
+                <div className="compare-smq">
+                  <details open>
+                    <summary><strong>📋 생성된 SMQ</strong></summary>
+                    <pre className="json-code"><code>{JSON.stringify(completeStatus.toolResult.smq, null, 2)}</code></pre>
+                  </details>
+                </div>
+              )}
+              {/* 3. 생성된 SQL 쿼리 */}
+              {completeStatus.toolResult.sql_query && (
+                <div className="compare-sql-query">
+                  <details>
+                    <summary><strong>🔍 생성된 SQL 쿼리</strong></summary>
+                    <pre className="sql-code"><code>{completeStatus.toolResult.sql_query}</code></pre>
+                  </details>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* 모든 노드 상태 표시 */}
+      {allNodes.map(step => {
+        const nodeStatus = displayedNodeStatuses[step]
+        const nodeName = nodeNameMap[step] || step
+        
+        if (nodeStatus?.status === 'running') {
+          return (
+            <div key={step} className="compare-node-item compare-node-running">
+              <div className="compare-node-icon">🔄</div>
+              <div className="compare-node-info">
+                <div className="compare-node-name">{nodeName}</div>
+                <div className="compare-node-status">실행 중...</div>
+              </div>
+            </div>
+          )
+        } else if (nodeStatus?.status === 'complete') {
+          return (
+            <div key={step} className="compare-node-item compare-node-complete">
+              <div className="compare-node-icon">✅</div>
+              <div className="compare-node-info">
+                <div className="compare-node-name">{nodeName}</div>
+                {nodeStatus.result && (
+                  <div className="compare-node-result">
+                    {step === 'postprocess' && nodeStatus.postprocess_result ? (
+                      <pre className="compare-node-sql">{nodeStatus.postprocess_result}</pre>
+                    ) : (
+                      <div className="compare-node-result-text">{String(nodeStatus.result).substring(0, 100)}...</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        } else if (nodeStatus?.status === 'error') {
+          return (
+            <div key={step} className="compare-node-item compare-node-error">
+              <div className="compare-node-icon">❌</div>
+              <div className="compare-node-info">
+                <div className="compare-node-name">{nodeName}</div>
+                <div className="compare-node-error-text">{nodeStatus.result}</div>
+              </div>
+            </div>
+          )
+        }
+        return null
+      })}
+    </div>
+  )
+}
+
 function NodeTest() {
-  const [activeTab, setActiveTab] = useState('chat') // 'chat' or 'prompt'
+  const [activeTab, setActiveTab] = useState('chat') // 'chat', 'prompt', or 'compare'
   const [userInput, setUserInput] = useState('')
   const [conversation, setConversation] = useState([])
   const [loading, setLoading] = useState(false)
+  
+  // 비교 테스트 상태
+  const [compareRunning, setCompareRunning] = useState(false)
+  const [gptResult, setGptResult] = useState(null) // { nodeStatuses, displayedNodeStatuses, finalResponse, ... }
+  const [devstralResult, setDevstralResult] = useState(null)
+  const [compareUserInput, setCompareUserInput] = useState('')
+  const [gptWebsocket, setGptWebsocket] = useState(null)
+  const [devstralWebsocket, setDevstralWebsocket] = useState(null)
   const [nodes, setNodes] = useState([
     { 
       id: 1, 
@@ -49,7 +196,8 @@ function NodeTest() {
     { value: 'entity_selector', label: 'Entity 선택', file: 'entity_selector_prompt.txt' },
     { value: 'extract_metrics', label: 'Metrics 추출', file: 'extract_metrics_prompt.txt' },
     { value: 'extract_filters', label: 'Filters 추출', file: 'extract_filters_prompt.txt' },
-    { value: 'extract_order_by_and_limit', label: 'Order by & Limit 추출', file: 'extract_order_by_and_limit_prompt.txt' }
+    { value: 'extract_order_by_and_limit', label: 'Order by & Limit 추출', file: 'extract_order_by_and_limit_prompt.txt' },
+    { value: 'postprocess', label: '후처리', file: 'postprocess_prompt.txt' }
   ]
   
   // 노드 이름 매핑
@@ -63,6 +211,7 @@ function NodeTest() {
     'manipulation': 'SMQ 생성',
     'smq2sql': 'SQL 변환',
     'executeQuery': '쿼리 실행',
+    'postprocess': '후처리',
     'respondent': '응답 생성',
     'complete': '완료'
   }
@@ -78,6 +227,7 @@ function NodeTest() {
     'manipulation',
     'smq2sql',
     'executeQuery',
+    'postprocess',
     'respondent',
     'complete'
   ]
@@ -90,6 +240,16 @@ function NodeTest() {
   ]
   
   const [promptContent, setPromptContent] = useState('')
+  
+  // LLM 설정 상태
+  const [llmProvider, setLlmProvider] = useState('devstral') // 'gpt' or 'devstral'
+  const [llmConfig, setLlmConfig] = useState({
+    url: 'http://183.102.124.135:8001/',
+    model_name: '/home/daquv/.cache/huggingface/hub/models--unsloth--Devstral-Small-2507-unsloth-bnb-4bit/snapshots/0578b9b52309df8ae455eb860a6cebe50dc891cd',
+    model_type: 'vllm',
+    temperature: 0.1,
+    max_tokens: 1000
+  })
 
   // 프롬프트 로드
   const loadPrompt = async (promptType = selectedPromptType) => {
@@ -178,6 +338,61 @@ function NodeTest() {
       }
     }
   }, [])
+  
+  // 비교 테스트용 WebSocket 연결 (GPT와 Devstral 각각)
+  useEffect(() => {
+    if (activeTab !== 'compare') {
+      // 비교 테스트 탭이 아니면 연결 정리
+      if (gptWebsocket && gptWebsocket.readyState === WebSocket.OPEN) {
+        gptWebsocket.close()
+      }
+      if (devstralWebsocket && devstralWebsocket.readyState === WebSocket.OPEN) {
+        devstralWebsocket.close()
+      }
+      return
+    }
+    
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host = window.location.hostname
+    const wsUrl = `${protocol}//${host}:8000/ws/chat`
+    
+    // GPT WebSocket
+    const gptWs = new WebSocket(wsUrl)
+    gptWs.onopen = () => {
+      console.log('GPT WebSocket 연결됨')
+      setGptWebsocket(gptWs)
+    }
+    gptWs.onerror = (error) => {
+      console.error('GPT WebSocket 오류:', error)
+    }
+    gptWs.onclose = () => {
+      console.log('GPT WebSocket 연결 종료')
+      setGptWebsocket(null)
+    }
+    
+    // Devstral WebSocket
+    const devstralWs = new WebSocket(wsUrl)
+    devstralWs.onopen = () => {
+      console.log('Devstral WebSocket 연결됨')
+      setDevstralWebsocket(devstralWs)
+    }
+    devstralWs.onerror = (error) => {
+      console.error('Devstral WebSocket 오류:', error)
+    }
+    devstralWs.onclose = () => {
+      console.log('Devstral WebSocket 연결 종료')
+      setDevstralWebsocket(null)
+    }
+    
+    return () => {
+      if (gptWs && gptWs.readyState === WebSocket.OPEN) {
+        gptWs.close()
+      }
+      if (devstralWs && devstralWs.readyState === WebSocket.OPEN) {
+        devstralWs.close()
+      }
+    }
+  }, [activeTab])
 
   useEffect(() => {
     scrollToBottom()
@@ -247,7 +462,8 @@ function NodeTest() {
                 status: 'complete',
                 result: data.content,
                 toolResult: data.toolResult || prev[step]?.toolResult,
-                details: data.details || prev[step]?.details || null  // details 저장
+                details: data.details || prev[step]?.details || null,  // details 저장
+                postprocess_result: data.postprocess_result || prev[step]?.postprocess_result || null  // postprocess 결과 저장
               }
             }
           }
@@ -370,16 +586,22 @@ function NodeTest() {
     updateNode(node.id, { status: 'running', result: null })
 
     return new Promise((resolve, reject) => {
+      let nodeResult = null
+      let isResolved = false
+      
       const timeout = setTimeout(() => {
-        websocket.removeEventListener('message', messageHandler)
-        reject(new Error('타임아웃'))
+        if (!isResolved) {
+          websocket.removeEventListener('message', messageHandler)
+          const errorMessage = '❌ 실패: 요청 시간이 초과되었습니다. (5분)'
+          addMessage('error', errorMessage)
+          updateNode(node.id, { status: 'error', result: { error: '타임아웃' } })
+          isResolved = true
+          reject(new Error('타임아웃'))
+        }
       }, 300000)
       
       // 타임아웃을 추적하기 위해 저장
       currentTimeouts.current.push(timeout)
-
-      let nodeResult = null
-      let isResolved = false
 
       const messageHandler = (event) => {
         try {
@@ -395,8 +617,9 @@ function NodeTest() {
           }
 
           const data = JSON.parse(event.data)
-          const { type, content, tool, args, details, step, query_result, sql_result, sql_query, smq } = data
+          const { type, content, tool, args, details, step, query_result, sql_result, sql_query, smq, postprocess_result } = data
           // details는 extractMetrics, extractFilters, extractOrderByAndLimit 등에서 추출된 상세 정보를 포함
+          
 
           if (type === 'cancelled') {
             clearTimeout(timeout)
@@ -428,14 +651,18 @@ function NodeTest() {
           } else if (type === 'thought') {
             // thought는 노드 완료를 나타냄 (상태를 complete로 변경)
             if (!cancelled && step) {
+              // postprocess 노드의 경우 postprocess_result를 우선 사용
+              const displayContent = (step === 'postprocess' && postprocess_result) ? postprocess_result : content
+              
               // 백엔드 실제 상태 업데이트 (details도 함께 저장)
               setNodeStatuses(prev => ({
                 ...prev,
                 [step]: {
                   ...prev[step],
                   status: 'complete',
-                  result: content,
-                  details: details || null  // details 저장 (metrics, filters, order_by 등)
+                  result: displayContent,
+                  details: details || null,  // details 저장 (metrics, filters, order_by 등)
+                  postprocess_result: postprocess_result || null  // postprocess 결과 저장
                 }
               }))
               
@@ -443,7 +670,7 @@ function NodeTest() {
               visualQueueRef.current.push({
                 step,
                 eventType: 'thought',
-                data: { content, details: details || null },
+                data: { content: displayContent, details: details || null, postprocess_result: postprocess_result || null },
                 timestamp: Date.now()
               })
               setVisualQueueLength(visualQueueRef.current.length)
@@ -492,6 +719,11 @@ function NodeTest() {
             clearTimeout(timeout)
             websocket.removeEventListener('message', messageHandler)
             updateNode(node.id, { status: 'error', result: { error: content } })
+            
+            // 에러 메시지를 conversation에 추가하여 사용자에게 표시
+            const errorMessage = `❌ 실패: ${content}`
+            addMessage('error', errorMessage, null, null, null, step)
+            
             if (step) {
               setNodeStatuses(prev => ({
                 ...prev,
@@ -612,6 +844,16 @@ function NodeTest() {
           }
         } catch (error) {
           console.error('메시지 파싱 오류:', error)
+          // 파싱 오류도 사용자에게 알림
+          if (!isResolved) {
+            const errorMessage = `❌ 실패: 메시지 처리 중 오류가 발생했습니다. (${error.message})`
+            addMessage('error', errorMessage)
+            updateNode(node.id, { status: 'error', result: { error: error.message } })
+            clearTimeout(timeout)
+            websocket.removeEventListener('message', messageHandler)
+            isResolved = true
+            reject(error)
+          }
         }
       }
 
@@ -624,7 +866,8 @@ function NodeTest() {
       websocket.send(JSON.stringify({
         message: inputMessage,
         agent_type: 'langgraph',
-        prompt_type: '' // LangGraph 에이전트는 내부적으로 프롬프트를 관리하므로 prompt_type 불필요
+        prompt_type: '', // LangGraph 에이전트는 내부적으로 프롬프트를 관리하므로 prompt_type 불필요
+        llm_config: llmProvider === 'devstral' ? llmConfig : null
       }))
     })
   }
@@ -681,9 +924,8 @@ function NodeTest() {
       await runNode(langgraphNode, userInput)
       
     } catch (error) {
-      if (!cancelled) {
-        addMessage('error', `❌ Flow 실행 오류: ${error.message}`)
-      }
+      // 에러는 이미 messageHandler에서 처리되므로 여기서는 추가하지 않음
+      // (중복 방지)
     } finally {
       setRunning(false)
       setLoading(false)
@@ -733,16 +975,296 @@ function NodeTest() {
 
     await runFlow()
   }
+  
+  // 비교 테스트 실행 함수
+  const runCompareTest = async () => {
+    if (!compareUserInput.trim()) {
+      alert('질문을 입력해주세요.')
+      return
+    }
+    
+    if (!gptWebsocket || gptWebsocket.readyState !== WebSocket.OPEN ||
+        !devstralWebsocket || devstralWebsocket.readyState !== WebSocket.OPEN) {
+      alert('WebSocket이 연결되지 않았습니다. 잠시 후 다시 시도해주세요.')
+      return
+    }
+    
+    // 상태 초기화
+    setCompareRunning(true)
+    setGptResult({
+      nodeStatuses: {},
+      displayedNodeStatuses: {},
+      finalResponse: null,
+      queryResult: null,
+      sqlResult: null,
+      sqlQuery: null,
+      smq: null,
+      error: null
+    })
+    setDevstralResult({
+      nodeStatuses: {},
+      displayedNodeStatuses: {},
+      finalResponse: null,
+      queryResult: null,
+      sqlResult: null,
+      sqlQuery: null,
+      smq: null,
+      error: null
+    })
+    
+    // GPT와 Devstral을 동시에 실행
+    const gptPromise = runCompareNode('gpt', compareUserInput, gptWebsocket)
+    const devstralPromise = runCompareNode('devstral', compareUserInput, devstralWebsocket)
+    
+    try {
+      await Promise.all([gptPromise, devstralPromise])
+    } catch (error) {
+      console.error('비교 테스트 오류:', error)
+    } finally {
+      setCompareRunning(false)
+    }
+  }
+  
+  // 비교 테스트용 노드 실행 함수
+  const runCompareNode = async (provider, inputMessage, ws) => {
+    return new Promise((resolve, reject) => {
+      const result = {
+        nodeStatuses: {},
+        displayedNodeStatuses: {},
+        finalResponse: null,
+        queryResult: null,
+        sqlResult: null,
+        sqlQuery: null,
+        smq: null,
+        error: null
+      }
+      
+      const visualQueueRef = []
+      const displayedNodeStatuses = {}
+      let isCompleted = false // complete 이벤트를 받았는지 추적
+      
+      const timeout = setTimeout(() => {
+        if (!isCompleted) {
+          ws.removeEventListener('message', messageHandler)
+          result.error = '요청 시간이 초과되었습니다. (5분)'
+          if (provider === 'gpt') {
+            setGptResult({ ...result, displayedNodeStatuses: { ...displayedNodeStatuses } })
+          } else {
+            setDevstralResult({ ...result, displayedNodeStatuses: { ...displayedNodeStatuses } })
+          }
+          reject(new Error('타임아웃'))
+        }
+      }, 300000)
+      
+      const messageHandler = (event) => {
+        // complete 이벤트를 받은 후에는 더 이상 처리하지 않음
+        if (isCompleted) {
+          return
+        }
+        try {
+          const data = JSON.parse(event.data)
+          const { type, content, step, query_result, sql_result, sql_query, smq, postprocess_result, details } = data
+          
+          if (type === 'prompt') {
+            if (step) {
+              result.nodeStatuses[step] = {
+                ...result.nodeStatuses[step],
+                status: 'running',
+                prompt: content
+              }
+              displayedNodeStatuses[step] = {
+                ...displayedNodeStatuses[step],
+                status: 'running',
+                prompt: content
+              }
+            }
+          } else if (type === 'thought') {
+            if (step) {
+              const displayContent = (step === 'postprocess' && postprocess_result) ? postprocess_result : content
+              result.nodeStatuses[step] = {
+                ...result.nodeStatuses[step],
+                status: 'complete',
+                result: displayContent,
+                details: details || null,
+                postprocess_result: postprocess_result || null
+              }
+              displayedNodeStatuses[step] = {
+                ...displayedNodeStatuses[step],
+                status: 'complete',
+                result: displayContent,
+                details: details || null,
+                postprocess_result: postprocess_result || null
+              }
+            }
+          } else if (type === 'tool_result') {
+            if (step) {
+              let toolResult
+              try {
+                toolResult = JSON.parse(content)
+              } catch {
+                toolResult = content
+              }
+              result.nodeStatuses[step] = {
+                ...result.nodeStatuses[step],
+                status: 'complete',
+                result: content,
+                toolResult: toolResult
+              }
+              displayedNodeStatuses[step] = {
+                ...displayedNodeStatuses[step],
+                status: 'complete',
+                result: content,
+                toolResult: toolResult
+              }
+            }
+          } else if (type === 'error') {
+            clearTimeout(timeout)
+            ws.removeEventListener('message', messageHandler)
+            result.error = content
+            if (step) {
+              result.nodeStatuses[step] = {
+                ...result.nodeStatuses[step],
+                status: 'error',
+                result: content
+              }
+              displayedNodeStatuses[step] = {
+                ...displayedNodeStatuses[step],
+                status: 'error',
+                result: content
+              }
+            }
+            if (provider === 'gpt') {
+              setGptResult({ ...result, displayedNodeStatuses: { ...displayedNodeStatuses } })
+            } else {
+              setDevstralResult({ ...result, displayedNodeStatuses: { ...displayedNodeStatuses } })
+            }
+            reject(new Error(content))
+          } else if (type === 'success') {
+            // success 이벤트는 중간 단계이므로 상태만 업데이트 (종료하지 않음)
+            // success는 주로 respondent 노드에서 발생
+            if (step) {
+              result.nodeStatuses[step] = {
+                ...result.nodeStatuses[step],
+                status: 'complete',
+                result: content,
+                toolResult: {
+                  query_result: query_result,
+                  sql_result: sql_result,
+                  sql_query: sql_query,
+                  smq: smq
+                }
+              }
+              displayedNodeStatuses[step] = {
+                ...displayedNodeStatuses[step],
+                status: 'complete',
+                result: content,
+                toolResult: {
+                  query_result: query_result,
+                  sql_result: sql_result,
+                  sql_query: sql_query,
+                  smq: smq
+                }
+              }
+            }
+            // finalResponse는 complete 이벤트에서만 최종적으로 설정
+            // success는 중간 단계이므로 임시로만 저장
+            if (content) {
+              result.finalResponse = content
+            }
+            if (query_result) result.queryResult = query_result
+            if (sql_result) result.sqlResult = sql_result
+            if (sql_query) result.sqlQuery = sql_query
+            if (smq) result.smq = smq
+          } else if (type === 'complete') {
+            // complete 이벤트가 오면 종료
+            isCompleted = true
+            clearTimeout(timeout)
+            ws.removeEventListener('message', messageHandler)
+            result.finalResponse = content
+            result.queryResult = query_result
+            result.sqlResult = sql_result
+            result.sqlQuery = sql_query
+            result.smq = smq
+            result.nodeStatuses['complete'] = {
+              status: 'complete',
+              result: content,
+              toolResult: {
+                query_result: query_result,
+                sql_result: sql_result,
+                sql_query: sql_query,
+                smq: smq
+              }
+            }
+            displayedNodeStatuses['complete'] = {
+              status: 'complete',
+              result: content,
+              toolResult: {
+                query_result: query_result,
+                sql_result: sql_result,
+                sql_query: sql_query,
+                smq: smq
+              }
+            }
+            
+            if (provider === 'gpt') {
+              setGptResult({ ...result, displayedNodeStatuses: { ...displayedNodeStatuses } })
+            } else {
+              setDevstralResult({ ...result, displayedNodeStatuses: { ...displayedNodeStatuses } })
+            }
+            resolve(result)
+            return // 핸들러 종료 후 더 이상 처리하지 않음
+          }
+          
+          // 상태 업데이트
+          if (provider === 'gpt') {
+            setGptResult({ ...result, displayedNodeStatuses: { ...displayedNodeStatuses } })
+          } else {
+            setDevstralResult({ ...result, displayedNodeStatuses: { ...displayedNodeStatuses } })
+          }
+        } catch (error) {
+          console.error('메시지 파싱 오류:', error)
+        }
+      }
+      
+      ws.addEventListener('message', messageHandler)
+      
+      // 메시지 전송
+      ws.send(JSON.stringify({
+        message: inputMessage,
+        agent_type: 'langgraph',
+        prompt_type: '',
+        llm_config: provider === 'devstral' ? llmConfig : null
+      }))
+    })
+  }
 
   return (
     <div className="node-test-page">
       <div className="node-test-header">
         <h2>🔄 노드 테스트</h2>
         <p>여러 프롬프트 노드를 파이프라인으로 순차 실행</p>
-        <div className="ws-status">
-          <span className={wsConnected ? 'status-connected' : 'status-disconnected'}>
-            {wsConnected ? '🟢 연결됨' : '🔴 연결 안 됨'}
-          </span>
+        <div className="header-controls">
+          <div className="llm-tabs">
+            <button
+              className={`llm-tab ${llmProvider === 'gpt' ? 'active' : ''}`}
+              onClick={() => setLlmProvider('gpt')}
+              disabled={loading || running}
+            >
+              GPT
+            </button>
+            <button
+              className={`llm-tab ${llmProvider === 'devstral' ? 'active' : ''}`}
+              onClick={() => setLlmProvider('devstral')}
+              disabled={loading || running}
+            >
+              Devstral
+            </button>
+          </div>
+          <div className="ws-status">
+            <span className={wsConnected ? 'status-connected' : 'status-disconnected'}>
+              {wsConnected ? '🟢 연결됨' : '🔴 연결 안 됨'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -755,6 +1277,12 @@ function NodeTest() {
           💬 채팅
         </button>
         <button
+          className={`tab-button ${activeTab === 'compare' ? 'active' : ''}`}
+          onClick={() => setActiveTab('compare')}
+        >
+          ⚖️ 비교 테스트
+        </button>
+        <button
           className={`tab-button ${activeTab === 'prompt' ? 'active' : ''}`}
           onClick={() => setActiveTab('prompt')}
         >
@@ -762,7 +1290,122 @@ function NodeTest() {
         </button>
       </div>
 
-      {activeTab === 'prompt' ? (
+      {activeTab === 'compare' ? (
+        <div className="compare-test-container">
+          <div className="compare-test-header">
+            <h3>GPT vs Devstral 비교 테스트</h3>
+            <p>동일한 질문을 GPT와 Devstral에 동시에 전송하여 결과를 비교합니다.</p>
+          </div>
+          
+          <div className="compare-test-input">
+            <textarea
+              value={compareUserInput}
+              onChange={(e) => setCompareUserInput(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  if (!compareRunning) {
+                    runCompareTest()
+                  }
+                }
+              }}
+              placeholder="비교할 질문을 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"
+              disabled={compareRunning}
+            />
+            {compareRunning ? (
+              <button
+                onClick={() => {
+                  setCompareRunning(false)
+                  if (gptWebsocket) gptWebsocket.close()
+                  if (devstralWebsocket) devstralWebsocket.close()
+                }}
+                className="cancel-button"
+              >
+                취소
+              </button>
+            ) : (
+              <button
+                onClick={runCompareTest}
+                disabled={compareRunning || !compareUserInput.trim()}
+              >
+                {compareRunning ? '처리 중...' : '비교 실행'}
+              </button>
+            )}
+          </div>
+          
+          <div className="compare-test-results">
+            {/* GPT 결과 패널 */}
+            <div className="compare-panel compare-panel-gpt">
+              <div className="compare-panel-header">
+                <h4>🤖 GPT-4o</h4>
+                {gptResult?.error && (
+                  <span className="compare-error-badge">오류</span>
+                )}
+                {gptResult?.displayedNodeStatuses?.['complete'] && (
+                  <span className="compare-complete-badge">완료</span>
+                )}
+                {compareRunning && !gptResult?.displayedNodeStatuses?.['complete'] && !gptResult?.error && (
+                  <span className="compare-running-badge">실행 중...</span>
+                )}
+              </div>
+              <div className="compare-panel-content">
+                {!gptResult && !compareRunning && (
+                  <div className="compare-panel-empty">
+                    <p>결과가 표시됩니다...</p>
+                  </div>
+                )}
+                {gptResult?.error && (
+                  <div className="compare-error-message">
+                    <strong>오류:</strong> {gptResult.error}
+                  </div>
+                )}
+                {gptResult?.displayedNodeStatuses && (
+                  <CompareResultDisplay 
+                    displayedNodeStatuses={gptResult.displayedNodeStatuses}
+                    nodeNameMap={nodeNameMap}
+                    nodeOrder={nodeOrder}
+                  />
+                )}
+              </div>
+            </div>
+            
+            {/* Devstral 결과 패널 */}
+            <div className="compare-panel compare-panel-devstral">
+              <div className="compare-panel-header">
+                <h4>🦙 Devstral</h4>
+                {devstralResult?.error && (
+                  <span className="compare-error-badge">오류</span>
+                )}
+                {devstralResult?.displayedNodeStatuses?.['complete'] && (
+                  <span className="compare-complete-badge">완료</span>
+                )}
+                {compareRunning && !devstralResult?.displayedNodeStatuses?.['complete'] && !devstralResult?.error && (
+                  <span className="compare-running-badge">실행 중...</span>
+                )}
+              </div>
+              <div className="compare-panel-content">
+                {!devstralResult && !compareRunning && (
+                  <div className="compare-panel-empty">
+                    <p>결과가 표시됩니다...</p>
+                  </div>
+                )}
+                {devstralResult?.error && (
+                  <div className="compare-error-message">
+                    <strong>오류:</strong> {devstralResult.error}
+                  </div>
+                )}
+                {devstralResult?.displayedNodeStatuses && (
+                  <CompareResultDisplay 
+                    displayedNodeStatuses={devstralResult.displayedNodeStatuses}
+                    nodeNameMap={nodeNameMap}
+                    nodeOrder={nodeOrder}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : activeTab === 'prompt' ? (
         <div className="prompt-management">
           {/* 프롬프트 타입 선택 UI */}
           <div className="node-selection-area">
@@ -838,6 +1481,40 @@ function NodeTest() {
                   {conversation.filter(msg => msg.role === 'user').map((msg, idx) => (
                     <div key={idx} className="user-question-text">{msg.content}</div>
                   ))}
+                </div>
+              </div>
+            )}
+            
+            {/* 에러 메시지 표시 (질문 아래) */}
+            {conversation.filter(msg => msg.role === 'error').length > 0 && (
+              <div className="error-message-section">
+                {conversation.filter(msg => msg.role === 'error').map((msg, idx) => (
+                  <div key={idx} className="message message-error">
+                    <div className="message-header">
+                      <span className="message-role">❌ 오류</span>
+                      <span className="message-time">{msg.timestamp}</span>
+                    </div>
+                    <div className="message-content">
+                      {msg.content}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* 생성된 SMQ 표시 (질문 아래, 에러 아래) */}
+            {displayedNodeStatuses['complete']?.toolResult?.smq && (
+              <div className="smq-display-section">
+                <div className="message message-tool">
+                  <div className="message-header">
+                    <span className="message-role">📋 생성된 SMQ</span>
+                  </div>
+                  <div className="message-content">
+                    <details open>
+                      <summary><strong>SMQ (Semantic Model Query)</strong></summary>
+                      <pre className="json-code"><code>{JSON.stringify(displayedNodeStatuses['complete'].toolResult.smq, null, 2)}</code></pre>
+                    </details>
+                  </div>
                 </div>
               </div>
             )}
@@ -1004,6 +1681,17 @@ function NodeTest() {
                             <h4>💬 결과</h4>
                             <div className="node-detail-result">
                               {(() => {
+                                // postprocess 노드의 경우 SQL 코드 블록으로 표시
+                                if (step === 'postprocess') {
+                                  const result = nodeStatus.postprocess_result || nodeStatus.result
+                                  const isPass = result && result.toLowerCase().trim() === 'pass'
+                                  if (isPass) {
+                                    return <div className="text-content"><code>pass</code></div>
+                                  }
+                                  // SQL인 경우 코드 블록으로 표시
+                                  return <pre className="sql-code"><code>{result}</code></pre>
+                                }
+                                
                                 try {
                                   const parsed = JSON.parse(nodeStatus.result)
                                   return <pre className="json-code">{JSON.stringify(parsed, null, 2)}</pre>
@@ -1049,16 +1737,27 @@ function NodeTest() {
                                 <div className="extracted-data-section">
                                   <h5>🔍 필터 ({nodeStatus.details.filters.length}개)</h5>
                                   <ul className="extracted-list">
-                                    {nodeStatus.details.filters.map((filter, idx) => (
-                                      <li key={idx} className="extracted-item">
-                                        <strong>{filter.field || filter.column || '필드'}</strong>
-                                        {' '}
-                                        <span className="filter-operator">{filter.operator || '='}</span>
-                                        {' '}
-                                        <span className="filter-value">"{filter.value || '값'}"</span>
-                                        {filter.description && <span className="extracted-desc"> - {filter.description}</span>}
-                                      </li>
-                                    ))}
+                                    {nodeStatus.details.filters.map((filter, idx) => {
+                                      // 문자열인 경우 그대로 표시
+                                      if (typeof filter === 'string') {
+                                        return (
+                                          <li key={idx} className="extracted-item">
+                                            <code className="filter-string">{filter}</code>
+                                          </li>
+                                        )
+                                      }
+                                      // 객체인 경우 파싱하여 표시
+                                      return (
+                                        <li key={idx} className="extracted-item">
+                                          <strong>{filter.field || filter.column || '필드'}</strong>
+                                          {' '}
+                                          <span className="filter-operator">{filter.operator || '='}</span>
+                                          {' '}
+                                          <span className="filter-value">"{filter.value || '값'}"</span>
+                                          {filter.description && <span className="extracted-desc"> - {filter.description}</span>}
+                                        </li>
+                                      )
+                                    })}
                                   </ul>
                                 </div>
                               )}
@@ -1068,13 +1767,29 @@ function NodeTest() {
                                     <>
                                       <h5>⬆️ 정렬 ({nodeStatus.details.order_by.length}개)</h5>
                                       <ul className="extracted-list">
-                                        {nodeStatus.details.order_by.map((order, idx) => (
-                                          <li key={idx} className="extracted-item">
-                                            <strong>{order.field || order.column || '필드'}</strong>
-                                            {' '}
-                                            <span className="order-direction">{order.direction || order.order || 'ASC'}</span>
-                                          </li>
-                                        ))}
+                                        {nodeStatus.details.order_by.map((order, idx) => {
+                                          // 문자열인 경우 파싱하여 표시
+                                          if (typeof order === 'string') {
+                                            const isDesc = order.startsWith('-')
+                                            const field = isDesc ? order.substring(1) : order
+                                            const direction = isDesc ? 'DESC' : 'ASC'
+                                            return (
+                                              <li key={idx} className="extracted-item">
+                                                <strong>{field}</strong>
+                                                {' '}
+                                                <span className="order-direction">{direction}</span>
+                                              </li>
+                                            )
+                                          }
+                                          // 객체인 경우 그대로 표시
+                                          return (
+                                            <li key={idx} className="extracted-item">
+                                              <strong>{order.field || order.column || '필드'}</strong>
+                                              {' '}
+                                              <span className="order-direction">{order.direction || order.order || 'ASC'}</span>
+                                            </li>
+                                          )
+                                        })}
                                       </ul>
                                     </>
                                   )}
@@ -1204,6 +1919,17 @@ function NodeTest() {
                       <h3>💬 결과</h3>
                       <div className="node-detail-result">
                         {(() => {
+                          // postprocess 노드의 경우 SQL 코드 블록으로 표시
+                          if (selectedNodeDetail.step === 'postprocess') {
+                            const result = selectedNodeDetail.postprocess_result || selectedNodeDetail.result
+                            const isPass = result && result.toLowerCase().trim() === 'pass'
+                            if (isPass) {
+                              return <div className="text-content"><code>pass</code></div>
+                            }
+                            // SQL인 경우 코드 블록으로 표시
+                            return <pre className="sql-code"><code>{result}</code></pre>
+                          }
+                          
                           try {
                             const parsed = JSON.parse(selectedNodeDetail.result)
                             return <pre className="json-code">{JSON.stringify(parsed, null, 2)}</pre>

@@ -357,8 +357,8 @@ def parse_semantic_models(path: str):
                     # 새 소스 생성
                     sources_list.append({
                         "name": source_name,
-                        "database": "default_db",
-                        "schema": "default_schema",
+                        "database": "",
+                        "schema": "",
                         "tables": [{"name": table_name} for table_name in sorted(tables)]
                     })
             
@@ -371,8 +371,8 @@ def parse_semantic_models(path: str):
             if not sources_list:
                 sources_list.append({
                     "name": "default",
-                    "database": "default_db",
-                    "schema": "default_schema",
+                    "database": "",
+                    "schema": "",
                     "tables": []
                 })
             

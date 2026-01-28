@@ -198,6 +198,16 @@ class ExecuteSQLResult(BaseModel):
     rows: Optional[List[List[Any]]] = None
     error: Optional[str] = None
 
+class ExecutePostgreSQLRequest(BaseModel):
+    sql: str
+
+class ExecutePostgreSQLResult(BaseModel):
+    success: bool
+    columns: Optional[List[str]] = None
+    rows: Optional[List[List[Any]]] = None
+    row_count: Optional[int] = None
+    error: Optional[str] = None
+
 # 평가용 도구 함수들
 def read_file_for_evaluation(base_dir, path):
     """평가용 파일 읽기 - 임시 디렉토리 기반"""
@@ -744,6 +754,246 @@ async def convert_smq_endpoint(request: SMQConvertRequest):
             status_code=500,
             detail=f"SMQ 변환 오류: {str(e)}",
             headers={"X-Traceback": traceback.format_exc()}
+        )
+
+@app.post("/api/smq/execute", response_model=ExecutePostgreSQLResult)
+async def execute_sql_endpoint(request: ExecutePostgreSQLRequest):
+    """생성된 SQL 쿼리를 PostgreSQL 데이터베이스에서 실행"""
+    try:
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        
+        # DB 연결 정보 (환경변수에서 가져오거나 기본값 사용)
+        db_host = os.getenv("DB_HOST", "dev.daquv.com")
+        db_port = os.getenv("DB_PORT", "5432")
+        db_name = os.getenv("DB_NAME", "test_3")
+        db_user = os.getenv("DB_USER", "daquv")
+        db_password = os.getenv("DB_PASSWORD", "daquv123!@()")
+        
+        # SQL에서 마크다운 코드 블록 제거
+        cleaned_sql = request.sql.strip()
+        if cleaned_sql.startswith('```sql'):
+            cleaned_sql = cleaned_sql[6:].lstrip()
+        elif cleaned_sql.startswith('```'):
+            cleaned_sql = cleaned_sql[3:].lstrip()
+        if cleaned_sql.endswith('```'):
+            cleaned_sql = cleaned_sql[:-3].rstrip()
+        cleaned_sql = cleaned_sql.strip()
+        
+        # Oracle SQL을 PostgreSQL로 변환 (필요한 경우)
+        try:
+            import sqlglot
+            # Oracle dialect로 파싱 시도
+            try:
+                parsed = sqlglot.parse_one(cleaned_sql, dialect='oracle')
+                # PostgreSQL로 변환
+                cleaned_sql = parsed.sql(dialect='postgres')
+            except Exception:
+                # Oracle 파싱 실패 시 그대로 사용 (이미 PostgreSQL일 수도 있음)
+                pass
+        except ImportError:
+            # sqlglot이 없으면 그대로 사용
+            pass
+        
+        # PostgreSQL 연결 및 쿼리 실행
+        try:
+            # 연결 정보 로깅 (디버깅용)
+            import logging
+            import socket
+            logger = logging.getLogger("app")
+            logger.info(f"PostgreSQL 연결 시도: {db_user}@{db_host}:{db_port}/{db_name}")
+            
+            # 네트워크 연결 테스트 (호스트와 포트 접근 가능 여부 확인)
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(5)
+                result = sock.connect_ex((db_host, int(db_port)))
+                sock.close()
+                if result != 0:
+                    return ExecutePostgreSQLResult(
+                        success=False,
+                        error=f"네트워크 연결 실패:\n호스트 {db_host}:{db_port}에 연결할 수 없습니다.\n포트가 열려있지 않거나 방화벽에 의해 차단되었을 수 있습니다.\n연결 테스트 결과 코드: {result}"
+                    )
+            except socket.gaierror as e:
+                return ExecutePostgreSQLResult(
+                    success=False,
+                    error=f"DNS 해석 실패:\n호스트 '{db_host}'를 찾을 수 없습니다.\n오류: {str(e)}"
+                )
+            except Exception as sock_error:
+                logger.warning(f"소켓 테스트 중 오류 (무시): {str(sock_error)}")
+            
+            # 연결 타임아웃 설정 (10초)
+            conn = psycopg2.connect(
+                host=db_host,
+                port=int(db_port),
+                database=db_name,
+                user=db_user,
+                password=db_password,
+                connect_timeout=10
+            )
+            
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            try:
+                cursor.execute(cleaned_sql)
+                
+                # SELECT 쿼리인 경우 결과 반환
+                if cleaned_sql.strip().upper().startswith('SELECT'):
+                    rows = cursor.fetchall()
+                    columns = list(rows[0].keys()) if rows else []
+                    rows_data = [[row[col] for col in columns] for row in rows] if rows else []
+                    
+                    return ExecutePostgreSQLResult(
+                        success=True,
+                        columns=columns,
+                        rows=rows_data,
+                        row_count=len(rows_data)
+                    )
+                else:
+                    # INSERT, UPDATE, DELETE 등의 경우
+                    conn.commit()
+                    row_count = cursor.rowcount
+                    
+                    return ExecutePostgreSQLResult(
+                        success=True,
+                        columns=None,
+                        rows=None,
+                        row_count=row_count
+                    )
+            except psycopg2.Error as sql_error:
+                conn.rollback()
+                error_message = str(sql_error)
+                # PostgreSQL 오류 메시지에서 더 자세한 정보 추출
+                if hasattr(sql_error, 'pgerror') and sql_error.pgerror:
+                    error_message = sql_error.pgerror
+                if hasattr(sql_error, 'pgcode') and sql_error.pgcode:
+                    error_message = f"[{sql_error.pgcode}] {error_message}"
+                
+                return ExecutePostgreSQLResult(
+                    success=False,
+                    error=error_message
+                )
+            finally:
+                cursor.close()
+                conn.close()
+                
+        except psycopg2.OperationalError as conn_error:
+            # 더 자세한 오류 정보 추출
+            import logging
+            logger = logging.getLogger("app")
+            
+            error_details = []
+            
+            # 예외 객체의 모든 속성 확인
+            error_str = str(conn_error)
+            error_repr = repr(conn_error)
+            
+            # 기본 오류 메시지
+            if error_str and error_str.strip():
+                error_details.append(f"연결 실패: {error_str}")
+            elif error_repr:
+                error_details.append(f"연결 실패: {error_repr}")
+            else:
+                error_details.append("연결 실패: 알 수 없는 오류")
+            
+            # 연결 정보 추가 (보안을 위해 비밀번호는 제외)
+            error_details.append(f"호스트: {db_host}:{db_port}")
+            error_details.append(f"데이터베이스: {db_name}")
+            error_details.append(f"사용자: {db_user}")
+            
+            # psycopg2의 모든 속성 확인
+            error_attrs = {}
+            for attr in ['pgerror', 'pgcode', 'diag', 'args', '__cause__', '__context__']:
+                if hasattr(conn_error, attr):
+                    value = getattr(conn_error, attr)
+                    if value is not None:
+                        error_attrs[attr] = value
+            
+            # PostgreSQL 오류 정보
+            if 'pgerror' in error_attrs:
+                error_details.append(f"PostgreSQL 오류 메시지: {error_attrs['pgerror']}")
+            if 'pgcode' in error_attrs:
+                error_details.append(f"PostgreSQL 오류 코드: {error_attrs['pgcode']}")
+            if 'diag' in error_attrs:
+                diag = error_attrs['diag']
+                if hasattr(diag, 'severity'):
+                    error_details.append(f"심각도: {diag.severity}")
+                if hasattr(diag, 'message_primary'):
+                    error_details.append(f"주요 메시지: {diag.message_primary}")
+                if hasattr(diag, 'message_detail'):
+                    error_details.append(f"상세 메시지: {diag.message_detail}")
+            
+            # 예외 타입 및 전체 정보
+            error_details.append(f"예외 타입: {type(conn_error).__name__}")
+            
+            # args 확인 (튜플일 수 있음)
+            if 'args' in error_attrs:
+                args_value = error_attrs['args']
+                if args_value:
+                    if isinstance(args_value, tuple):
+                        error_details.append(f"예외 인자: {', '.join(str(a) for a in args_value if a)}")
+                    else:
+                        error_details.append(f"예외 인자: {args_value}")
+            
+            # 중첩된 예외 확인 (__cause__ 또는 __context__)
+            if '__cause__' in error_attrs:
+                cause = error_attrs['__cause__']
+                if cause:
+                    error_details.append(f"원인 예외: {type(cause).__name__}: {str(cause)}")
+            if '__context__' in error_attrs:
+                context = error_attrs['__context__']
+                if context:
+                    error_details.append(f"컨텍스트 예외: {type(context).__name__}: {str(context)}")
+            
+            # traceback 정보 추가
+            import traceback
+            tb_str = ''.join(traceback.format_exception(type(conn_error), conn_error, conn_error.__traceback__))
+            error_details.append(f"\n상세 스택 트레이스:\n{tb_str}")
+            
+            # 로깅 (서버 로그에 기록)
+            logger.error(f"PostgreSQL 연결 오류 상세: {error_details}")
+            logger.error(f"예외 객체: {conn_error}")
+            logger.error(f"예외 타입: {type(conn_error)}")
+            logger.error(f"예외 속성: {dir(conn_error)}")
+            logger.error(f"전체 traceback: {tb_str}")
+            
+            error_message = "\n".join(error_details)
+            return ExecutePostgreSQLResult(
+                success=False,
+                error=f"데이터베이스 연결 오류:\n{error_message}"
+            )
+        except psycopg2.Error as pg_error:
+            # 기타 PostgreSQL 오류
+            error_message = str(pg_error) if str(pg_error) else '알 수 없는 PostgreSQL 오류'
+            if hasattr(pg_error, 'pgerror') and pg_error.pgerror:
+                error_message = pg_error.pgerror
+            if hasattr(pg_error, 'pgcode') and pg_error.pgcode:
+                error_message = f"[{pg_error.pgcode}] {error_message}"
+            
+            return ExecutePostgreSQLResult(
+                success=False,
+                error=f"PostgreSQL 오류: {error_message}"
+            )
+        except Exception as db_error:
+            import traceback
+            error_message = str(db_error) if str(db_error) else '알 수 없는 오류'
+            return ExecutePostgreSQLResult(
+                success=False,
+                error=f"데이터베이스 오류: {error_message}\n{traceback.format_exc()}"
+            )
+            
+    except ImportError as import_err:
+        import traceback
+        return ExecutePostgreSQLResult(
+            success=False,
+            error=f"psycopg2 패키지가 필요합니다. 'pip install psycopg2-binary' 명령을 실행해주세요.\n\n오류 상세: {str(import_err)}\n{traceback.format_exc()}"
+        )
+    except Exception as e:
+        import traceback
+        error_detail = f"SQL 실행 중 오류: {str(e)}\n{traceback.format_exc()}"
+        return ExecutePostgreSQLResult(
+            success=False,
+            error=error_detail
         )
 
 @app.websocket("/ws/chat")

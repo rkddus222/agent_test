@@ -551,12 +551,51 @@
   background-color: #f9fafb;
 }
 
-.result-display h4 {
-  margin: 0 0 0.75rem 0;
+.result-display-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.result-display-header h4 {
+  margin: 0;
   font-size: 1rem;
   font-weight: 600;
   color: #374151;
 }
+
+.copy-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  background-color: white;
+}
+
+.copy-button:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+  border-color: #9ca3af;
+}
+
+.copy-button:active {
+  transform: translateY(1px);
+}
+
+.result-display {
+  width: 100%;
+}
+
 
 .dataframe-settings {
   display: flex;

@@ -60,6 +60,18 @@ function AgentTest() {
     }])
   }
 
+  const copyToClipboard = (text) => {
+    if (!text) return
+    navigator.clipboard.writeText(typeof text === 'string' ? text : JSON.stringify(text, null, 2))
+      .then(() => {
+        // 복사 성공 피드백은 필요하다면 여기에 추가 (예: 토스트 메시지)
+      })
+      .catch(err => {
+        console.error('클립보드 복사 실패:', err)
+        alert('복사에 실패했습니다.')
+      })
+  }
+
   // 프롬프트 로드
   const loadPrompt = async () => {
     setPromptLoading(true)
@@ -494,7 +506,20 @@ function AgentTest() {
                   {msg.toolResult.query_result && (
                     <div className="query-result-section">
                       <details open>
-                        <summary><strong>📊 생성된 예시 데이터</strong></summary>
+                        <summary>
+                          <strong>📊 생성된 예시 데이터</strong>
+                          <button 
+                            className="copy-button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              copyToClipboard(msg.toolResult.query_result)
+                            }}
+                            title="결과 데이터 복사"
+                          >
+                            📋
+                          </button>
+                        </summary>
                         {msg.toolResult.query_result.rows && msg.toolResult.query_result.rows.length > 0 ? (
                           <div className="data-table-container">
                             <table className="data-table">
@@ -527,7 +552,20 @@ function AgentTest() {
                   {msg.toolResult.sql_query && (
                     <div className="sql-query-section">
                       <details>
-                        <summary><strong>🔍 생성된 SQL 쿼리</strong></summary>
+                        <summary>
+                          <strong>🔍 생성된 SQL 쿼리</strong>
+                          <button 
+                            className="copy-button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              copyToClipboard(msg.toolResult.sql_query)
+                            }}
+                            title="SQL 쿼리 복사"
+                          >
+                            📋
+                          </button>
+                        </summary>
                         <pre className="sql-code"><code>{msg.toolResult.sql_query}</code></pre>
                       </details>
                     </div>
@@ -537,7 +575,20 @@ function AgentTest() {
                   {msg.toolResult.smq && (
                     <div className="smq-section">
                       <details>
-                        <summary><strong>📋 생성된 SMQ</strong></summary>
+                        <summary>
+                          <strong>📋 생성된 SMQ</strong>
+                          <button 
+                            className="copy-button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              copyToClipboard(msg.toolResult.smq)
+                            }}
+                            title="SMQ JSON 복사"
+                          >
+                            📋
+                          </button>
+                        </summary>
                         <pre className="json-code"><code>{JSON.stringify(msg.toolResult.smq, null, 2)}</code></pre>
                       </details>
                     </div>
@@ -547,7 +598,20 @@ function AgentTest() {
                   {msg.toolResult.sql_result && (
                     <div className="sql-result-section">
                       <details>
-                        <summary><strong>🔧 SQL 변환 결과 (메타데이터)</strong></summary>
+                        <summary>
+                          <strong>🔧 SQL 변환 결과 (메타데이터)</strong>
+                          <button 
+                            className="copy-button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              copyToClipboard(msg.toolResult.sql_result)
+                            }}
+                            title="변환 결과 복사"
+                          >
+                            📋
+                          </button>
+                        </summary>
                         <pre className="json-code"><code>{JSON.stringify(msg.toolResult.sql_result, null, 2)}</code></pre>
                       </details>
                     </div>
@@ -556,7 +620,20 @@ function AgentTest() {
                   {/* 기타 toolResult 데이터가 있으면 표시 */}
                   {!msg.toolResult.query_result && !msg.toolResult.sql_query && !msg.toolResult.smq && !msg.toolResult.sql_result && (
                     <details>
-                      <summary>툴 결과</summary>
+                      <summary>
+                        툴 결과
+                        <button 
+                          className="copy-button"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            copyToClipboard(msg.toolResult)
+                          }}
+                          title="결과 복사"
+                        >
+                          📋
+                        </button>
+                      </summary>
                       <pre>{JSON.stringify(msg.toolResult, null, 2)}</pre>
                     </details>
                   )}

@@ -1,12 +1,18 @@
 import React, { useState } from 'react'
 import './EditableTable.css'
 
-function EditableTable({ title, columns, data, onDataChange, onAddRow, onDeleteRow, onCellChange }) {
+function EditableTable({ title, columns, data, onDataChange, onAddRow, onDeleteRow, onCellChange, onRowClick }) {
   const [editingCell, setEditingCell] = useState(null)
   const [editValue, setEditValue] = useState('')
   const [modalEdit, setModalEdit] = useState(null) // { rowIndex, columnKey, value }
 
-  const handleCellClick = (rowIndex, columnKey) => {
+  const handleCellClick = (rowIndex, columnKey, e) => {
+    // onRowClick이 있으면 셀 편집 모드를 비활성화하고 상위로 이벤트 전파 (행 클릭 처리)
+    if (onRowClick) {
+      return
+    }
+
+    e.stopPropagation() // 행 클릭 이벤트 전파 방지
     const cellKey = `${rowIndex}-${columnKey}`
     const column = columns.find(col => col.key === columnKey)
     
@@ -212,7 +218,11 @@ function EditableTable({ title, columns, data, onDataChange, onAddRow, onDeleteR
             </thead>
             <tbody>
               {data.map((row, rowIndex) => (
-                <tr key={row.id || rowIndex}>
+                <tr 
+                  key={row.id || rowIndex}
+                  onClick={() => onRowClick && onRowClick(row, rowIndex)}
+                  className={onRowClick ? 'clickable-row' : ''}
+                >
                   {columns.map(col => {
                     const cellKey = `${rowIndex}-${col.key}`
                     const isEditing = editingCell === cellKey
@@ -246,13 +256,13 @@ function EditableTable({ title, columns, data, onDataChange, onAddRow, onDeleteR
                         ) : (
                           <div
                             className={`editable-cell ${col.type === 'textarea' ? 'editable-cell-long' : ''}`}
-                            onClick={() => handleCellClick(rowIndex, col.key)}
-                            title={col.type === 'textarea' ? '클릭하여 편집 (긴 텍스트)' : '클릭하여 편집'}
+                            onClick={(e) => handleCellClick(rowIndex, col.key, e)}
+                            title={onRowClick ? '클릭하여 행 편집' : (col.type === 'textarea' ? '클릭하여 편집 (긴 텍스트)' : '클릭하여 편집')}
                           >
                             {col.type === 'textarea' && cellValue ? (
                               <div className="cell-preview">
                                 {cellValue.length > 100 ? `${cellValue.substring(0, 100)}...` : cellValue}
-                                <span className="cell-expand-hint">✏️ 편집</span>
+                                {!onRowClick && <span className="cell-expand-hint">✏️ 편집</span>}
                               </div>
                             ) : (
                               cellValue || <span className="empty-cell-placeholder">-</span>

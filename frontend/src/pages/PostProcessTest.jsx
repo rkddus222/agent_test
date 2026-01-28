@@ -68,6 +68,18 @@ function PostProcessTest() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result, loading, executingSql])
 
+  const copyToClipboard = (text) => {
+    if (!text) return
+    navigator.clipboard.writeText(typeof text === 'string' ? text : JSON.stringify(text, null, 2))
+      .then(() => {
+        // 복사 성공 피드백은 필요하다면 여기에 추가 (예: 토스트 메시지)
+      })
+      .catch(err => {
+        console.error('클립보드 복사 실패:', err)
+        alert('복사에 실패했습니다.')
+      })
+  }
+
   // 프롬프트 로드
   const loadPrompt = async () => {
     setPromptLoading(true)
@@ -671,7 +683,19 @@ function PostProcessTest() {
 
             {result && !loading && (
               <div className="result-display">
-                <h4>생성된 SQL / 결과</h4>
+                <div className="result-display-header">
+                  <h4>생성된 SQL / 결과</h4>
+                  <button 
+                    className="copy-button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      copyToClipboard(result)
+                    }}
+                    title="결과 복사"
+                  >
+                    📋 복사
+                  </button>
+                </div>
                 {typeof result === 'string' ? (
                   <pre className="result-text">{result}</pre>
                 ) : (

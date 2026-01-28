@@ -76,9 +76,9 @@ def _generate_sources_yml(
         if table_info.schema:
             schemas.add(table_info.schema)
     
-    # database와 schema 결정
-    database = list(databases)[0] if len(databases) == 1 else ""
-    schema = list(schemas)[0] if len(schemas) == 1 else ""
+    # database와 schema 결정 (무조건 공백으로 설정)
+    database = ""
+    schema = ""
     
     # sources.yml 구조 생성
     sources_data = {

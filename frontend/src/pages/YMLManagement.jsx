@@ -26,6 +26,7 @@ function YMLManagement() {
   const [viewMode, setViewMode] = useState('table') // 'table' or 'text'
   const [tableData, setTableData] = useState(null)
   const [parsedYmlData, setParsedYmlData] = useState(null)
+  const [rowEditModal, setRowEditModal] = useState(null) // { section, data, index, columns, modelIndex }
 
   useEffect(() => {
     loadFiles()
@@ -170,47 +171,14 @@ function YMLManagement() {
     setTableData(updated)
   }
   
-  const handleAddRow = (section, newRow, modelIndex = 0) => {
-    if (!tableData) return
-    
-    const updated = { ...tableData }
-    if (section === 'entities' || section === 'dimensions' || section === 'measures') {
-      if (!updated.semanticModels[modelIndex]) return
-      if (section === 'entities') {
-        if (!updated.semanticModels[modelIndex].entities) {
-          updated.semanticModels[modelIndex].entities = []
-        }
-        updated.semanticModels[modelIndex].entities.push({
-          ...newRow,
-          id: `entity-${Date.now()}-${Math.random()}`
-        })
-      } else if (section === 'dimensions') {
-        if (!updated.semanticModels[modelIndex].dimensions) {
-          updated.semanticModels[modelIndex].dimensions = []
-        }
-        updated.semanticModels[modelIndex].dimensions.push({
-          ...newRow,
-          id: `dim-${Date.now()}-${Math.random()}`
-        })
-      } else if (section === 'measures') {
-        if (!updated.semanticModels[modelIndex].measures) {
-          updated.semanticModels[modelIndex].measures = []
-        }
-        updated.semanticModels[modelIndex].measures.push({
-          ...newRow,
-          id: `measure-${Date.now()}-${Math.random()}`
-        })
-      }
-    } else if (section === 'metrics') {
-      if (!updated.metrics) {
-        updated.metrics = []
-      }
-      updated.metrics.push({
-        ...newRow,
-        id: `metric-${Date.now()}-${Math.random()}`
-      })
-    }
-    setTableData(updated)
+  const handleAddRow = (section, newRow, modelIndex = 0, columns) => {
+    setRowEditModal({
+      section,
+      data: { ...newRow },
+      index: -1, // -1 indicates new row
+      columns,
+      modelIndex
+    })
   }
 
   const handleDelete = async () => {
@@ -339,6 +307,85 @@ function YMLManagement() {
     } finally {
       setParseLoading(false)
     }
+  }
+
+  const handleRowClick = (section, row, index, columns, modelIndex = 0) => {
+    setRowEditModal({
+      section,
+      data: { ...row },
+      index,
+      columns,
+      modelIndex
+    })
+  }
+
+  const handleRowSave = () => {
+    if (!rowEditModal) return
+    
+    const { section, data, index, modelIndex } = rowEditModal
+    const isNew = index === -1
+    
+    if (section === 'metrics') {
+      const newMetrics = tableData.metrics ? [...tableData.metrics] : []
+      if (isNew) {
+        newMetrics.push({
+          ...data,
+          id: `metric-${Date.now()}-${Math.random()}`
+        })
+      } else {
+        newMetrics[index] = data
+      }
+      handleTableDataChange('metrics', newMetrics)
+    } else {
+      const newModels = [...tableData.semanticModels]
+      const model = newModels[modelIndex]
+      
+      if (section === 'entities') {
+        if (!model.entities) model.entities = []
+        if (isNew) {
+          model.entities.push({
+            ...data,
+            id: `entity-${Date.now()}-${Math.random()}`
+          })
+        } else {
+          model.entities[index] = data
+        }
+      } else if (section === 'dimensions') {
+        if (!model.dimensions) model.dimensions = []
+        if (isNew) {
+          model.dimensions.push({
+            ...data,
+            id: `dim-${Date.now()}-${Math.random()}`
+          })
+        } else {
+          model.dimensions[index] = data
+        }
+      } else if (section === 'measures') {
+        if (!model.measures) model.measures = []
+        if (isNew) {
+          model.measures.push({
+            ...data,
+            id: `measure-${Date.now()}-${Math.random()}`
+          })
+        } else {
+          model.measures[index] = data
+        }
+      }
+      
+      setTableData({ ...tableData, semanticModels: newModels })
+    }
+    setRowEditModal(null)
+  }
+
+  const handleRowModalChange = (key, value) => {
+    if (!rowEditModal) return
+    setRowEditModal({
+      ...rowEditModal,
+      data: {
+        ...rowEditModal.data,
+        [key]: value
+      }
+    })
   }
 
   return (
@@ -514,7 +561,22 @@ function YMLManagement() {
                             ]}
                             data={model.entities || []}
                             onDataChange={(newData) => handleTableDataChange('entities', newData, modelIndex)}
-                            onAddRow={(newRow) => handleAddRow('entities', newRow, modelIndex)}
+                            onRowClick={(row, index) => handleRowClick('entities', row, index, [
+                              { key: 'name', label: 'Name', width: '150px' },
+                              { key: 'type', label: 'Type', width: '120px' },
+                              { key: 'expr', label: 'Expr', width: '200px', type: 'textarea' },
+                              { key: 'label', label: 'Label', width: '150px' },
+                              { key: 'description', label: 'Description', width: '250px', type: 'textarea' },
+                              { key: 'role', label: 'Role', width: '100px' }
+                            ], modelIndex)}
+                            onAddRow={(newRow) => handleAddRow('entities', newRow, modelIndex, [
+                              { key: 'name', label: 'Name', width: '150px' },
+                              { key: 'type', label: 'Type', width: '120px' },
+                              { key: 'expr', label: 'Expr', width: '200px', type: 'textarea' },
+                              { key: 'label', label: 'Label', width: '150px' },
+                              { key: 'description', label: 'Description', width: '250px', type: 'textarea' },
+                              { key: 'role', label: 'Role', width: '100px' }
+                            ])}
                             onDeleteRow={(rowIndex) => {
                               const updated = { ...tableData }
                               if (!updated.semanticModels[modelIndex].entities) {
@@ -537,7 +599,20 @@ function YMLManagement() {
                             ]}
                             data={model.dimensions || []}
                             onDataChange={(newData) => handleTableDataChange('dimensions', newData, modelIndex)}
-                            onAddRow={(newRow) => handleAddRow('dimensions', newRow, modelIndex)}
+                            onRowClick={(row, index) => handleRowClick('dimensions', row, index, [
+                              { key: 'name', label: 'Name', width: '150px' },
+                              { key: 'type', label: 'Type', width: '120px' },
+                              { key: 'expr', label: 'Expr', width: '200px', type: 'textarea' },
+                              { key: 'label', label: 'Label', width: '150px' },
+                              { key: 'description', label: 'Description', width: '300px', type: 'textarea' }
+                            ], modelIndex)}
+                            onAddRow={(newRow) => handleAddRow('dimensions', newRow, modelIndex, [
+                              { key: 'name', label: 'Name', width: '150px' },
+                              { key: 'type', label: 'Type', width: '120px' },
+                              { key: 'expr', label: 'Expr', width: '200px', type: 'textarea' },
+                              { key: 'label', label: 'Label', width: '150px' },
+                              { key: 'description', label: 'Description', width: '300px', type: 'textarea' }
+                            ])}
                             onDeleteRow={(rowIndex) => {
                               const updated = { ...tableData }
                               if (!updated.semanticModels[modelIndex].dimensions) {
@@ -561,7 +636,22 @@ function YMLManagement() {
                             ]}
                             data={model.measures || []}
                             onDataChange={(newData) => handleTableDataChange('measures', newData, modelIndex)}
-                            onAddRow={(newRow) => handleAddRow('measures', newRow, modelIndex)}
+                            onRowClick={(row, index) => handleRowClick('measures', row, index, [
+                              { key: 'name', label: 'Name', width: '150px' },
+                              { key: 'type', label: 'Type', width: '120px' },
+                              { key: 'expr', label: 'Expr', width: '200px', type: 'textarea' },
+                              { key: 'label', label: 'Label', width: '150px' },
+                              { key: 'description', label: 'Description', width: '250px', type: 'textarea' },
+                              { key: 'agg', label: 'Agg', width: '100px' }
+                            ], modelIndex)}
+                            onAddRow={(newRow) => handleAddRow('measures', newRow, modelIndex, [
+                              { key: 'name', label: 'Name', width: '150px' },
+                              { key: 'type', label: 'Type', width: '120px' },
+                              { key: 'expr', label: 'Expr', width: '200px', type: 'textarea' },
+                              { key: 'label', label: 'Label', width: '150px' },
+                              { key: 'description', label: 'Description', width: '250px', type: 'textarea' },
+                              { key: 'agg', label: 'Agg', width: '100px' }
+                            ])}
                             onDeleteRow={(rowIndex) => {
                               const updated = { ...tableData }
                               if (!updated.semanticModels[modelIndex].measures) {
@@ -609,6 +699,30 @@ function YMLManagement() {
                               updated.metrics = newData
                               setTableData(updated)
                             }}
+                            onRowClick={(row, index) => handleRowClick('metrics', row, index, [
+                              { key: 'name', label: 'Name', width: '150px' },
+                              { key: 'metric_type', label: 'Metric Type', width: '120px' },
+                              { key: 'type', label: 'Type', width: '100px' },
+                              { key: 'agg', label: 'Agg', width: '120px', type: 'select', options: ['sum', 'sum_boolean', 'count', 'count_distinct', 'avg', 'min', 'max'] },
+                              { key: 'measure', label: 'Measure', width: '150px', type: 'select', options: (() => {
+                                // 모든 semantic model의 measures를 수집
+                                const allMeasures = []
+                                tableData.semanticModels.forEach(model => {
+                                  if (model.measures && model.measures.length > 0) {
+                                    model.measures.forEach(measure => {
+                                      allMeasures.push({
+                                        value: `${model.name}__${measure.name}`,
+                                        label: `${model.name}.${measure.name}`
+                                      })
+                                    })
+                                  }
+                                })
+                                return allMeasures
+                              })() },
+                              { key: 'expr', label: 'Expr', width: '200px', type: 'textarea' },
+                              { key: 'label', label: 'Label', width: '150px' },
+                              { key: 'description', label: 'Description', width: '300px', type: 'textarea' }
+                            ])}
                             onCellChange={(rowIndex, columnKey, value, newData) => {
                               // agg나 measure가 변경되면 자동으로 name과 expr 업데이트
                               const row = newData[rowIndex]
@@ -636,17 +750,30 @@ function YMLManagement() {
                               updated.metrics = newData
                               setTableData(updated)
                             }}
-                            onAddRow={(newRow) => {
-                              const updated = { ...tableData }
-                              if (!updated.metrics) {
-                                updated.metrics = []
-                              }
-                              updated.metrics.push({
-                                ...newRow,
-                                id: `metric-${Date.now()}-${Math.random()}`
-                              })
-                              setTableData(updated)
-                            }}
+                            onAddRow={(newRow) => handleAddRow('metrics', newRow, 0, [
+                              { key: 'name', label: 'Name', width: '150px' },
+                              { key: 'metric_type', label: 'Metric Type', width: '120px' },
+                              { key: 'type', label: 'Type', width: '100px' },
+                              { key: 'agg', label: 'Agg', width: '120px', type: 'select', options: ['sum', 'sum_boolean', 'count', 'count_distinct', 'avg', 'min', 'max'] },
+                              { key: 'measure', label: 'Measure', width: '150px', type: 'select', options: (() => {
+                                // 모든 semantic model의 measures를 수집
+                                const allMeasures = []
+                                tableData.semanticModels.forEach(model => {
+                                  if (model.measures && model.measures.length > 0) {
+                                    model.measures.forEach(measure => {
+                                      allMeasures.push({
+                                        value: `${model.name}__${measure.name}`,
+                                        label: `${model.name}.${measure.name}`
+                                      })
+                                    })
+                                  }
+                                })
+                                return allMeasures
+                              })() },
+                              { key: 'expr', label: 'Expr', width: '200px', type: 'textarea' },
+                              { key: 'label', label: 'Label', width: '150px' },
+                              { key: 'description', label: 'Description', width: '300px', type: 'textarea' }
+                            ])}
                             onDeleteRow={(rowIndex) => {
                               const updated = { ...tableData }
                               updated.metrics = updated.metrics.filter((_, i) => i !== rowIndex)
@@ -845,6 +972,79 @@ function YMLManagement() {
                   ? (ddlLoading ? '생성 중...' : 'DDL에서 생성')
                   : (ymlLoading ? '생성 중...' : 'YML 파일 생성')
                 }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Row Edit Modal */}
+      {rowEditModal && (
+        <div className="modal-overlay" onClick={() => setRowEditModal(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>
+                {rowEditModal.section.charAt(0).toUpperCase() + rowEditModal.section.slice(1)} 
+                {rowEditModal.index === -1 ? ' 추가' : ' 편집'}
+              </h3>
+              <button
+                className="modal-close"
+                onClick={() => setRowEditModal(null)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="modal-form">
+                {rowEditModal.columns.map((col) => (
+                  <div key={col.key} className="modal-form-item">
+                    <label>
+                      {col.label}
+                      {col.type === 'textarea' ? (
+                        <textarea
+                          className="modal-input"
+                          value={rowEditModal.data[col.key] || ''}
+                          onChange={(e) => handleRowModalChange(col.key, e.target.value)}
+                          rows={4}
+                        />
+                      ) : col.type === 'select' ? (
+                        <select
+                          className="modal-input"
+                          value={rowEditModal.data[col.key] || ''}
+                          onChange={(e) => handleRowModalChange(col.key, e.target.value)}
+                        >
+                          <option value="">선택하세요</option>
+                          {col.options && col.options.map(option => (
+                            <option key={typeof option === 'string' ? option : option.value} value={typeof option === 'string' ? option : option.value}>
+                              {typeof option === 'string' ? option : (option.label || option.value)}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          className="modal-input"
+                          value={rowEditModal.data[col.key] || ''}
+                          onChange={(e) => handleRowModalChange(col.key, e.target.value)}
+                        />
+                      )}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="modal-button-cancel"
+                onClick={() => setRowEditModal(null)}
+              >
+                취소
+              </button>
+              <button
+                className="modal-button-submit"
+                onClick={handleRowSave}
+              >
+                저장
               </button>
             </div>
           </div>

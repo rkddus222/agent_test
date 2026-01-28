@@ -1,12 +1,14 @@
 sources:
 - name: branchq_daquv
-  database: default_db
-  schema: default_schema
+  database: ""
+  schema: ""
+
   tables:
   - name: branchq_get_all_inv_list
 - name: kjbank_daquv
-  database: default_db
-  schema: default_schema
+  database: ""
+  schema: ""
+
   tables:
   - name: coppf_gdsbs_m
   - name: wahpn_pinfo_mn
@@ -17,8 +19,9 @@ sources:
   - name: gds_cd
   - name: wappf_dpgrp_bn
 - name: test_daquv
-  database: default_db
-  schema: default_schema
+  database: ""
+  schema: ""
+
   tables:
   - name: account_detail
   - name: bank_transaction
@@ -34,11 +37,13 @@ sources:
   - name: PTD_INS_CRIT
   - name: WAPPF_DPGRP_BN
 - name: seedbab_daquv
-  database: default_db
-  schema: default_schema
+  database: ""
+  schema: ""
+
   tables:
   - name: tr_frcs_clsf_c
 - name: default
-  database: default_db
-  schema: default_schema
+  database: ""
+  schema: ""
+
   tables: []

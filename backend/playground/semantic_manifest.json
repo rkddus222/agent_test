@@ -5,8 +5,8 @@
       "description": "기업의 전자세금계산서 발행·수취 내역을 관리하는 모델. 전자세금계산서 단위의 공급자/공급받는자, 금액, 면세여부, 발행일자 등의 정보를 포함. 매출, 매입 포함된 키워드의 관련 질문을 하는 경우 전자세금계산서 내용을 먼저 확인",
       "node_relation": {
         "alias": "branchq_get_all_inv_list",
-        "schema_name": "default_schema",
-        "database": "default_db"
+        "schema_name": "",
+        "database": ""
       },
       "primary_entity": null,
       "entities": [
@@ -328,8 +328,8 @@
       "description": "고객번호(cstno)를 기준으로 고객 식별, 상태, 개인/법인 구분 등 고객 단위 분석의 기준이 되는 semantic 모델",
       "node_relation": {
         "alias": "wapcu_cusmt_mn",
-        "schema_name": "default_schema",
-        "database": "default_db"
+        "schema_name": "",
+        "database": ""
       },
       "primary_entity": null,
       "entities": [
@@ -683,8 +683,8 @@
       "description": "부점코드(brcd)와 기준일자(base_dt) 기준으로 관리되는 영업점(지점/부점) 스냅샷 모델이다. 본 모델은 base_dt가 있는 이력/스냅샷 테이블이므로, 날짜가 포함된 질의에서는 반드시 base_dt에 동일한 날짜 필터를 적용하여 조회한다.\n",
       "node_relation": {
         "alias": "wapco_brncd_cn",
-        "schema_name": "default_schema",
-        "database": "default_db"
+        "schema_name": "",
+        "database": ""
       },
       "primary_entity": null,
       "entities": [
@@ -1242,8 +1242,8 @@
       "description": "예·적금, 대출 상품 그룹 관리 정보(WAPPF_DPGRP_BN)를 기반으로, 상품 그룹 코드 및 관련 속성을 차원으로 관리하며, 숫자형 항목에 대해서는 집계 분석이 가능하도록 구성된 semantic 모델.",
       "node_relation": {
         "alias": "wappf_dpgrp_bn",
-        "schema_name": "default_schema",
-        "database": "default_db"
+        "schema_name": "",
+        "database": ""
       },
       "primary_entity": null,
       "entities": [
@@ -1976,8 +1976,8 @@
       "description": "요구불예금·보통예금 등 예수금 계좌(acno)의 기준일자(base_dt)별 보유 현황(사실) 스냅샷을 관리하는 semantic 모델이다. 계좌잔액, 가용잔액, 신규입금/해지 관련 금액, 적용이율 등 계좌 단위 실적 지표를 집계·분석하며, “신규” 성격의 분석에는 신규일자(new_dt)를 함께 활용한다. 상품/부점/고객 등의 속성 결합이 필요하면 각각 goods(상품), branch(영업점), customer(고객) 모델과 base_dt를 동기화하여 조인해 확장 분석한다.\n",
       "node_relation": {
         "alias": "waidp_d1010_l",
-        "schema_name": "default_schema",
-        "database": "default_db"
+        "schema_name": "",
+        "database": ""
       },
       "primary_entity": null,
       "entities": [
@@ -3491,8 +3491,8 @@
       "description": "대출·여신 계좌의 일별 스냅샷 정보를 관리하며, 기준일자(base_dt) 기준 대출잔액, 한도, 금리 분석에 사용되는 semantic 모델",
       "node_relation": {
         "alias": "wailn_d1030_l",
-        "schema_name": "default_schema",
-        "database": "default_db"
+        "schema_name": "",
+        "database": ""
       },
       "primary_entity": null,
       "entities": [
@@ -3981,7 +3981,15 @@
           "label": "대출상품군",
           "type": "varchar",
           "description": "대출상품군.",
-          "expr": "CASE WHEN loan__pcpl_repay_mtcd='01' AND loan__lnbz_prgr_cd='01601' THEN '1.일반_일시' \n     WHEN loan__pcpl_repay_mtcd='05' AND loan__lnbz_prgr_cd='01601' THEN '2.일반_분할' \n     WHEN loan__pcpl_repay_mtcd='01' AND loan__lnbz_prgr_cd='01603' THEN '3.대환_일시' \n     WHEN loan__pcpl_repay_mtcd='05' AND loan__lnbz_prgr_cd='01603' THEN '4.대환_분할' \nEND AS loan_type\n",
+          "expr": "CASE WHEN pcpl_repay_mtcd='01' AND lnbz_prgr_cd='01601' THEN '1.일반_일시' \n     WHEN pcpl_repay_mtcd='05' AND lnbz_prgr_cd='01601' THEN '2.일반_분할' \n     WHEN pcpl_repay_mtcd='01' AND lnbz_prgr_cd='01603' THEN '3.대환_일시' \n     WHEN pcpl_repay_mtcd='05' AND lnbz_prgr_cd='01603' THEN '4.대환_분할' \nEND\n",
+          "type_params": null
+        },
+        {
+          "name": "loan_goods_type",
+          "label": "상품 구분?",
+          "type": "varchar",
+          "description": "상품 구분?",
+          "expr": "CASE WHEN lnbz_prgr_cd IN ('01138','01139','01153','01156','01157','01158','01159','01160','01169','01170','01171','01172','01173','01174','01175','01176','01177') THEN 'PPL' \n     WHEN lnbz_prgr_cd IN ('01131','01132','01151','01154','01161','01162','01163','01165','01167') THEN 'MPL' \n     WHEN lnbz_prgr_cd IN ('01544','01579','01585') THEN '비대면주담대(333점)' \n     WHEN lnbz_prgr_cd IN ('01535') THEN '햇살론뱅크(모바일)' \n     WHEN lnbz_prgr_cd IN ('01583') THEN '햇살론15II(모바일)' \n     WHEN lnbz_prgr_cd IN ('01572') THEN '비상금대출' \n     WHEN lnbz_prgr_cd IN ('01709') THEN '햇살론유스(모바일)' \n     WHEN lnbz_prgr_cd IN ('01546','01547') THEN '최저신용자' \n     WHEN lnbz_prgr_cd IN ('01706') THEN '자동차담보대출' \n     WHEN lnbz_prgr_cd IN ('01092') THEN '사잇돌중금리' \nEND\n",
           "type_params": null
         }
       ],
@@ -3995,8 +4003,8 @@
       "description": "직원번호(empno)를 기준으로 근무 상태, 직위, 고용 구분 등 직원 단위 분석의 기준이 되는 semantic 모델",
       "node_relation": {
         "alias": "wahpn_pinfo_mn",
-        "schema_name": "default_schema",
-        "database": "default_db"
+        "schema_name": "",
+        "database": ""
       },
       "primary_entity": null,
       "entities": [
@@ -5207,9 +5215,9 @@
       {
         "node_relation": {
           "alias": "time_spine_daily",
-          "schema_name": "default_schema",
-          "database": "default_db",
-          "relation_name": "\"default_db\".\"default_schema\".\"time_spine_daily\""
+          "schema_name": "",
+          "database": "",
+          "relation_name": "\"\".\"\".\"time_spine_daily\""
         },
         "primary_column": {
           "name": "date_day",

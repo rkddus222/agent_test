@@ -96,6 +96,6 @@ class SQLComposer:
             parsed_smq = replace_special_char_for_bigquery(parsed_smq, self.dialect)
 
         # 12) SQL을 조립합니다. (from절을 제대로 고치는 것도 포함 + from절 quote도 여기서!)
-        sql = write_sql(parsed_smq, self.semantic_manifest, self.dialect)
+        sql = write_sql(parsed_smq, self.semantic_manifest, self.dialect, original_smq)
 
         return sql

@@ -107,7 +107,17 @@
   background-color: #f9fafb;
 }
 
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clickable-row:hover {
+  background-color: #eff6ff !important;
+}
+
 .editable-cell {
+
   min-height: 1.5rem;
   padding: 0.5rem;
   cursor: text;

@@ -21,6 +21,7 @@ duckdb==1.3.0
 # SQL & Parsing
 sqlglot==26.25.0
 sqlparse==0.5.3
+psycopg2-binary==2.9.9
 
 # Configuration & Environment
 python-dotenv==1.1.1

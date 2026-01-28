@@ -150,6 +150,7 @@ class EditRequest(BaseModel):
 
 class CreateFileRequest(BaseModel):
     filename: str
+    content: Optional[str] = None
 
 class RenameFileRequest(BaseModel):
     old_path: str
@@ -169,6 +170,7 @@ class ChatRequest(BaseModel):
 class DDLRequest(BaseModel):
     dialect: str
     ddl_text: str
+    filename: Optional[str] = None
 
 class SMQConvertRequest(BaseModel):
     smq: str
@@ -404,14 +406,27 @@ async def create_file_endpoint(request: CreateFileRequest):
     if not request.filename.endswith('.yml'):
         request.filename += '.yml'
     
-    file_path = os.path.join(PLAYGROUND_DIR, request.filename)
+    # semantic_models 디렉토리에 생성
+    file_path = os.path.join(PLAYGROUND_DIR, "semantic_models", request.filename)
+    
+    # 디렉토리 생성
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    
     if os.path.exists(file_path):
         raise HTTPException(status_code=400, detail="이미 존재하는 파일명입니다.")
     
     try:
+        # content가 제공되면 그 내용으로, 없으면 기본 내용으로 생성
+        content = request.content if request.content else "# New Semantic Model\n"
+        
         with open(file_path, 'w', encoding='utf-8') as f:
-            f.write("# New Semantic Model\n")
-        return {"success": True, "message": f"{request.filename} 파일이 생성되었습니다!"}
+            f.write(content)
+        
+        return {
+            "success": True, 
+            "message": f"{request.filename} 파일이 생성되었습니다!",
+            "filename": request.filename
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"파일 생성 실패: {str(e)}")
 
@@ -504,8 +519,13 @@ async def create_from_ddl(request: DDLRequest):
             sources_yml_path=sources_yml_path
         )
         
-        # 파일명 생성
-        file_name = f"{table_name.lower()}.yml"
+        # 파일명 생성 (filename이 제공되면 사용, 없으면 테이블명 사용)
+        if request.filename:
+            file_name = request.filename
+            if not file_name.endswith('.yml'):
+                file_name += '.yml'
+        else:
+            file_name = f"{table_name.lower()}.yml"
         file_path = os.path.join(PLAYGROUND_DIR, "semantic_models", file_name)
         
         # 디렉토리 생성

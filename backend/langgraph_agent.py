@@ -18,6 +18,8 @@ import json
 import uuid
 import re
 import logging
+import asyncio
+import time
 from datetime import datetime
 from typing import TypedDict, Annotated, Sequence, Optional
 from typing_extensions import Literal
@@ -26,6 +28,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langchain_openai import ChatOpenAI
+from openai import RateLimitError
 from dotenv import load_dotenv
 
 # tools.py에서 도구 함수들 import
@@ -51,6 +54,7 @@ class AgentState(TypedDict):
     extracted_filters: Optional[list]
     extracted_order_by: Optional[list]
     extracted_limit: Optional[int]
+    extracted_metrics_reason: Optional[str]  # extractMetrics에서 추출한 reason
     date_filters: Optional[dict]
     other_filters: Optional[dict]
     smq: Optional[dict]
@@ -114,6 +118,45 @@ class LangGraphAgent:
         
         # LangGraph 워크플로우 생성
         self.app = self._build_graph()
+    
+    def _invoke_llm_with_retry(self, messages, max_retries=3, initial_delay=2):
+        """
+        Rate limit 에러를 처리하는 LLM 호출 헬퍼 함수
+        
+        Args:
+            messages: LLM에 전달할 메시지 리스트
+            max_retries: 최대 재시도 횟수
+            initial_delay: 초기 재시도 대기 시간 (초)
+        
+        Returns:
+            LLM 응답
+        """
+        for attempt in range(max_retries):
+            try:
+                return self.llm.invoke(messages)
+            except RateLimitError as e:
+                if attempt < max_retries - 1:
+                    # 지수 백오프: 2초, 4초, 8초
+                    delay = initial_delay * (2 ** attempt)
+                    logger.warning(f"[Rate Limit] 재시도 {attempt + 1}/{max_retries} - {delay}초 대기 후 재시도...")
+                    time.sleep(delay)
+                else:
+                    # 마지막 시도에서도 실패하면 에러 발생
+                    logger.error(f"[Rate Limit] 최대 재시도 횟수({max_retries}) 초과. 에러: {str(e)}")
+                    raise Exception(f"API Rate Limit 초과. 잠시 후 다시 시도해주세요. (에러: {str(e)})")
+            except Exception as e:
+                # Rate limit이 아닌 다른 에러는 즉시 전파
+                error_msg = str(e)
+                if "429" in error_msg or "rate limit" in error_msg.lower():
+                    if attempt < max_retries - 1:
+                        delay = initial_delay * (2 ** attempt)
+                        logger.warning(f"[Rate Limit] 재시도 {attempt + 1}/{max_retries} - {delay}초 대기 후 재시도...")
+                        time.sleep(delay)
+                    else:
+                        logger.error(f"[Rate Limit] 최대 재시도 횟수({max_retries}) 초과. 에러: {error_msg}")
+                        raise Exception(f"API Rate Limit 초과. 잠시 후 다시 시도해주세요. (에러: {error_msg})")
+                else:
+                    raise
     
     def _build_graph(self) -> StateGraph:
         """LangGraph 워크플로우 생성"""
@@ -401,7 +444,7 @@ YES 또는 NO로만 응답하세요."""
                 prompt = prompt.replace("- **이전 대화 맥락:**", f"- **이전 대화 맥락:**\n{previous_context_str}")
         
         messages = [HumanMessage(content=prompt)]
-        response = self.llm.invoke(messages)
+        response = self._invoke_llm_with_retry(messages)
         
         # 응답에서 YES/NO만 추출 (대소문자 무시)
         response_text = response.content.strip().upper()
@@ -442,7 +485,7 @@ YES 또는 NO로만 응답하세요."""
             HumanMessage(content=prompt)
         ]
         
-        response = self.llm.invoke(messages)
+        response = self._invoke_llm_with_retry(messages)
         
         result = {
             "messages": [response],
@@ -492,7 +535,7 @@ YES 또는 NO로만 응답하세요."""
             HumanMessage(content=prompt)
         ]
         
-        response = self.llm.invoke(messages)
+        response = self._invoke_llm_with_retry(messages)
         
         try:
             # LLM 응답에서 JSON 배열 추출 시도
@@ -564,7 +607,7 @@ YES 또는 NO로만 응답하세요."""
             HumanMessage(content=prompt)
         ]
         
-        response = self.llm.invoke(messages)
+        response = self._invoke_llm_with_retry(messages)
         
         try:
             # LLM 응답에서 JSON 추출
@@ -646,7 +689,7 @@ entity별 활용할 수 있는 metrics:
             HumanMessage(content=prompt)
         ]
         
-        response = self.llm.invoke(messages)
+        response = self._invoke_llm_with_retry(messages)
         
         try:
             # LLM 응답에서 JSON 추출
@@ -662,13 +705,22 @@ entity별 활용할 수 있는 metrics:
             # dimensions 필드가 있으면 제거 (LLM이 실수로 생성한 경우)
             if "dimensions" in result:
                 del result["dimensions"]
+            # reason 필드를 추출하여 메타데이터에 포함 (LLM이 생성한 경우)
+            reason = result.pop("reason", None)
             metrics = result.get("metrics", [])
+            # metrics가 객체 리스트인 경우 문자열로 변환
+            if metrics and isinstance(metrics[0], dict):
+                metrics = [m.get("name", str(m)) if isinstance(m, dict) else str(m) for m in metrics]
             group_by = result.get("group_by", [])
+            # group_by가 객체 리스트인 경우 문자열로 변환
+            if group_by and isinstance(group_by[0], dict):
+                group_by = [g.get("name", str(g)) if isinstance(g, dict) else str(g) for g in group_by]
             
             output = {
                 "messages": [response],
                 "extracted_metrics": metrics,
                 "extracted_dimensions": group_by,  # group_by를 dimensions로도 저장
+                "extracted_metrics_reason": reason,  # reason을 메타데이터로 저장
                 "current_step": "extractMetrics",
                 "processed_prompt": prompt  # 변수 치환된 프롬프트 저장
             }
@@ -698,6 +750,7 @@ entity별 활용할 수 있는 metrics:
         extracted_metrics = state.get("extracted_metrics", [])
         extracted_dimensions = state.get("extracted_dimensions", [])
         selected_models = state.get("selected_models", [])
+        extracted_metrics_reason = state.get("extracted_metrics_reason")  # reason 유지
         
         # 이전 단계 정보 (metrics와 group_by) 구성
         smq_info = {
@@ -741,7 +794,7 @@ entity별 활용할 수 있는 metrics:
             HumanMessage(content=prompt)
         ]
         
-        response = self.llm.invoke(messages)
+        response = self._invoke_llm_with_retry(messages)
         
         try:
             # LLM 응답에서 JSON 추출
@@ -762,6 +815,9 @@ entity별 활용할 수 있는 metrics:
                 "current_step": "extractFilters",
                 "processed_prompt": prompt  # 변수 치환된 프롬프트 저장
             }
+            # reason 유지
+            if extracted_metrics_reason:
+                output["extracted_metrics_reason"] = extracted_metrics_reason
             return output
         except json.JSONDecodeError as e:
             # JSON 파싱 실패 시 빈 리스트 반환
@@ -770,6 +826,9 @@ entity별 활용할 수 있는 metrics:
                 "extracted_filters": [],
                 "current_step": "extractFilters"
             }
+            # reason 유지
+            if extracted_metrics_reason:
+                output["extracted_metrics_reason"] = extracted_metrics_reason
             return output
         except Exception as e:
             # 기타 예외 발생 시 빈 리스트 반환
@@ -778,6 +837,9 @@ entity별 활용할 수 있는 metrics:
                 "extracted_filters": [],
                 "current_step": "extractFilters"
             }
+            # reason 유지
+            if extracted_metrics_reason:
+                output["extracted_metrics_reason"] = extracted_metrics_reason
             return output
     
     def _date_filter_node(self, state: AgentState) -> AgentState:
@@ -796,6 +858,7 @@ entity별 활용할 수 있는 metrics:
         extracted_metrics = state.get("extracted_metrics", [])
         extracted_dimensions = state.get("extracted_dimensions", [])
         extracted_filters = state.get("extracted_filters", [])
+        extracted_metrics_reason = state.get("extracted_metrics_reason")  # reason 유지
         
         # 현재 작업 중인 SMQ 구성 (metrics, group_by, filters)
         current_smq = {
@@ -830,7 +893,7 @@ entity별 활용할 수 있는 metrics:
             HumanMessage(content=prompt)
         ]
         
-        response = self.llm.invoke(messages)
+        response = self._invoke_llm_with_retry(messages)
         
         try:
             # LLM 응답에서 JSON 추출
@@ -863,6 +926,9 @@ entity별 활용할 수 있는 metrics:
                 "current_step": "extractOrderByAndLimit",
                 "processed_prompt": prompt  # 변수 치환된 프롬프트 저장
             }
+            # reason 유지
+            if extracted_metrics_reason:
+                output["extracted_metrics_reason"] = extracted_metrics_reason
             return output
         except json.JSONDecodeError as e:
             # JSON 파싱 실패 시 기본값 반환
@@ -872,6 +938,9 @@ entity별 활용할 수 있는 metrics:
                 "extracted_limit": None,
                 "current_step": "extractOrderByAndLimit"
             }
+            # reason 유지
+            if extracted_metrics_reason:
+                output["extracted_metrics_reason"] = extracted_metrics_reason
             return output
         except Exception as e:
             # 기타 예외 발생 시 기본값 반환
@@ -881,6 +950,9 @@ entity별 활용할 수 있는 metrics:
                 "extracted_limit": None,
                 "current_step": "extractOrderByAndLimit"
             }
+            # reason 유지
+            if extracted_metrics_reason:
+                output["extracted_metrics_reason"] = extracted_metrics_reason
             return output
     
     def _manipulation_node(self, state: AgentState) -> AgentState:
@@ -892,6 +964,7 @@ entity별 활용할 수 있는 metrics:
         extracted_filters = state.get("extracted_filters", [])
         extracted_order_by = state.get("extracted_order_by", [])
         extracted_limit = state.get("extracted_limit", None)
+        extracted_metrics_reason = state.get("extracted_metrics_reason")  # reason 유지
         # 하위 호환성을 위해 기존 필터도 확인
         date_filters = state.get("date_filters", {})
         other_filters = state.get("other_filters", [])
@@ -924,7 +997,7 @@ entity별 활용할 수 있는 metrics:
             HumanMessage(content=prompt)
         ]
         
-        response = self.llm.invoke(messages)
+        response = self._invoke_llm_with_retry(messages)
         
         try:
             result = json.loads(response.content)
@@ -947,6 +1020,9 @@ entity별 활용할 수 있는 metrics:
                 "current_step": "manipulation",
                 "processed_prompt": prompt  # 변수 치환된 프롬프트 저장
             }
+            # reason 유지
+            if extracted_metrics_reason:
+                output["extracted_metrics_reason"] = extracted_metrics_reason
             return output
         except:
             # JSON 파싱 실패 시 기본 SMQ 구조 생성
@@ -966,6 +1042,9 @@ entity별 활용할 수 있는 metrics:
                 "smq": smq,
                 "current_step": "manipulation"
             }
+            # reason 유지
+            if extracted_metrics_reason:
+                output["extracted_metrics_reason"] = extracted_metrics_reason
             return output
     
     def _smq2sql_node(self, state: AgentState) -> AgentState:
@@ -986,7 +1065,7 @@ entity별 활용할 수 있는 metrics:
             result = convert_smq_to_sql(
                 smq_json=smq_json,
                 manifest_path=None,  # None이면 기본 경로(semantic_manifest.json) 사용
-                dialect="bigquery"
+                dialect="postgres"
             )
             
             if result.get("success"):
@@ -1028,6 +1107,9 @@ entity별 활용할 수 있는 metrics:
                 # selectedEntities 가져오기
                 selected_entities = state.get("selected_models", [])
                 
+                # reason 가져오기 (extractMetrics에서 추출한 경우)
+                extracted_metrics_reason = state.get("extracted_metrics_reason")
+                
                 # UUID 생성
                 node_id = str(uuid.uuid4())
                 session_id = str(uuid.uuid4())
@@ -1059,6 +1141,10 @@ entity별 활용할 수 있는 metrics:
                     "splitedQuestion": splited_question,
                     "selectedEntities": selected_entities
                 }
+                
+                # reason이 있으면 메타데이터에 포함
+                if extracted_metrics_reason:
+                    output["reason"] = extracted_metrics_reason
                 
                 result_output = {
                     "messages": [],
@@ -1150,7 +1236,7 @@ entity별 활용할 수 있는 metrics:
         ]
         
         try:
-            response = self.llm.invoke(messages)
+            response = self._invoke_llm_with_retry(messages)
             
             # LLM 응답에서 JSON 추출
             response_text = response.content.strip()
@@ -1292,7 +1378,7 @@ entity별 활용할 수 있는 metrics:
         ]
         
         try:
-            response = self.llm.invoke(messages)
+            response = self._invoke_llm_with_retry(messages)
             content = response.content.strip()
             
             # 마크다운 코드 블록 제거
@@ -1409,7 +1495,7 @@ entity별 활용할 수 있는 metrics:
             HumanMessage(content=prompt)
         ]
         
-        response = self.llm.invoke(messages)
+        response = self._invoke_llm_with_retry(messages)
         
         result = {
             "messages": [response],
@@ -1490,6 +1576,20 @@ entity별 활용할 수 있는 metrics:
                                 "content": processed_prompt,
                                 "step": step
                             }
+                        else:
+                            # processed_prompt가 없어도 노드 시작을 알리기 위해 간단한 prompt 이벤트 전송
+                            # (manipulation, smq2sql 등은 LLM을 사용하지 않으므로 프롬프트가 없음)
+                            node_descriptions = {
+                                "manipulation": "SMQ 생성 중...",
+                                "smq2sql": "SQL 변환 중...",
+                                "executeQuery": "쿼리 실행 중..."
+                            }
+                            if step in node_descriptions:
+                                yield {
+                                    "type": "prompt",
+                                    "content": node_descriptions[step],
+                                    "step": step
+                                }
                         
                         if step == "classifyJoy":
                             intent = node_state.get('classified_intent', '')
@@ -1542,14 +1642,18 @@ entity별 활용할 수 있는 metrics:
                         elif step == "extractMetrics":
                             extracted_metrics = node_state.get('extracted_metrics', [])
                             extracted_dimensions = node_state.get('extracted_dimensions', [])
+                            extracted_metrics_reason = node_state.get('extracted_metrics_reason')
+                            details = {
+                                "metrics": extracted_metrics,
+                                "group_by": extracted_dimensions
+                            }
+                            if extracted_metrics_reason:
+                                details["reason"] = extracted_metrics_reason
                             yield {
                                 "type": "thought",
                                 "content": f"메트릭 추출 완료: {len(extracted_metrics)}개",
                                 "step": step,
-                                "details": {
-                                    "metrics": extracted_metrics,
-                                    "group_by": extracted_dimensions
-                                }
+                                "details": details
                             }
                         elif step == "extractFilters":
                             extracted_filters = node_state.get('extracted_filters', [])
@@ -1687,9 +1791,19 @@ entity별 활용할 수 있는 metrics:
             import traceback
             error_traceback = traceback.format_exc()
             logger.error(f"[에이전트 실행 오류] {str(e)}\n{error_traceback}")
+            
+            # Rate limit 에러인 경우 더 친절한 메시지
+            error_msg = str(e)
+            if "429" in error_msg or "rate limit" in error_msg.lower() or "Rate limit" in error_msg:
+                user_friendly_msg = "API Rate Limit이 초과되었습니다. 잠시 후 다시 시도해주세요."
+            elif "No metrics specified" in error_msg:
+                user_friendly_msg = "메트릭이 지정되지 않았습니다. 질문에 측정할 지표를 포함해주세요."
+            else:
+                user_friendly_msg = f"에이전트 실행 오류: {error_msg}"
+            
             yield {
                 "type": "error",
-                "content": f"에이전트 실행 오류: {str(e)}"
+                "content": user_friendly_msg
             }
 
 

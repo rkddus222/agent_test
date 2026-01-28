@@ -1,4 +1,9 @@
 sources:
+- name: branchq_daquv
+  database: default_db
+  schema: default_schema
+  tables:
+  - name: branchq_get_all_inv_list
 - name: kjbank_daquv
   database: default_db
   schema: default_schema
@@ -10,6 +15,7 @@ sources:
   - name: wapco_brncd_cn
   - name: wapcu_cusmt_mn
   - name: gds_cd
+  - name: wappf_dpgrp_bn
 - name: test_daquv
   database: default_db
   schema: default_schema
@@ -26,6 +32,7 @@ sources:
   - name: WAPCO_BRNCD_CN
   - name: WAHPN_PINFO_MN
   - name: PTD_INS_CRIT
+  - name: WAPPF_DPGRP_BN
 - name: seedbab_daquv
   database: default_db
   schema: default_schema

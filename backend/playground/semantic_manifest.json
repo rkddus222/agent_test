@@ -1,6 +1,329 @@
 {
   "semantic_models": [
     {
+      "name": "tax_inv",
+      "description": "기업의 전자세금계산서 발행·수취 내역을 관리하는 모델. 전자세금계산서 단위의 공급자/공급받는자, 금액, 면세여부, 발행일자 등의 정보를 포함. 매출, 매입 포함된 키워드의 관련 질문을 하는 경우 전자세금계산서 내용을 먼저 확인",
+      "node_relation": {
+        "alias": "branchq_get_all_inv_list",
+        "schema_name": "default_schema",
+        "database": "default_db"
+      },
+      "primary_entity": null,
+      "entities": [
+        {
+          "name": "tax_inv",
+          "type": "primary",
+          "expr": "appr_no",
+          "description": null,
+          "role": null,
+          "label": null
+        },
+        {
+          "name": "tax_inv_item",
+          "type": "foreign",
+          "expr": "appr_no",
+          "description": null,
+          "role": null,
+          "label": null
+        }
+      ],
+      "measures": [
+        {
+          "name": "supply_amt_tax_inv",
+          "type": "decimal",
+          "label": "공급가액",
+          "description": "공급가액",
+          "expr": "supply_amt"
+        },
+        {
+          "name": "vat_amt_tax_inv",
+          "type": "decimal",
+          "label": "세액",
+          "description": "세액",
+          "expr": "vat_amt"
+        },
+        {
+          "name": "amt_tax_inv",
+          "type": "decimal",
+          "label": "합계금액",
+          "description": "합계금액 (공급가액 + 세액) 공급가액이나 새액을 언급하지 않는 경우에는 합계금액을 기본으로 합니다.",
+          "expr": "amt"
+        },
+        {
+          "name": "cash_amt_tax_inv",
+          "type": "decimal",
+          "label": "현금금액",
+          "description": "현금금액",
+          "expr": "cash_amt"
+        },
+        {
+          "name": "check_amt_tax_inv",
+          "type": "decimal",
+          "label": "수표금액",
+          "description": "수표금액",
+          "expr": "check_amt"
+        },
+        {
+          "name": "draft_amt_tax_inv",
+          "type": "decimal",
+          "label": "어음금액",
+          "description": "어음금액",
+          "expr": "draft_amt"
+        },
+        {
+          "name": "inv_count_tax_inv",
+          "type": "integer",
+          "label": "전자세금계산서 건수",
+          "description": "전자세금계산서 건수",
+          "expr": "appr_no"
+        },
+        {
+          "name": "vat_amt_in_tax_inv",
+          "type": "float",
+          "label": "매출세액",
+          "description": "매출세액",
+          "expr": "(CASE WHEN deal_type = '매출' THEN vat_amt ELSE 0 END)"
+        },
+        {
+          "name": "vat_amt_out_tax_inv",
+          "type": "float",
+          "label": "매입세액",
+          "description": "매입세액",
+          "expr": "(CASE WHEN deal_type = '매입' THEN vat_amt ELSE 0 END)"
+        }
+      ],
+      "dimensions": [
+        {
+          "name": "com_nm",
+          "type": "varchar",
+          "label": "사업장명",
+          "description": "사업장명. \"우리회사\"/\"내회사\"같이 본인 회사를 조회할 경우는 filter에서 com_nm like '%씨엔에스%'",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "deal_type",
+          "type": "varchar",
+          "label": "매출입구분",
+          "description": "세금계산서의 매입/매출 구분. 가능한 값 = ['매입', '매출']. 질문에 '매출' or '%매입%' or '수취' or '발행' or '받' 이 포함될 경우 group_by의 deal_type과 filter를 선택하세요.  {user_question}에 '발행', '보낸'등이 포함됐으면 매출로, '수취', '받'등이 포함됐으면 매입으로 선택합니다. 수정세금계산서는 포함 안함.  ex) \"매출 세금계산서 내역\" → group_by = 'tax_inv__deal_type', filter = \"tax_inv__deal_type = '매출'\" , \"매입세금계산서\" → filter = \"tax_inv__deal_type = \"'매입'\" , \"발행한 세금계산서 내역\" → group_by = 'tax_inv__deal_type', filter = \"tax_inv__deal_type = '매출'\", \"받은/수취한 세금계산서 내역\" → group_by = 'tax_inv__deal_type', filter = \"tax_inv__deal_type = '매입'\" , 세금계산서 발행 건수 → group_by = 'tax_inv__deal_type', filter = \"tax_inv__deal_type = '매출'\", \"매출 세금계산서 목록\" → filter = \"tax_inv__deal_type = '매출'\". 둘다 포함되어 있으면 → 매출/매입 합계 보여줘 filter ='tax_inv__deal_type in ('매출' , '매입')'",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "tax_free_yn",
+          "type": "varchar",
+          "label": "면세여부",
+          "description": "면세여부. 질문에 '면세', '과세' 포함될 경우 group_by와 filter에 tax_inv__tax_free_yn를 포함하세요. filter에 적용시 면세 = '면세', 과세 = '과세'로 처리하세요.  ex) \"면세 세금계산서\" → group_by = 'tax_free_yn', filter = \"tax_free_yn = '면세'\"",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "appr_no",
+          "type": "varchar",
+          "label": "승인번호",
+          "description": "승인번호. 세금계산서 고유 식별번호. **[치명적 금지 규칙]** 질문이 \"가장 많은\", \"순위\", \"Top\", \"누구\" 등 비교/집계 의도라면, group_by에 **절대 포함하지 마세요.** (승인번호가 들어가면 순위 집계가 불가능해기 때문이다.) 오직 \"상세 내역\", \"목록 보여줘\" 같은 단순 나열 질문에만 사용하세요. 승인번호 filter 생성시 반드시 LIKE 를 사용하여 생성하세요.",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "inv_dt",
+          "type": "varchar",
+          "label": "작성일자",
+          "description": "작성일자 (YYYMMDD). 발행 시점. 부가세 환급 예정금액 계산시 inv_dt 사용",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "issue_dt",
+          "type": "varchar",
+          "label": "발급일자",
+          "description": "발급일자. 실제 발급된 일자. (YYYMMDD).",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "send_dt",
+          "type": "varchar",
+          "label": "전송일자",
+          "description": "전송일자(국세청 신고 전송 기준일)(YYYMMDD)",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "buyer_biz_reg_no",
+          "type": "varchar",
+          "label": "공급받는자 사업자번호",
+          "description": "공급받는자 사업자번호. filter에 like로 검색",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "buyer_biz_nm",
+          "type": "varchar",
+          "label": "공급받는자 상호",
+          "description": "공급받는자 상호. 질문이 '매출(Sales)' 관련일 때만 '거래처'로 선택해 group_by에 포함하세요. filter에서 like 검색시 예시처럼 '(주)', '주식회사' 등은 제거하세요. ex)\"(주)웹케시\" → filter = \"buyer_biz_nm like '%웹케시%'\" \"주식회사 비즈플레이\" → filter = \"buyer_biz_nm like '%비즈플레이%'\"",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "buyer_ceo_nm",
+          "type": "varchar",
+          "label": "공급받는자 대표자명",
+          "description": "공급받는자 대표자명",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "buyer_biz_addr",
+          "type": "varchar",
+          "label": "공급받는자 주소",
+          "description": "공급받는자 주소. like 검색 필수",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "buyer_biz_type",
+          "type": "varchar",
+          "label": "공급받는자 업태",
+          "description": "공급받는자 업태. like 검색 필수",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "buyer_biz_item",
+          "type": "varchar",
+          "label": "공급받는자 종목",
+          "description": "공급받는자 종목. like 검색 필수",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "buyer_email",
+          "type": "varchar",
+          "label": "공급받는자 이메일1",
+          "description": "공급받는자 이메일1",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "buyer_email2",
+          "type": "varchar",
+          "label": "공급받는자 이메일2",
+          "description": "공급받는자 이메일2",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "supplier_biz_reg_no",
+          "type": "varchar",
+          "label": "공급자 사업자번호",
+          "description": "공급자 사업자번호",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "supplier_biz_nm",
+          "type": "varchar",
+          "label": "공급자 상호",
+          "description": "공급자 상호. 질문이 '매입(Purchase)', '지출', '비용' 관련일 때만 '거래처'로 선택해 group_by에 포함하세요. '매출(Sales)' 질문에는 절대 사용하지 마세요. filter에서 like 검색시 예시처럼 '(주)', '주식회사' 등은 제거하세요. ex)\"(주) 씨앤에스\" → filter = \"supplier_biz_nm like '%씨앤에스%'\"",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "supplier_ceo_nm",
+          "type": "varchar",
+          "label": "공급자 대표자명",
+          "description": "공급자 대표자명",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "supplier_biz_addr",
+          "type": "varchar",
+          "label": "공급자 주소",
+          "description": "공급자 주소",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "supplier_biz_type",
+          "type": "varchar",
+          "label": "공급자 업태",
+          "description": "공급자 업태",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "supplier_biz_item",
+          "type": "varchar",
+          "label": "공급자 종목",
+          "description": "공급자 종목",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "supplier_email",
+          "type": "varchar",
+          "label": "공급자 이메일",
+          "description": "공급자 이메일",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "repr_item_nm",
+          "type": "varchar",
+          "label": "대표품목명",
+          "description": "대표품목명. 전자세금계산서가 다품목인데 대표품목만 표시된 경우 이 값으로 1차 분류.",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "rcpt_cls",
+          "type": "varchar",
+          "label": "영수/청구",
+          "description": "영수/청구 구분",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "inv_type",
+          "type": "varchar",
+          "label": "계산서종류",
+          "description": "계산서종류. 전자세금계산서 관련 질문시 반드시 group_by 포함, 단 합계 관련일땐 제외. '수정세금계산서' , '수정 세금계산서' 관련 질문일때 사용 ex) inv_type like '%수정%'",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "modify_reason",
+          "type": "varchar",
+          "label": "수정사유",
+          "description": "수정사유.",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "note1",
+          "type": "varchar",
+          "label": "비고",
+          "description": "비고. like 검색.",
+          "expr": null,
+          "type_params": null
+        },
+        {
+          "name": "remark",
+          "type": "varchar",
+          "label": "적요",
+          "description": "적요. like 검색.",
+          "expr": null,
+          "type_params": null
+        }
+      ],
+      "label": null,
+      "config": {
+        "meta": {}
+      }
+    },
+    {
       "name": "customer",
       "description": "고객번호(cstno)를 기준으로 고객 식별, 상태, 개인/법인 구분 등 고객 단위 분석의 기준이 되는 semantic 모델",
       "node_relation": {
@@ -11,9 +334,17 @@
       "primary_entity": null,
       "entities": [
         {
-          "name": "customer",
+          "name": "customer_no",
           "type": "primary",
           "expr": "cstno",
+          "description": null,
+          "role": null,
+          "label": null
+        },
+        {
+          "name": "customer_dt",
+          "type": "primary",
+          "expr": "base_dt",
           "description": null,
           "role": null,
           "label": null
@@ -22,323 +353,323 @@
       "measures": [
         {
           "name": "cstno_count",
-          "type": "varchar",
-          "expr": "cstno",
           "label": "고객관리번호 건수",
-          "description": "고객 건수 (고객 수 카운트)"
+          "type": "varchar",
+          "description": "고객 건수 (고객 수 카운트)",
+          "expr": "cstno"
         }
       ],
       "dimensions": [
         {
           "name": "base_dt",
           "type": "varchar",
-          "expr": "base_dt",
           "label": "기준일자",
+          "expr": "base_dt",
           "description": "기준조회일자",
           "type_params": null
         },
         {
-          "name": "cstno",
-          "type": "varchar",
-          "expr": "cstno",
+          "name": "cusmt_cstno",
           "label": "고객번호",
+          "type": "varchar",
           "description": "당행고객별로 채번하여 관리하는 고객의 관리번호",
+          "expr": "cstno",
           "type_params": null
         },
         {
           "name": "com_tx_dt",
-          "type": "varchar",
-          "expr": "com_tx_dt",
           "label": "공통거래일자",
+          "type": "varchar",
           "description": "시스템 공통 속성으로 모든 테이블에 등록되는 공통 거래일자",
+          "expr": "com_tx_dt",
           "type_params": null
         },
         {
           "name": "cust_stcd",
-          "type": "varchar",
-          "expr": "cust_stcd",
           "label": "고객상태코드",
-          "description": "고객의 상태를 구분하는 코드 00-정상 01-사고신고(과거에 사고신고가 발생했던 고객에게 메시지 처리용으로 사용했으며, 정상고객으로 처리함) 07-대표자미신규(실명제 실시전 고객, 사업자번호만 신규되어진 고객) 09-해지 99-확인필요'",
+          "type": "varchar",
+          "description": "고객의 상태를 구분하는 코드\n00:정상\n01:사고신고 (과거에 사고신고가 발생했던 고객에게 메시지 처리용으로 사용했으며, 정상고객으로 처리함.)\n07:대표자미신규 (실명제 실시전 고객, 사업자번호만 신규되어진 고객)\n09:해지\n99  확인필요\n",
+          "expr": "cust_stcd",
           "type_params": null
         },
         {
           "name": "tx_cust_yn",
-          "type": "varchar",
-          "expr": "tx_cust_yn",
           "label": "거래고객여부",
+          "type": "varchar",
           "description": "거래고객인지, 잠재고객인지의 여부(거래고객인경우 Yes) (Y/N)",
+          "expr": "tx_cust_yn",
           "type_params": null
         },
         {
           "name": "cust_idvd_crpt_dvcd",
-          "type": "varchar",
-          "expr": "cust_idvd_crpt_dvcd",
           "label": "고객개인법인구분코드",
+          "type": "varchar",
           "description": "고객이 개인, 개인사업자, 법인, 법인사업자인지를 구분하는 구분코드",
+          "expr": "cust_idvd_crpt_dvcd",
           "type_params": null
         },
         {
           "name": "cust_rnno_dvcd",
-          "type": "varchar",
-          "expr": "cust_rnno_dvcd",
           "label": "고객실명번호구분코드",
+          "type": "varchar",
           "description": "입력된 고객의 실명번호가 주민등록번호, 사업자번호, 법인등록번호, 여권번호 등을 구분하는 구분코드",
+          "expr": "cust_rnno_dvcd",
           "type_params": null
         },
         {
           "name": "rnno",
-          "type": "varchar",
-          "expr": "rnno",
           "label": "실명번호",
+          "type": "varchar",
           "description": "주민등록번호, 사업자번호, 여권번호등 고객의 실명번호",
+          "expr": "rnno",
           "type_params": null
         },
         {
           "name": "cust_kor_nm",
-          "type": "varchar",
-          "expr": "cust_kor_nm",
           "label": "고객한글명",
+          "type": "varchar",
           "description": "고객의 한글명",
+          "expr": "cust_kor_nm",
           "type_params": null
         },
         {
           "name": "cust_ennm",
-          "type": "varchar",
-          "expr": "cust_ennm",
           "label": "고객영문명",
+          "type": "varchar",
           "description": "고객의 영문명",
+          "expr": "cust_ennm",
           "type_params": null
         },
         {
           "name": "chtr_cd",
-          "type": "varchar",
-          "expr": "chtr_cd",
           "label": "인격코드",
+          "type": "varchar",
           "description": "고객의 인격을 세분화하여 구분하는 코드",
+          "expr": "chtr_cd",
           "type_params": null
         },
         {
           "name": "ntnt_nat_cd",
-          "type": "varchar",
-          "expr": "ntnt_nat_cd",
           "label": "국적국가코드",
+          "type": "varchar",
           "description": "고객이 소속된 국가의 구성원으로서의 자격을 갖는 국가의 국가코드",
+          "expr": "ntnt_nat_cd",
           "type_params": null
         },
         {
           "name": "rsdn_nat_cd",
-          "type": "varchar",
-          "expr": "rsdn_nat_cd",
           "label": "거주지국가코드",
+          "type": "varchar",
           "description": "고객이 거주하는 국가의 국가코드",
+          "expr": "rsdn_nat_cd",
           "type_params": null
         },
         {
           "name": "cust_psml_rcpp_dvcd",
-          "type": "varchar",
-          "expr": "cust_psml_rcpp_dvcd",
           "label": "고객우편물수령지구분코드",
+          "type": "varchar",
           "description": "고객우편물의 수령지를 구분하는 구분코드",
+          "expr": "cust_psml_rcpp_dvcd",
           "type_params": null
         },
         {
           "name": "cust_new_dt",
-          "type": "varchar",
-          "expr": "cust_new_dt",
           "label": "고객신규일자",
+          "type": "varchar",
           "description": "고객신규일자",
+          "expr": "cust_new_dt",
           "type_params": null
         },
         {
           "name": "cust_new_brcd",
-          "type": "varchar",
-          "expr": "cust_new_brcd",
           "label": "고객신규부점코드",
+          "type": "varchar",
           "description": "고객신규부점코드",
+          "expr": "cust_new_brcd",
           "type_params": null
         },
         {
           "name": "cust_new_empno",
-          "type": "varchar",
-          "expr": "cust_new_empno",
           "label": "고객신규직원번호",
+          "type": "varchar",
           "description": "고객을 신규한 직원의 직원번호",
+          "expr": "cust_new_empno",
           "type_params": null
         },
         {
           "name": "exrs_mgmt_brcd",
-          "type": "varchar",
-          "expr": "exrs_mgmt_brcd",
           "label": "전담관리부점코드",
+          "type": "varchar",
           "description": "전담 관리하는 관리부점의 부점코드",
+          "expr": "exrs_mgmt_brcd",
           "type_params": null
         },
         {
           "name": "exrs_mgmt_empno",
-          "type": "varchar",
-          "expr": "exrs_mgmt_empno",
           "label": "전담관리직원번호",
+          "type": "varchar",
           "description": "전담관리 직원의 직원번호",
+          "expr": "exrs_mgmt_empno",
           "type_params": null
         },
         {
           "name": "exrs_choic_rscd",
-          "type": "varchar",
-          "expr": "exrs_choic_rscd",
           "label": "전담선정사유코드",
+          "type": "varchar",
           "description": "전담으로 선정되어진 사유코드",
+          "expr": "exrs_choic_rscd",
           "type_params": null
         },
         {
           "name": "nxtr_exrs_mgmt_brn_stdd",
-          "type": "varchar",
-          "expr": "nxtr_exrs_mgmt_brn_stdd",
           "label": "차기전담관리부점시작일자",
+          "type": "varchar",
           "description": "차기 전담관리부점이 선정되어진 경우 유효시작일자",
+          "expr": "nxtr_exrs_mgmt_brn_stdd",
           "type_params": null
         },
         {
           "name": "nxtr_exrs_mgmt_brcd",
-          "type": "varchar",
-          "expr": "nxtr_exrs_mgmt_brcd",
           "label": "차기전담관리부점코드",
+          "type": "varchar",
           "description": "차기 전담관리부점으로 선정되어진 영업점의 부점코드",
+          "expr": "nxtr_exrs_mgmt_brcd",
           "type_params": null
         },
         {
           "name": "nxtr_exrs_choic_rscd",
-          "type": "varchar",
-          "expr": "nxtr_exrs_choic_rscd",
           "label": "차기전담선정사유코드",
+          "type": "varchar",
           "description": "차기 전담으로 선정되어진 사유코드",
+          "expr": "nxtr_exrs_choic_rscd",
           "type_params": null
         },
         {
           "name": "same_cstno",
-          "type": "varchar",
-          "expr": "same_cstno",
           "label": "동일고객번호",
+          "type": "varchar",
           "description": "동일한 고객의 고객번호",
+          "expr": "same_cstno",
           "type_params": null
         },
         {
           "name": "chnl_dtls_clcd",
+          "label": "채널세부 분류코드",
           "type": "varchar",
+          "description": "채널세부 분류코드",
           "expr": "chnl_dtls_clcd",
-          "label": "채널세부분류코드",
-          "description": "채널세부분류코드",
           "type_params": null
         },
         {
           "name": "sgst_cust_cstno",
-          "type": "varchar",
-          "expr": "sgst_cust_cstno",
           "label": "권유고객고객번호",
+          "type": "varchar",
           "description": "권유자 고객의 고객번호",
+          "expr": "sgst_cust_cstno",
           "type_params": null
         },
         {
           "name": "cust_endp_cd",
-          "type": "varchar",
-          "expr": "cust_endp_cd",
           "label": "고객사업부코드",
+          "type": "varchar",
           "description": "고객의 규모 및 성격에 따라 통계 및 영업 활동을 위해 사업부를 구분하는 코드",
+          "expr": "cust_endp_cd",
           "type_params": null
         },
         {
           "name": "cdd_cnfr_dt",
-          "type": "varchar",
-          "expr": "cdd_cnfr_dt",
           "label": "CDD확인일자",
-          "description": "AML CDD 목적의 확인일자",
+          "type": "varchar",
+          "description": "AML CDD 목적의 확인일자. 해당 고객에 대해 CDD(고객확인)를 “언제 기준으로 수행·완료했는지”를 명확히 기록하는 날짜",
+          "expr": "cdd_cnfr_dt",
           "type_params": null
         },
         {
           "name": "edd_cnfr_dt",
-          "type": "varchar",
-          "expr": "edd_cnfr_dt",
           "label": "EDD확인일자",
-          "description": "강화된 고객 확인제도(EDD)의  확인일자",
+          "type": "varchar",
+          "description": "강화된 고객 확인제도(EDD)의  확인일자. 고위험 고객에 대해 강화된 고객확인(EDD, Enhanced Due Diligence)을 “언제 기준으로 완료했는지”를 나타내는 날짜",
+          "expr": "edd_cnfr_dt",
           "type_params": null
         },
         {
           "name": "loan_nprql_cd",
-          "type": "varchar",
-          "expr": "loan_nprql_cd",
           "label": "대출비적격코드",
+          "type": "varchar",
           "description": "위변조사기자, 부적격보증인 등 대출비적격자에 대한 코드",
+          "expr": "loan_nprql_cd",
           "type_params": null
         },
         {
           "name": "tx_endt",
-          "type": "varchar",
-          "expr": "tx_endt",
           "label": "거래종료일자",
+          "type": "varchar",
           "description": "거래종료일자",
+          "expr": "tx_endt",
           "type_params": null
         },
         {
           "name": "frst_reg_dt",
-          "type": "varchar",
-          "expr": "frst_reg_dt",
           "label": "최초등록일자",
+          "type": "varchar",
           "description": "데이터를 최초 등록한 일자",
+          "expr": "frst_reg_dt",
           "type_params": null
         },
         {
           "name": "frst_reg_time",
-          "type": "varchar",
-          "expr": "frst_reg_time",
           "label": "최초등록시각",
+          "type": "varchar",
           "description": "데이터를 최초 등록한 시각",
+          "expr": "frst_reg_time",
           "type_params": null
         },
         {
           "name": "frst_reg_brcd",
-          "type": "varchar",
-          "expr": "frst_reg_brcd",
           "label": "최초등록부점코드",
+          "type": "varchar",
           "description": "데이터를 최초 등록한 부점코드",
+          "expr": "frst_reg_brcd",
           "type_params": null
         },
         {
           "name": "frst_reg_empno",
-          "type": "varchar",
-          "expr": "frst_reg_empno",
           "label": "최초등록직원번호",
+          "type": "varchar",
           "description": "데이터를 최초 등록한 직원의 직원번호",
+          "expr": "frst_reg_empno",
           "type_params": null
         },
         {
           "name": "last_chng_dt",
-          "type": "varchar",
-          "expr": "last_chng_dt",
           "label": "최종변경일자",
+          "type": "varchar",
           "description": "데이터를 최종 변경한 일자",
+          "expr": "last_chng_dt",
           "type_params": null
         },
         {
           "name": "last_chng_time",
-          "type": "varchar",
-          "expr": "last_chng_time",
           "label": "최종변경시각",
+          "type": "varchar",
           "description": "데이터를 최종 변경한 시각",
+          "expr": "last_chng_time",
           "type_params": null
         },
         {
           "name": "last_chng_brcd",
-          "type": "varchar",
-          "expr": "last_chng_brcd",
           "label": "최종변경부점코드",
+          "type": "varchar",
           "description": "데이터를 최종 변경한 부점코드",
+          "expr": "last_chng_brcd",
           "type_params": null
         },
         {
           "name": "last_chng_empno",
-          "type": "varchar",
-          "expr": "last_chng_empno",
           "label": "최종변경직원번호",
+          "type": "varchar",
           "description": "데이터를 최종 변경한 직원의 직원번호",
+          "expr": "last_chng_empno",
           "type_params": null
         }
       ],
@@ -349,7 +680,7 @@
     },
     {
       "name": "branch",
-      "description": "부점코드(brcd)를 기준으로 영업점 단위 예수금·여신 및 한도 분석에 사용되는 semantic 모델",
+      "description": "부점코드(brcd)와 기준일자(base_dt) 기준으로 관리되는 영업점(지점/부점) 스냅샷 모델이다. 본 모델은 base_dt가 있는 이력/스냅샷 테이블이므로, 날짜가 포함된 질의에서는 반드시 base_dt에 동일한 날짜 필터를 적용하여 조회한다.\n",
       "node_relation": {
         "alias": "wapco_brncd_cn",
         "schema_name": "default_schema",
@@ -358,7 +689,7 @@
       "primary_entity": null,
       "entities": [
         {
-          "name": "branch1",
+          "name": "branch_cd",
           "type": "primary",
           "expr": "brcd",
           "description": null,
@@ -366,7 +697,7 @@
           "label": null
         },
         {
-          "name": "branch2",
+          "name": "branch_dt",
           "type": "primary",
           "expr": "base_dt",
           "description": null,
@@ -377,527 +708,527 @@
       "measures": [
         {
           "name": "brcd_count",
-          "type": "varchar",
-          "expr": "brcd",
           "label": "부점코드",
-          "description": "부점코드"
+          "type": "varchar",
+          "description": "부점코드",
+          "expr": "brcd"
         },
         {
           "name": "cash_hold_limt_amt",
-          "type": "integer",
-          "expr": "cash_hold_limt_amt",
           "label": "현금보유한도금액",
-          "description": "현금보유한도금액"
+          "type": "integer",
+          "description": "현금보유한도금액",
+          "expr": "cash_hold_limt_amt"
         },
         {
           "name": "fxccy_cshn_hold_limt_amt",
-          "type": "integer",
-          "expr": "fxccy_cshn_hold_limt_amt",
           "label": "외화시재보유한도금액",
-          "description": "외화시재보유한도금액"
+          "type": "integer",
+          "description": "외화시재보유한도금액",
+          "expr": "fxccy_cshn_hold_limt_amt"
         },
         {
           "name": "mnrc_limt_amt",
-          "type": "integer",
-          "expr": "mnrc_limt_amt",
           "label": "입금한도금액",
-          "description": "영업점의 입금한도금액을 정의하는부분"
+          "type": "integer",
+          "description": "영업점의 입금한도금액을 정의하는부분",
+          "expr": "mnrc_limt_amt"
         },
         {
           "name": "wdl_limt_amt",
-          "type": "integer",
-          "expr": "wdl_limt_amt",
           "label": "출금한도금액",
-          "description": "영업점의 출금한도금액을 정의하는부분"
+          "type": "integer",
+          "description": "영업점의 출금한도금액을 정의하는부분",
+          "expr": "wdl_limt_amt"
         }
       ],
       "dimensions": [
         {
           "name": "base_dt",
           "type": "varchar",
-          "expr": "base_dt",
           "label": "기준일자",
+          "expr": "base_dt",
           "description": "기준조회일자",
           "type_params": null
         },
         {
           "name": "brcd",
-          "type": "varchar",
-          "expr": "brcd",
           "label": "부점코드",
-          "description": "부점코드.(점번) 코드만 보면 어떤 부점인지 알 수 업습니다. group by에 부점한글명과 같이 출력해주세요.",
+          "type": "varchar",
+          "description": "부점코드. 부점코드는 항상 brn_nm (부점한글명)과 같이 group_by에 넣어주세요.",
+          "expr": "brcd",
           "type_params": null
         },
         {
           "name": "com_tx_dt",
-          "type": "varchar",
-          "expr": "com_tx_dt",
           "label": "공통거래일자",
+          "type": "varchar",
           "description": "시스템 공통 속성으로 모든 테이블에 등록되는 공통 거래일자",
+          "expr": "com_tx_dt",
           "type_params": null
         },
         {
           "name": "brn_stcd",
-          "type": "varchar",
-          "expr": "brn_stcd",
           "label": "부점상태코드",
+          "type": "varchar",
           "description": "부점상태코드",
+          "expr": "brn_stcd",
           "type_params": null
         },
         {
           "name": "bank_cd",
-          "type": "varchar",
-          "expr": "bank_cd",
           "label": "은행코드",
+          "type": "varchar",
           "description": "은행코드",
+          "expr": "bank_cd",
           "type_params": null
         },
         {
           "name": "gir_cd",
-          "type": "varchar",
-          "expr": "gircd",
           "label": "지로코드",
+          "type": "varchar",
           "description": "지로코드",
+          "expr": "gircd",
           "type_params": null
         },
         {
           "name": "brn_new_dt",
-          "type": "varchar",
-          "expr": "brn_new_dt",
           "label": "부점신규일자",
+          "type": "varchar",
           "description": "부점신규일자",
+          "expr": "brn_new_dt",
           "type_params": null
         },
         {
           "name": "brn_clor_dt",
-          "type": "varchar",
-          "expr": "brn_clor_dt",
           "label": "부점폐쇄일자",
+          "type": "varchar",
           "description": "부점폐쇄일자",
+          "expr": "brn_clor_dt",
           "type_params": null
         },
         {
           "name": "brn_move_dt",
-          "type": "varchar",
-          "expr": "brn_move_dt",
           "label": "부점이전일자",
+          "type": "varchar",
           "description": "부점이전일자",
+          "expr": "brn_move_dt",
           "type_params": null
         },
         {
           "name": "brn_prst_dt",
-          "type": "varchar",
-          "expr": "brn_prst_dt",
           "label": "부점승격일자",
+          "type": "varchar",
           "description": "부점승격일자",
+          "expr": "brn_prst_dt",
           "type_params": null
         },
         {
           "name": "brn_dgrd_dt",
-          "type": "varchar",
-          "expr": "brn_dgrd_dt",
           "label": "부점격하일자",
+          "type": "varchar",
           "description": "부점격하일자",
+          "expr": "brn_dgrd_dt",
           "type_params": null
         },
         {
-          "name": "brn_kor_nm",
-          "type": "varchar",
-          "expr": "brn_kor_nm",
+          "name": "brn_nm",
           "label": "부점한글명",
+          "type": "varchar",
           "description": "부점한글명",
+          "expr": "brn_kor_nm",
           "type_params": null
         },
         {
           "name": "brn_ennm",
-          "type": "varchar",
-          "expr": "brn_ennm",
           "label": "부점영문명",
+          "type": "varchar",
           "description": "부점영문명",
+          "expr": "brn_ennm",
           "type_params": null
         },
         {
           "name": "brn_addr",
-          "type": "varchar",
-          "expr": "brn_addr",
           "label": "부점주소",
+          "type": "varchar",
           "description": "부점주소",
+          "expr": "brn_addr",
           "type_params": null
         },
         {
           "name": "bob_ensn_addr1",
-          "type": "varchar",
-          "expr": "bob_ensn_addr1",
           "label": "영업점영문주소1",
+          "type": "varchar",
           "description": "부점영문주소1",
+          "expr": "bob_ensn_addr1",
           "type_params": null
         },
         {
           "name": "bob_ensn_addr2",
-          "type": "varchar",
-          "expr": "bob_ensn_addr2",
           "label": "영업점영문주소2",
+          "type": "varchar",
           "description": "부점영문주소2",
+          "expr": "bob_ensn_addr2",
           "type_params": null
         },
         {
           "name": "bob_ensn_addr3",
-          "type": "varchar",
-          "expr": "bob_ensn_addr3",
           "label": "영업점영문주소3",
+          "type": "varchar",
           "description": "부점영문주소3",
+          "expr": "bob_ensn_addr3",
           "type_params": null
         },
         {
           "name": "brn_zpcd",
-          "type": "varchar",
-          "expr": "brn_zpcd",
           "label": "부점우편번호",
+          "type": "varchar",
           "description": "부점우편번호",
+          "expr": "brn_zpcd",
           "type_params": null
         },
         {
           "name": "brn_tlno",
-          "type": "varchar",
-          "expr": "brn_tlno",
           "label": "부점전화번호",
+          "type": "varchar",
           "description": "전화번호",
+          "expr": "brn_tlno",
           "type_params": null
         },
         {
           "name": "fxno",
-          "type": "varchar",
-          "expr": "fxno",
           "label": "팩스번호",
+          "type": "varchar",
           "description": "팩스번호",
+          "expr": "fxno",
           "type_params": null
         },
         {
           "name": "brn_bisno",
-          "type": "varchar",
-          "expr": "brn_bisno",
           "label": "부점사업자등록번호",
+          "type": "varchar",
           "description": "부점사업자등록번호",
+          "expr": "brn_bisno",
           "type_params": null
         },
         {
           "name": "bfr_brcd",
-          "type": "varchar",
-          "expr": "bfr_brcd",
           "label": "이전부점코드",
+          "type": "varchar",
           "description": "이전부점코드",
+          "expr": "bfr_brcd",
           "type_params": null
         },
         {
           "name": "brn_abbr_nm",
-          "type": "varchar",
-          "expr": "brn_abbr_nm",
           "label": "부점약어명",
+          "type": "varchar",
           "description": "부점약어명",
+          "expr": "brn_abbr_nm",
           "type_params": null
         },
         {
           "name": "hq_dvcd",
-          "type": "varchar",
-          "expr": "hq_dvcd",
           "label": "본부구분코드",
+          "type": "varchar",
           "description": "본부구분코드",
+          "expr": "hq_dvcd",
           "type_params": null
         },
         {
           "name": "mth_brcd",
-          "type": "varchar",
-          "expr": "mth_brcd",
           "label": "모부점코드",
+          "type": "varchar",
           "description": "모부점코드",
+          "expr": "mth_brcd",
           "type_params": null
         },
         {
           "name": "subrn_dvcd",
-          "type": "varchar",
-          "expr": "subrn_dvcd",
           "label": "출장소구분코드",
+          "type": "varchar",
           "description": "출장소구분코드",
+          "expr": "subrn_dvcd",
           "type_params": null
         },
         {
           "name": "area_dvcd",
-          "type": "varchar",
-          "expr": "area_dvcd",
           "label": "지역구분코드",
+          "type": "varchar",
           "description": "지역구분코드",
+          "expr": "area_dvcd",
           "type_params": null
         },
         {
           "name": "brn_gpcd",
-          "type": "varchar",
-          "expr": "brn_gpcd",
           "label": "부점그룹코드",
+          "type": "varchar",
           "description": "부점그룹코드",
+          "expr": "brn_gpcd",
           "type_params": null
         },
         {
           "name": "brn_dvcd",
-          "type": "varchar",
-          "expr": "brn_dvcd",
           "label": "부점구분코드",
+          "type": "varchar",
           "description": "부점구분코드",
+          "expr": "brn_dvcd",
           "type_params": null
         },
         {
           "name": "brn_lctn_dvcd",
-          "type": "varchar",
-          "expr": "brn_lctn_dvcd",
           "label": "부점소재지구분코드",
+          "type": "varchar",
           "description": "부점소재지구분코드",
+          "expr": "brn_lctn_dvcd",
           "type_params": null
         },
         {
           "name": "brmgr_acof_dt",
-          "type": "varchar",
-          "expr": "brmgr_acof_dt",
           "label": "부점장부임일자",
+          "type": "varchar",
           "description": "부점장부임일자",
+          "expr": "brmgr_acof_dt",
           "type_params": null
         },
         {
           "name": "brmgr_empno",
-          "type": "varchar",
-          "expr": "brmgr_empno",
           "label": "부점장직원번호",
+          "type": "varchar",
           "description": "부점장직원번호",
+          "expr": "brmgr_empno",
           "type_params": null
         },
         {
           "name": "brmgr_nm",
-          "type": "varchar",
-          "expr": "brmgr_nm",
           "label": "부점장명",
+          "type": "varchar",
           "description": "부점장명",
+          "expr": "brmgr_nm",
           "type_params": null
         },
         {
           "name": "holday_tx_clcd",
-          "type": "varchar",
-          "expr": "holday_tx_clcd",
           "label": "휴일거래분류코드",
+          "type": "varchar",
           "description": "근로자휴일거래여부",
+          "expr": "holday_tx_clcd",
           "type_params": null
         },
         {
           "name": "draf_chbt_cd",
-          "type": "varchar",
-          "expr": "draf_chbt_cd",
           "label": "어음교환소코드",
+          "type": "varchar",
           "description": "어음교환소코드",
+          "expr": "draf_chbt_cd",
           "type_params": null
         },
         {
           "name": "same_draf_exch_area_cd",
-          "type": "varchar",
-          "expr": "same_draf_exch_area_cd",
           "label": "동일어음교환지역코드",
+          "type": "varchar",
           "description": "동일어음교환지역코드",
+          "expr": "same_draf_exch_area_cd",
           "type_params": null
         },
         {
           "name": "nttr_agsr_xn",
-          "type": "varchar",
-          "expr": "nttr_agsr_xn",
           "label": "국고대리점유무",
+          "type": "varchar",
           "description": "국고대리점유무 (Y/N)",
+          "expr": "nttr_agsr_xn",
           "type_params": null
         },
         {
           "name": "nttr_uncn_brcd",
-          "type": "varchar",
-          "expr": "nttr_uncn_brcd",
           "label": "국고통할부점코드",
+          "type": "varchar",
           "description": "국고통할부점코드",
+          "expr": "nttr_uncn_brcd",
           "type_params": null
         },
         {
           "name": "nttr_setl_mth_brcd",
-          "type": "varchar",
-          "expr": "nttr_setl_mth_brcd",
           "label": "국고결제모부점코드",
+          "type": "varchar",
           "description": "국고결제모부점코드",
+          "expr": "nttr_setl_mth_brcd",
           "type_params": null
         },
         {
           "name": "rvst_setl_mth_brcd",
-          "type": "varchar",
-          "expr": "rvst_setl_mth_brcd",
           "label": "수입인지결제모부점코드",
+          "type": "varchar",
           "description": "수입인지결제모부점코드",
+          "expr": "rvst_setl_mth_brcd",
           "type_params": null
         },
         {
           "name": "rvcp_setl_mth_brcd",
-          "type": "varchar",
-          "expr": "rvcp_setl_mth_brcd",
           "label": "수입증지결제모부점코드",
+          "type": "varchar",
           "description": "수입증지결제모부점코드",
+          "expr": "rvcp_setl_mth_brcd",
           "type_params": null
         },
         {
           "name": "cschq_setl_mth_brcd",
-          "type": "varchar",
-          "expr": "cschq_setl_mth_brcd",
           "label": "자기앞수표결제모부점코드",
+          "type": "varchar",
           "description": "자기앞수표결제모부점코드",
+          "expr": "cschq_setl_mth_brcd",
           "type_params": null
         },
         {
           "name": "fx_stor_yn",
-          "type": "varchar",
-          "expr": "fx_stor_yn",
           "label": "외환점포여부",
+          "type": "varchar",
           "description": "외환점포여부",
+          "expr": "fx_stor_yn",
           "type_params": null
         },
         {
           "name": "fx_brcd",
-          "type": "varchar",
-          "expr": "fx_brcd",
           "label": "외환부점코드",
+          "type": "varchar",
           "description": "외환부점코드",
+          "expr": "fx_brcd",
           "type_params": null
         },
         {
           "name": "fxccy_posn_cntz_brcd",
-          "type": "varchar",
-          "expr": "fxccy_posn_cntz_brcd",
           "label": "외화포지션집중부점코드",
+          "type": "varchar",
           "description": "외화포지션집중부점코드",
+          "expr": "fxccy_posn_cntz_brcd",
           "type_params": null
         },
         {
           "name": "antt_brcd",
-          "type": "varchar",
-          "expr": "antt_brcd",
           "label": "계정처리부점코드",
+          "type": "varchar",
           "description": "계정처리부점코드",
+          "expr": "antt_brcd",
           "type_params": null
         },
         {
           "name": "intg_brn_dvcd",
-          "type": "varchar",
-          "expr": "intg_brn_dvcd",
           "label": "통합부점구분코드",
+          "type": "varchar",
           "description": "통합부점구분코드",
+          "expr": "intg_brn_dvcd",
           "type_params": null
         },
         {
           "name": "intg_brcd",
-          "type": "varchar",
-          "expr": "intg_brcd",
           "label": "통합부점코드",
+          "type": "varchar",
           "description": "통합부점코드",
+          "expr": "intg_brcd",
           "type_params": null
         },
         {
           "name": "bs_hold_dvcd",
-          "type": "varchar",
-          "expr": "bs_hold_dvcd",
           "label": "BS보유구분코드",
+          "type": "varchar",
           "description": "BS보유구분코드",
+          "expr": "bs_hold_dvcd",
           "type_params": null
         },
         {
           "name": "aset_clcd",
-          "type": "varchar",
-          "expr": "aset_clcd",
           "label": "자산분류코드",
+          "type": "varchar",
           "description": "자산분류코드",
+          "expr": "aset_clcd",
           "type_params": null
         },
         {
           "name": "gd_no",
-          "type": "integer",
-          "expr": "gd_no",
           "label": "물건번호",
+          "type": "integer",
           "description": "물건번호",
+          "expr": "gd_no",
           "type_params": null
         },
         {
           "name": "brn_road_nm_addr",
-          "type": "varchar",
-          "expr": "brn_road_nm_addr",
           "label": "부점도로명주소",
+          "type": "varchar",
           "description": "부점도로명주소",
+          "expr": "brn_road_nm_addr",
           "type_params": null
         },
         {
           "name": "brn_road_nm_ensn_addr",
-          "type": "varchar",
-          "expr": "brn_road_nm_ensn_addr",
           "label": "부점도로명영문주소",
+          "type": "varchar",
           "description": "부점도로명영문주소",
+          "expr": "brn_road_nm_ensn_addr",
           "type_params": null
         },
         {
           "name": "acon_occu_brn_yn",
-          "type": "varchar",
-          "expr": "acon_occu_brn_yn",
           "label": "계리발생부점여부",
+          "type": "varchar",
           "description": "계리발생부점여부",
+          "expr": "acon_occu_brn_yn",
           "type_params": null
         },
         {
           "name": "dmfr_dvcd",
-          "type": "varchar",
-          "expr": "dmfr_dvcd",
           "label": "국내외구분코드",
+          "type": "varchar",
           "description": "국내외구분코드",
+          "expr": "dmfr_dvcd",
           "type_params": null
         },
         {
           "name": "adup_brcd",
-          "type": "varchar",
-          "expr": "adup_brcd",
           "label": "합산부점코드",
+          "type": "varchar",
           "description": "합산부점코드",
+          "expr": "adup_brcd",
           "type_params": null
         },
         {
           "name": "tx_brcd",
-          "type": "varchar",
-          "expr": "tx_brcd",
           "label": "거래부점코드",
+          "type": "varchar",
           "description": "거래부점코드",
+          "expr": "tx_brcd",
           "type_params": null
         },
         {
           "name": "reg_dt",
-          "type": "varchar",
-          "expr": "reg_dt",
           "label": "등록일자",
+          "type": "varchar",
           "description": "등록일자",
+          "expr": "reg_dt",
           "type_params": null
         },
         {
           "name": "reg_empno",
-          "type": "varchar",
-          "expr": "reg_empno",
           "label": "등록직원번호",
+          "type": "varchar",
           "description": "등록직원번호",
+          "expr": "reg_empno",
           "type_params": null
         },
         {
           "name": "last_chng_dt",
-          "type": "varchar",
-          "expr": "last_chng_dt",
           "label": "최종변경일자",
+          "type": "varchar",
           "description": "최종변경일자",
+          "expr": "last_chng_dt",
           "type_params": null
         },
         {
           "name": "last_chng_empno",
-          "type": "varchar",
-          "expr": "last_chng_empno",
           "label": "최종변경직원번호",
+          "type": "varchar",
           "description": "최종변경직원번호",
+          "expr": "last_chng_empno",
           "type_params": null
         }
       ],
@@ -907,19 +1238,27 @@
       }
     },
     {
-      "name": "gds_cd",
-      "description": "테이블(WRPPF_GDSBS_M)을 기반으로 한 상품 유형, 판매 상태, 적용 상태 등 상품 속성 분석의 기준이 되는 semantic 모델",
+      "name": "goods",
+      "description": "예·적금, 대출 상품 그룹 관리 정보(WAPPF_DPGRP_BN)를 기반으로, 상품 그룹 코드 및 관련 속성을 차원으로 관리하며, 숫자형 항목에 대해서는 집계 분석이 가능하도록 구성된 semantic 모델.",
       "node_relation": {
-        "alias": "gds_cd",
+        "alias": "wappf_dpgrp_bn",
         "schema_name": "default_schema",
         "database": "default_db"
       },
       "primary_entity": null,
       "entities": [
         {
-          "name": "gds_cd",
+          "name": "goods_cd",
           "type": "primary",
           "expr": "gds_cd",
+          "description": null,
+          "role": null,
+          "label": null
+        },
+        {
+          "name": "goods_dt",
+          "type": "primary",
+          "expr": "base_dt",
           "description": null,
           "role": null,
           "label": null
@@ -927,161 +1266,703 @@
       ],
       "measures": [
         {
-          "name": "gds_cd_cnt",
-          "type": "integer",
-          "expr": "gds_cd",
-          "label": "상품코드 카운트용"
+          "name": "dep_new_posb_amt_mxvl",
+          "type": "number",
+          "label": "수신신규가능금액최대값",
+          "expr": "dep_new_posb_amt_mxvl",
+          "description": "수신상품의 계좌별 신규가능 금액의 최대금액"
         },
         {
-          "name": "gds_dtls_cd_cnt",
-          "type": "integer",
-          "expr": "gds_dtls_cd",
-          "label": "상품세부코드 카운트용"
+          "name": "dep_new_posb_amt_mnvl",
+          "type": "number",
+          "label": "수신신규가능금액최소값",
+          "expr": "dep_new_posb_amt_mnvl",
+          "description": "수신상품의 계좌별 신규가능 금액의 최소금액"
+        },
+        {
+          "name": "dep_new_posb_amt_unvl",
+          "type": "number",
+          "label": "수신신규가능금액단위값",
+          "expr": "dep_new_posb_amt_unvl",
+          "description": "수신상품의 계좌별 신규가능 금액의 단위금액"
+        },
+        {
+          "name": "dep_days_mhod_icdnd",
+          "type": "number",
+          "label": "수신일수방식이자계산분모일수",
+          "expr": "dep_days_mhod_icdnd",
+          "description": "이자계산 방식이 일수방식 이자계산을 하는 상품인 경우 분모의 일수 (360일-외화, 365일-원화,신탁)"
+        },
+        {
+          "name": "csrrt",
+          "type": "number",
+          "label": "지급준비율",
+          "expr": "csrrt",
+          "description": "지급준비율"
+        },
+        {
+          "name": "pb_line_cnt",
+          "type": "number",
+          "label": "통장라인수",
+          "expr": "pb_line_cnt",
+          "description": "통장라인수"
         }
       ],
       "dimensions": [
         {
-          "name": "m_gds_cd",
+          "name": "base_dt",
           "type": "varchar",
-          "expr": "gds_cd",
+          "label": "기준일자",
+          "expr": "base_dt",
+          "description": "기준일자",
+          "type_params": null
+        },
+        {
+          "name": "pd_gds_cd",
+          "type": "varchar",
           "label": "상품코드",
-          "description": "상품코드",
+          "expr": "gds_cd",
+          "description": "전행 차원에서  금융상품에 대하여 통일된 기준으로 부여하여 관리하는 코드",
           "type_params": null
         },
         {
           "name": "gds_dtls_cd",
           "type": "varchar",
-          "expr": "gds_dtls_cd",
           "label": "상품세부코드",
-          "description": "상품팩토리에서 상품코드의 세부코드로 나누기 위한 코드로 여신의 자금원코드, 수신의 서브상품코드 등의 목적으로 관리",
+          "expr": "gds_dtls_cd",
+          "description": "상품코드를 세분화하여 사용하는 코드로, 상품코드=母상품, 상품세부코드=子상품의 개념을 갖음",
           "type_params": null
         },
         {
           "name": "com_tx_dt",
           "type": "varchar",
-          "expr": "com_tx_dt",
           "label": "공통거래일자",
+          "expr": "com_tx_dt",
           "description": "시스템 공통 속성으로 모든 테이블에 등록되는 공통 거래일자",
           "type_params": null
         },
         {
-          "name": "gds_aply_stcd",
+          "name": "old_sbcd",
           "type": "varchar",
-          "expr": "gds_aply_stcd",
-          "label": "상품적용상태코드",
-          "description": "해당 레코드의 상태를 구분하는 코드",
+          "label": "구과목코드",
+          "expr": "old_sbcd",
+          "description": "as-is의 수신상품(과목코드)을 관리하기 위한 코드",
           "type_params": null
         },
         {
-          "name": "gds_sle_stcd",
+          "name": "dep_gds_gpcd",
           "type": "varchar",
-          "expr": "gds_sle_stcd",
-          "label": "상품판매상태코드",
-          "description": "상품의 판매상태를 관리하기 위한 구분코드 (1:판매중, 2:판매중지, 3:판매예정, 9:폐지상품)",
+          "label": "수신상품그룹코드",
+          "expr": "dep_gds_gpcd",
+          "description": "수신상품그룹코드",
           "type_params": null
         },
         {
-          "name": "sle_stdd",
+          "name": "acco_sbcd",
           "type": "varchar",
-          "expr": "sle_stdd",
-          "label": "판매시작일자",
-          "description": "판매시작일자",
+          "label": "계좌과목코드",
+          "expr": "acco_sbcd",
+          "description": "계좌 과목에 해당되는 코드",
           "type_params": null
         },
         {
-          "name": "sle_endt",
+          "name": "dep_bzwk_dvcd",
           "type": "varchar",
-          "expr": "sle_endt",
-          "label": "판매종료일자",
-          "description": "판매종료일자",
+          "label": "수신업무구분코드",
+          "expr": "dep_bzwk_dvcd",
+          "description": "수신상품을 요구불, 거치식, 적립식으로 분류한 코드",
           "type_params": null
         },
         {
-          "name": "gds_bzwk_tycd",
+          "name": "dep_instl_tycd",
           "type": "varchar",
-          "expr": "gds_bzwk_tycd",
-          "label": "상품업무유형코드",
-          "description": "조건코드별로 필수등록, 등록불가 요건을 관리하기 위하여 그룹화한 코드",
+          "label": "수신적립유형코드",
+          "expr": "dep_instl_tycd",
+          "description": "적립식 수신상품의 적립방법(주기,금액) 유형코드",
           "type_params": null
         },
         {
-          "name": "mgmt_seqno",
+          "name": "gds_nm",
           "type": "varchar",
-          "expr": "mgmt_seqno",
-          "label": "관리일련번호",
-          "description": "관리일련번호",
+          "label": "상품한글명",
+          "expr": "gds_kor_nm",
+          "description": "상품의 한글 명칭. 정기예금, 적금, 대출, 여신 등에 대한 데이터 포함. 사용자의 질문에 상품명이 포함되어 있으면 해당 컬럼을 LIKE 조건으로 검색 필수. -> ex) goods__gds_nm LIKE '%정기예금%'",
+          "type_params": null
+        },
+        {
+          "name": "gds_kor_abbr_nm",
+          "type": "varchar",
+          "label": "상품한글약어명",
+          "expr": "gds_kor_abbr_nm",
+          "description": "상품한글약어명",
+          "type_params": null
+        },
+        {
+          "name": "gds_ennm",
+          "type": "varchar",
+          "label": "상품영문명",
+          "expr": "gds_ennm",
+          "description": "상품영문명",
+          "type_params": null
+        },
+        {
+          "name": "dd_unit_cntr_posb_yn",
+          "type": "varchar",
+          "label": "일단위계약가능여부",
+          "expr": "dd_unit_cntr_posb_yn",
+          "description": "일단위로 계약이 가능한 상품인지 여부",
+          "type_params": null
+        },
+        {
+          "name": "mm_unit_cntr_posb_yn",
+          "type": "varchar",
+          "label": "월단위계약가능여부",
+          "expr": "mm_unit_cntr_posb_yn",
+          "description": "월단위로 계약이 가능한 상품인지 여부",
+          "type_params": null
+        },
+        {
+          "name": "dpcnpd_strt_val",
+          "type": "varchar",
+          "label": "수신가능계약기간시작값",
+          "expr": "dpcnpd_strt_val",
+          "description": "수신가능계약기간의 시작값 (형식:MMMMDDDD)",
+          "type_params": null
+        },
+        {
+          "name": "dpcnpd_end_val",
+          "type": "varchar",
+          "label": "수신가능계약기간종료값",
+          "expr": "dpcnpd_end_val",
+          "description": "수신가능계약기간의 종료값 (형식:MMMMDDDD)",
+          "type_params": null
+        },
+        {
+          "name": "curn_cd",
+          "type": "varchar",
+          "label": "통화코드",
+          "expr": "curn_cd",
+          "description": "통화코드",
+          "type_params": null
+        },
+        {
+          "name": "int_prvs_kncd",
+          "type": "varchar",
+          "label": "이자지급종류코드",
+          "expr": "int_prvs_kncd",
+          "description": "이자지급종류코드",
+          "type_params": null
+        },
+        {
+          "name": "dep_int_calc_mtcd",
+          "type": "varchar",
+          "label": "수신이자계산방법코드",
+          "expr": "dep_int_calc_mtcd",
+          "description": "수신이자계산방법코드",
+          "type_params": null
+        },
+        {
+          "name": "dep_sint_cmin_dvcd",
+          "type": "varchar",
+          "label": "수신단리복리구분코드",
+          "expr": "dep_sint_cmin_dvcd",
+          "description": "수신 이자계산시 단리인지, 복리인지를 구분하는 코드",
+          "type_params": null
+        },
+        {
+          "name": "psn1_ac1_valdtn_dvcd",
+          "type": "varchar",
+          "label": "1인1계좌검증구분코드",
+          "expr": "psn1_ac1_valdtn_dvcd",
+          "description": "- 1인 1계좌 관련 검증요건을 구분하는 코드\n\"2-현재상품 1인1계좌\"는 현재의 상품코드만드로 가입된 상품있는지를 검증하고,\n\"2-여러 개의 상품합산 1인1계좌\"는 동일 상품이 여러개의 상품코드가 부여되었다는 의미로서,\n\"1인1계좌검증상품목록\" 조건을 조회하여 출력된 상품코드 목록으로 이미 가입된 상품이 하나라도 있으면 안된다는 의미\n",
+          "type_params": null
+        },
+        {
+          "name": "psn1_bbk1_gds_yn",
+          "type": "varchar",
+          "label": "1인1통장상품여부",
+          "expr": "psn1_bbk1_gds_yn",
+          "description": "1인 1통장만 허용하는 상품인지 여부",
+          "type_params": null
+        },
+        {
+          "name": "dptp_loan_setp_posb_yn",
+          "type": "varchar",
+          "label": "수신성대출설정가능여부",
+          "expr": "dptp_loan_setp_posb_yn",
+          "description": "수신성대출인 당좌/가계당좌대출, 마이너스대출, 카드론 설정이 가능한 수신상품인지 여부",
+          "type_params": null
+        },
+        {
+          "name": "loan_kncd",
+          "type": "varchar",
+          "label": "대출종류코드",
+          "expr": "loan_kncd",
+          "description": "수신대출내부적으로 분류한 종류코드",
+          "type_params": null
+        },
+        {
+          "name": "tax_dvcd",
+          "type": "varchar",
+          "label": "세금구분코드",
+          "expr": "tax_dvcd",
+          "description": "세금구분코드",
+          "type_params": null
+        },
+        {
+          "name": "nts_fnnc_gds_cd",
+          "type": "varchar",
+          "label": "국세청금융상품코드",
+          "expr": "nts_fnnc_gds_cd",
+          "description": "국세청에서 관리하는 금융상품을 구분하는 코드",
+          "type_params": null
+        },
+        {
+          "name": "acng_dvcd",
+          "type": "varchar",
+          "label": "회계구분코드",
+          "expr": "acng_dvcd",
+          "description": "회계구분코드",
+          "type_params": null
+        },
+        {
+          "name": "bs_accd",
+          "type": "varchar",
+          "label": "BS계정코드",
+          "expr": "bs_accd",
+          "description": "BS계정코드",
+          "type_params": null
+        },
+        {
+          "name": "fxccy_bs_accd",
+          "type": "varchar",
+          "label": "외화BS계정코드",
+          "expr": "fxccy_bs_accd",
+          "description": "외화BS계정코드",
+          "type_params": null
+        },
+        {
+          "name": "is_accd",
+          "type": "varchar",
+          "label": "IS계정코드",
+          "expr": "is_accd",
+          "description": "Income Sheet 계정코드를 관리",
+          "type_params": null
+        },
+        {
+          "name": "urgd_new_posb_yn",
+          "type": "varchar",
+          "label": "무기명신규가능여부",
+          "expr": "urgd_new_posb_yn",
+          "description": "무기명으로 신규가 가능한 상품인지 여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "soff_cls_posb_yn",
+          "type": "varchar",
+          "label": "상계해지가능여부",
+          "expr": "soff_cls_posb_yn",
+          "description": "상계해지가 가능한 상품인지 여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "expad_cls_posb_yn",
+          "type": "varchar",
+          "label": "만기체상해지가능여부",
+          "expr": "expad_cls_posb_yn",
+          "description": "만기체상해지가 가능한 상품인지 여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "bal_cert_iss_posb_yn",
+          "type": "varchar",
+          "label": "잔액증명서발급가능여부",
+          "expr": "bal_cert_iss_posb_yn",
+          "description": "잔액증명서 발급이 가능한 상품인지 여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "rgpl_setp_posb_yn",
+          "type": "varchar",
+          "label": "질권설정가능여부",
+          "expr": "rgpl_setp_posb_yn",
+          "description": "질권설정(예금·적금·보험·유가증권 등 고객의 재산권을 담보로 잡는 법적 권리(질권)를 은행이 설정하는 것)가능여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "trnr_posb_yn",
+          "type": "varchar",
+          "label": "양도가능여부",
+          "expr": "trnr_posb_yn",
+          "description": "양도가능여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "spcl_mdcl_posb_yn",
+          "type": "varchar",
+          "label": "특별중도해지가능여부",
+          "expr": "spcl_mdcl_posb_yn",
+          "description": "특별중도해지가 가능한 상품인지 여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "dvn_cls_posb_yn",
+          "type": "varchar",
+          "label": "분할해지가능여부",
+          "expr": "dvn_cls_posb_yn",
+          "description": "분할해지가능여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "acco_dvn_posb_yn",
+          "type": "varchar",
+          "label": "계좌분할가능여부",
+          "expr": "acco_dvn_posb_yn",
+          "description": "계좌분할가능여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "tuc_posb_yn",
+          "type": "varchar",
+          "label": "이수관가능여부",
+          "expr": "tuc_posb_yn",
+          "description": "이수관가능여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "tx_spnd_acco_enrl_trgt_yn",
+          "type": "varchar",
+          "label": "거래중지계좌편입대상여부",
+          "expr": "tx_spnd_acco_enrl_trgt_yn",
+          "description": "거래중지계좌 편입대상 상품인지 여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "prgds_prfr_intr_aply_yn",
+          "type": "varchar",
+          "label": "상품별우대금리적용여부",
+          "expr": "prgds_prfr_intr_aply_yn",
+          "description": "상품별 우대금리 적용이 가능한 상품인지 여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "spcl_rt_aply_yn",
+          "type": "varchar",
+          "label": "특별이율적용여부",
+          "expr": "spcl_rt_aply_yn",
+          "description": "특별이율적용여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "rt_rprs_gds_aply_yn",
+          "type": "varchar",
+          "label": "이율대표상품적용여부",
+          "expr": "rt_rprs_gds_aply_yn",
+          "description": "이율대표상품적용여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "net_cls_posb_yn",
+          "type": "varchar",
+          "label": "NET해지가능여부",
+          "expr": "net_cls_posb_yn",
+          "description": "NET해지가능여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "gds_sle_limt_yn",
+          "type": "varchar",
+          "label": "상품판매한도여부",
+          "expr": "gds_sle_limt_yn",
+          "description": "상품별 판매한도가 설정되어 있는지 여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "dptc_law_ptct_trgt_yn",
+          "type": "varchar",
+          "label": "예금자보호법보호대상여부",
+          "expr": "dptc_law_ptct_trgt_yn",
+          "description": "예금자보호법상 보호 대상 상품인지 여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "pb_ctfc_dvcd",
+          "type": "varchar",
+          "label": "통장증서구분코드",
+          "expr": "pb_ctfc_dvcd",
+          "description": "통장증서구분코드",
+          "type_params": null
+        },
+        {
+          "name": "pb_dvcd",
+          "type": "varchar",
+          "label": "통장구분코드",
+          "expr": "pb_dvcd",
+          "description": "통장구분코드",
+          "type_params": null
+        },
+        {
+          "name": "usitm_artc_no",
+          "type": "varchar",
+          "label": "용도품품목번호",
+          "expr": "usitm_artc_no",
+          "description": "용도품 품목을 구별하는 식별자",
+          "type_params": null
+        },
+        {
+          "name": "ltbb_lnkn_dvcd",
+          "type": "varchar",
+          "label": "평생통장연결구분코드",
+          "expr": "ltbb_lnkn_dvcd",
+          "description": "평생통장연결구분코드",
+          "type_params": null
+        },
+        {
+          "name": "bkln_posb_dvcd",
+          "type": "varchar",
+          "label": "뱅크라인가능구분코드",
+          "expr": "bkln_posb_dvcd",
+          "description": "뱅크라인가능구분코드",
+          "type_params": null
+        },
+        {
+          "name": "bkln_sbcd",
+          "type": "varchar",
+          "label": "뱅크라인과목코드",
+          "expr": "bkln_sbcd",
+          "description": "뱅크라인과목코드",
+          "type_params": null
+        },
+        {
+          "name": "bank_trst_cmbn_dvcd",
+          "type": "varchar",
+          "label": "은행신탁합동구분코드",
+          "expr": "bank_trst_cmbn_dvcd",
+          "description": "은행신탁합동구분코드",
+          "type_params": null
+        },
+        {
+          "name": "otpr_trst_posb_yn",
+          "type": "varchar",
+          "label": "타익신탁가능여부",
+          "expr": "otpr_trst_posb_yn",
+          "description": "타익신탁가능여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "mdcl_posb_yn",
+          "type": "varchar",
+          "label": "중도해지가능여부",
+          "expr": "mdcl_posb_yn",
+          "description": "중도해지가능여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "hshl_lvng_svng_yn",
+          "type": "varchar",
+          "label": "가계생활저축여부",
+          "expr": "hshl_lvng_svng_yn",
+          "description": "가계생활저축 상품인지 여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "txfr_ltsv_yn",
+          "type": "varchar",
+          "label": "비과세장기저축여부",
+          "expr": "txfr_ltsv_yn",
+          "description": "비과세 장기저축 상품인지 여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "olag_pnsn_gds_dvcd",
+          "type": "varchar",
+          "label": "노후연금상품구분코드",
+          "expr": "olag_pnsn_gds_dvcd",
+          "description": "노후연금신탁의 이자지급방법 및 적립방법을 구분하는 코드",
+          "type_params": null
+        },
+        {
+          "name": "xptr_issu_mtcd",
+          "type": "varchar",
+          "label": "개발신탁발행방법코드",
+          "expr": "xptr_issu_mtcd",
+          "description": "개발신탁의 발행방법을 구분하는 코드",
+          "type_params": null
+        },
+        {
+          "name": "dia_gds_dvcd",
+          "type": "varchar",
+          "label": "다이아몬드상품구분코드",
+          "expr": "dia_gds_dvcd",
+          "description": "다이아몬드 상품을 구분하는 코드",
+          "type_params": null
+        },
+        {
+          "name": "idvd_crpt_dvcd",
+          "type": "varchar",
+          "label": "개인법인구분코드",
+          "expr": "idvd_crpt_dvcd",
+          "description": "개인법인구분코드(P:개인,C:법인)",
+          "type_params": null
+        },
+        {
+          "name": "dep_gds_ftr_cd",
+          "type": "varchar",
+          "label": "수신상품특성코드",
+          "expr": "dep_gds_ftr_cd",
+          "description": "수신상품특성코드",
+          "type_params": null
+        },
+        {
+          "name": "ftmp_tbl_uz_yn",
+          "type": "varchar",
+          "label": "정기성테이블사용여부",
+          "expr": "ftmp_tbl_uz_yn",
+          "description": "정기성테이블사용여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "ondmnd_evdd_int_calc_yn",
+          "type": "varchar",
+          "label": "요구불매일이자계산여부",
+          "expr": "ondmnd_evdd_int_calc_yn",
+          "description": "요구불예금으로 매일 이자를 계산하는 상품인지 여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "scfc_tcfnd_mnin_aset_cd1",
+          "type": "varchar",
+          "label": "특정금전신탁운용자산코드1",
+          "expr": "scfc_tcfnd_mnin_aset_cd1",
+          "description": "특정_금전신탁_운용_자산코드",
+          "type_params": null
+        },
+        {
+          "name": "scfc_tcfnd_mnin_aset_cd2",
+          "type": "varchar",
+          "label": "특정금전신탁운용자산코드2",
+          "expr": "scfc_tcfnd_mnin_aset_cd2",
+          "description": "특정_금전신탁_운용_자산코드",
+          "type_params": null
+        },
+        {
+          "name": "scfc_tcfnd_mnin_aset_cd3",
+          "type": "varchar",
+          "label": "특정금전신탁운용자산코드3",
+          "expr": "scfc_tcfnd_mnin_aset_cd3",
+          "description": "특정_금전신탁_운용_자산코드",
+          "type_params": null
+        },
+        {
+          "name": "gds_brnd_cd",
+          "type": "varchar",
+          "label": "상품브랜드코드",
+          "expr": "gds_brnd_cd",
+          "description": "광주은행 전체의 상품에 대하여 상품별 브랜드를 식별하기 위하여 부여한 코드이며, 상품업무유형코드(2)+일련번호(5)의 형태로 채번",
+          "type_params": null
+        },
+        {
+          "name": "scfc_tcfnd_dvcd",
+          "type": "varchar",
+          "label": "특정금전신탁구분코드",
+          "expr": "scfc_tcfnd_dvcd",
+          "description": "특정금전신탁 상품을 구분하는 코드",
+          "type_params": null
+        },
+        {
+          "name": "trst_fund_no",
+          "type": "varchar",
+          "label": "신탁펀드번호",
+          "expr": "trst_fund_no",
+          "description": "유가증권 기준가합동 펀드번호",
+          "type_params": null
+        },
+        {
+          "name": "inx_itlk_mndp_gds_yn",
+          "type": "varchar",
+          "label": "지수연동예금상품여부",
+          "expr": "inx_itlk_mndp_gds_yn",
+          "description": "지수연동 정기예금 상품인지 여부 (Y/N)",
+          "type_params": null
+        },
+        {
+          "name": "scfc_tcfnd_liqd_dt",
+          "type": "varchar",
+          "label": "특정금전신탁청산일자",
+          "expr": "scfc_tcfnd_liqd_dt",
+          "description": "특정금전신탁 상품의 청산일자",
+          "type_params": null
+        },
+        {
+          "name": "bkdbt_acnt_dccd",
+          "type": "varchar",
+          "label": "금융채계정세분류코드",
+          "expr": "bkdbt_acnt_dccd",
+          "description": "금융채 상품의 계정을 세분류한 코드",
           "type_params": null
         },
         {
           "name": "reg_brcd",
           "type": "varchar",
-          "expr": "reg_brcd",
           "label": "등록부점코드",
+          "expr": "reg_brcd",
           "description": "실시간 처리등록점",
           "type_params": null
         },
         {
           "name": "reg_tlrno",
           "type": "varchar",
-          "expr": "reg_tlrno",
           "label": "등록텔러번호",
+          "expr": "reg_tlrno",
           "description": "예상손실율 등록자 행번",
           "type_params": null
         },
         {
           "name": "reg_dt",
           "type": "varchar",
-          "expr": "reg_dt",
           "label": "등록일자",
-          "description": "정보등록일자",
+          "expr": "reg_dt",
+          "description": "등록일자",
           "type_params": null
         },
         {
           "name": "reg_time",
           "type": "varchar",
-          "expr": "reg_time",
           "label": "등록시각",
+          "expr": "reg_time",
           "description": "등록시각",
           "type_params": null
         },
         {
           "name": "last_chng_brcd",
           "type": "varchar",
-          "expr": "last_chng_brcd",
           "label": "최종변경부점코드",
+          "expr": "last_chng_brcd",
           "description": "최종변경부점코드",
           "type_params": null
         },
         {
           "name": "last_chng_tlrno",
           "type": "varchar",
-          "expr": "last_chng_tlrno",
           "label": "최종변경텔러번호",
+          "expr": "last_chng_tlrno",
           "description": "최종변경텔러번호",
           "type_params": null
         },
         {
           "name": "last_chng_dt",
           "type": "varchar",
-          "expr": "last_chng_dt",
           "label": "최종변경일자",
+          "expr": "last_chng_dt",
           "description": "최종변경일자",
           "type_params": null
         },
         {
           "name": "last_chng_time",
           "type": "varchar",
-          "expr": "last_chng_time",
           "label": "최종변경시각",
+          "expr": "last_chng_time",
           "description": "최종변경시각",
-          "type_params": null
-        },
-        {
-          "name": "gds_nm",
-          "type": "varchar",
-          "expr": "gds_nm ",
-          "label": "상품명",
-          "description": "상품명",
           "type_params": null
         }
       ],
@@ -1092,7 +1973,7 @@
     },
     {
       "name": "deposit",
-      "description": "요구불예금·보통예금 등 예수금 계좌의 일별 스냅샷 정보를 관리하며, 기준일자(base_dt) 기준 평균잔액, 신규·해지 금액, 금리 분석에 사용되는 semantic 모델",
+      "description": "요구불예금·보통예금 등 예수금 계좌(acno)의 기준일자(base_dt)별 보유 현황(사실) 스냅샷을 관리하는 semantic 모델이다. 계좌잔액, 가용잔액, 신규입금/해지 관련 금액, 적용이율 등 계좌 단위 실적 지표를 집계·분석하며, “신규” 성격의 분석에는 신규일자(new_dt)를 함께 활용한다. 상품/부점/고객 등의 속성 결합이 필요하면 각각 goods(상품), branch(영업점), customer(고객) 모델과 base_dt를 동기화하여 조인해 확장 분석한다.\n",
       "node_relation": {
         "alias": "waidp_d1010_l",
         "schema_name": "default_schema",
@@ -1109,7 +1990,15 @@
           "label": null
         },
         {
-          "name": "customer",
+          "name": "deposit_bs_dt",
+          "type": "primary",
+          "expr": "base_dt",
+          "description": null,
+          "role": null,
+          "label": null
+        },
+        {
+          "name": "customer_no",
           "type": "foreign",
           "expr": "cstno",
           "description": null,
@@ -1117,7 +2006,15 @@
           "label": null
         },
         {
-          "name": "branch1",
+          "name": "customer_dt",
+          "type": "foreign",
+          "expr": "base_dt",
+          "description": null,
+          "role": null,
+          "label": null
+        },
+        {
+          "name": "branch_cd",
           "type": "foreign",
           "expr": "acco_mgmt_brcd",
           "description": null,
@@ -1125,7 +2022,15 @@
           "label": null
         },
         {
-          "name": "gds_cd",
+          "name": "branch_dt",
+          "type": "foreign",
+          "expr": "base_dt",
+          "description": null,
+          "role": null,
+          "label": null
+        },
+        {
+          "name": "goods_cd",
           "type": "foreign",
           "expr": "gds_cd",
           "description": null,
@@ -1133,15 +2038,23 @@
           "label": null
         },
         {
-          "name": "employee",
+          "name": "goods_dt",
           "type": "foreign",
-          "expr": "sgsr_empno1",
+          "expr": "base_dt",
           "description": null,
           "role": null,
           "label": null
         },
         {
-          "name": "branch2",
+          "name": "employee_cd",
+          "type": "foreign",
+          "expr": "empno",
+          "description": null,
+          "role": null,
+          "label": null
+        },
+        {
+          "name": "employee_dt",
           "type": "foreign",
           "expr": "base_dt",
           "description": null,
@@ -1152,1419 +2065,1419 @@
       "measures": [
         {
           "name": "aply_rt",
-          "type": "integer",
-          "expr": "aply_rt",
           "label": "적용이율",
-          "description": "업무팀 결산작업시 적용된 이율"
+          "type": "integer",
+          "description": "업무팀 결산작업시 적용된 이율",
+          "expr": "aply_rt"
         },
         {
           "name": "pref_rt",
-          "type": "integer",
-          "expr": "pref_rt",
           "label": "실효이율",
-          "description": "실효이율"
+          "type": "integer",
+          "description": "실효이율",
+          "expr": "pref_rt"
         },
         {
           "name": "new_mnrc_amt",
-          "type": "integer",
-          "expr": "new_mnrc_amt",
           "label": "신규입금금액",
-          "description": "신규입금금액"
+          "type": "integer",
+          "description": "신규입금금액",
+          "expr": "new_mnrc_amt"
         },
         {
           "name": "cls_pcpl",
-          "type": "integer",
-          "expr": "cls_pcpl",
           "label": "해지원금",
-          "description": "해지원금"
+          "type": "integer",
+          "description": "해지원금",
+          "expr": "cls_pcpl"
         },
         {
           "name": "cls_int",
-          "type": "integer",
-          "expr": "cls_int",
           "label": "해지이자",
-          "description": "해지이자"
+          "type": "integer",
+          "description": "해지이자",
+          "expr": "cls_int"
         },
         {
           "name": "cls_txam",
-          "type": "integer",
-          "expr": "cls_txam",
           "label": "해지세액",
-          "description": "해지세액"
+          "type": "integer",
+          "description": "해지세액",
+          "expr": "cls_txam"
         },
         {
           "name": "tax_prfr_amt",
-          "type": "integer",
-          "expr": "tax_prfr_amt",
           "label": "세금우대금액",
-          "description": "세금우대금액"
+          "type": "integer",
+          "description": "세금우대금액",
+          "expr": "tax_prfr_amt"
         },
         {
           "name": "info_ccnt",
-          "type": "integer",
-          "expr": "info_ccnt",
           "label": "정보건수",
-          "description": "정보건수"
+          "type": "integer",
+          "description": "정보건수",
+          "expr": "info_ccnt"
         },
         {
           "name": "prvs_stop_ccnt",
-          "type": "integer",
-          "expr": "prvs_stop_ccnt",
           "label": "지급정지건수",
-          "description": "지급정지건수"
+          "type": "integer",
+          "description": "지급정지건수",
+          "expr": "prvs_stop_ccnt"
         },
         {
           "name": "prvs_stop_amt",
-          "type": "integer",
-          "expr": "prvs_stop_amt",
           "label": "지급정지금액",
-          "description": "지급정지금액"
+          "type": "integer",
+          "description": "지급정지금액",
+          "expr": "prvs_stop_amt"
         },
         {
           "name": "tx_stop_ccnt",
-          "type": "integer",
-          "expr": "tx_stop_ccnt",
           "label": "거래정지건수",
-          "description": "거래정지건수"
+          "type": "integer",
+          "description": "거래정지건수",
+          "expr": "tx_stop_ccnt"
         },
         {
           "name": "card_setp_ccnt",
-          "type": "integer",
-          "expr": "card_setp_ccnt",
           "label": "카드설정건수",
-          "description": "카드설정건수"
+          "type": "integer",
+          "description": "카드설정건수",
+          "expr": "card_setp_ccnt"
         },
         {
           "name": "atrsf_setp_ccnt",
-          "type": "integer",
-          "expr": "atrsf_setp_ccnt",
           "label": "자동이체설정건수",
-          "description": "자동이체설정건수"
+          "type": "integer",
+          "description": "자동이체설정건수",
+          "expr": "atrsf_setp_ccnt"
         },
         {
           "name": "sgsr_rate",
-          "type": "integer",
-          "expr": "sgsr_rate",
           "label": "권유자비율",
-          "description": "권유자비율"
+          "type": "integer",
+          "description": "권유자비율",
+          "expr": "sgsr_rate"
         },
         {
           "name": "ftp_aply_rt",
-          "type": "integer",
-          "expr": "ftp_aply_rt",
           "label": "FTP적용이율",
-          "description": "FTP적용이율"
+          "type": "integer",
+          "description": "FTP적용이율",
+          "expr": "ftp_aply_rt"
         },
         {
           "name": "gds_sprd_intr",
-          "type": "integer",
-          "expr": "gds_sprd_intr",
           "label": "상품스프레드금리",
-          "description": "상품스프레드금리"
+          "type": "integer",
+          "description": "상품스프레드금리",
+          "expr": "gds_sprd_intr"
         },
         {
           "name": "endp_sprd_intr",
-          "type": "integer",
-          "expr": "endp_sprd_intr",
           "label": "사업부스프레드금리",
-          "description": "사업부스프레드금리"
+          "type": "integer",
+          "description": "사업부스프레드금리",
+          "expr": "endp_sprd_intr"
         },
         {
           "name": "cntr_mcnt",
-          "type": "integer",
-          "expr": "cntr_mcnt",
           "label": "계약개월수",
-          "description": "계약개월수"
+          "type": "integer",
+          "description": "계약개월수",
+          "expr": "cntr_mcnt"
         },
         {
           "name": "cntr_days",
-          "type": "integer",
-          "expr": "cntr_days",
           "label": "계약일수",
-          "description": "계약일수"
+          "type": "integer",
+          "description": "계약일수",
+          "expr": "cntr_days"
         },
         {
           "name": "ftmp_dsam",
-          "type": "integer",
-          "expr": "ftmp_dsam",
           "label": "정기성예치금액",
-          "description": "정기성예치금액"
+          "type": "integer",
+          "description": "정기성예치금액",
+          "expr": "ftmp_dsam"
         },
         {
           "name": "prvs_splm_amt",
-          "type": "integer",
-          "expr": "prvs_splm_amt",
           "label": "지급보충금액",
-          "description": "예상되는 이자 지급금액"
+          "type": "integer",
+          "description": "예상되는 이자 지급금액",
+          "expr": "prvs_splm_amt"
         },
         {
           "name": "cntr_amt",
-          "type": "integer",
-          "expr": "cntr_amt",
           "label": "계약금액",
-          "description": "계약금액"
+          "type": "integer",
+          "description": "계약금액",
+          "expr": "cntr_amt"
         },
         {
           "name": "frst_dpsy_amt",
-          "type": "integer",
-          "expr": "frst_dpsy_amt",
           "label": "최초예치금액",
-          "description": "최초예치금액"
+          "type": "integer",
+          "description": "최초예치금액",
+          "expr": "frst_dpsy_amt"
         },
         {
           "name": "ftmp_prtl_prvs_tmcnt",
-          "type": "integer",
-          "expr": "ftmp_prtl_prvs_tmcnt",
           "label": "정기성일부지급횟수",
-          "description": "정기성일부지급횟수"
+          "type": "integer",
+          "description": "정기성일부지급횟수",
+          "expr": "ftmp_prtl_prvs_tmcnt"
         },
         {
           "name": "ti1_int_prvs_amt",
-          "type": "integer",
-          "expr": "ti1_int_prvs_amt",
           "label": "1회이자지급금액",
-          "description": "1회이자지급금액"
+          "type": "integer",
+          "description": "1회이자지급금액",
+          "expr": "ti1_int_prvs_amt"
         },
         {
           "name": "int_prvs_cycl_mcnt",
-          "type": "integer",
-          "expr": "int_prvs_cycl_mcnt",
           "label": "이자지급주기개월수",
-          "description": "이자지급주기개월수"
+          "type": "integer",
+          "description": "이자지급주기개월수",
+          "expr": "int_prvs_cycl_mcnt"
         },
         {
           "name": "int_prvs_tmcnt",
-          "type": "integer",
-          "expr": "int_prvs_tmcnt",
           "label": "이자지급횟수",
-          "description": "이자지급횟수"
+          "type": "integer",
+          "description": "이자지급횟수",
+          "expr": "int_prvs_tmcnt"
         },
         {
           "name": "dep_intr_rttn_cycl_mcnt",
-          "type": "integer",
-          "expr": "dep_intr_rttn_cycl_mcnt",
           "label": "수신금리회전주기개월수",
-          "description": "금리회전식 수신상품인 경우 금리회전 단위 개월수"
+          "type": "integer",
+          "description": "금리회전식 수신상품인 경우 금리회전 단위 개월수",
+          "expr": "dep_intr_rttn_cycl_mcnt"
         },
         {
           "name": "mm_instl_amt",
-          "type": "integer",
-          "expr": "mm_instl_amt",
           "label": "월적립금액",
-          "description": "월적립금액"
+          "type": "integer",
+          "description": "월적립금액",
+          "expr": "mm_instl_amt"
         },
         {
           "name": "instl_cycl_mcnt",
-          "type": "integer",
-          "expr": "instl_cycl_mcnt",
           "label": "적립주기개월수",
-          "description": "적립주기개월수"
+          "type": "integer",
+          "description": "적립주기개월수",
+          "expr": "instl_cycl_mcnt"
         },
         {
           "name": "instl_tmcnt",
-          "type": "integer",
-          "expr": "instl_tmcnt",
           "label": "적립횟수",
-          "description": "적립횟수"
+          "type": "integer",
+          "description": "적립횟수",
+          "expr": "instl_tmcnt"
         },
         {
           "name": "dep_rlov_tmcnt",
-          "type": "integer",
-          "expr": "dep_rlov_tmcnt",
           "label": "수신만기연장횟수",
-          "description": "수신만기연장횟수"
+          "type": "integer",
+          "description": "수신만기연장횟수",
+          "expr": "dep_rlov_tmcnt"
         },
         {
           "name": "extns_mcnt",
-          "type": "integer",
-          "expr": "extns_mcnt",
           "label": "연장개월수",
-          "description": "연장개월수"
+          "type": "integer",
+          "description": "연장개월수",
+          "expr": "extns_mcnt"
         },
         {
           "name": "spcl_int",
-          "type": "integer",
-          "expr": "spcl_int",
           "label": "특별이자",
-          "description": "특별이자"
+          "type": "integer",
+          "description": "특별이자",
+          "expr": "spcl_int"
         },
         {
           "name": "sale_amt",
-          "type": "integer",
-          "expr": "sale_amt",
           "label": "매출금액",
-          "description": "매출금액"
+          "type": "integer",
+          "description": "매출금액",
+          "expr": "sale_amt"
         },
         {
           "name": "expr_repay_amt",
-          "type": "integer",
-          "expr": "expr_repay_amt",
           "label": "만기상환금액",
-          "description": "만기상환금액"
+          "type": "integer",
+          "description": "만기상환금액",
+          "expr": "expr_repay_amt"
         },
         {
           "name": "prsal_trm_dsf",
-          "type": "integer",
-          "expr": "prsal_trm_dsf",
           "label": "선매출기간할인료",
-          "description": "선매출이 발생한 경우 할인된 금액"
+          "type": "integer",
+          "description": "선매출이 발생한 경우 할인된 금액",
+          "expr": "prsal_trm_dsf"
         },
         {
           "name": "trst_pymn_pcpl",
-          "type": "integer",
-          "expr": "trst_pymn_pcpl",
           "label": "신탁불입원금",
-          "description": "신탁불입원금"
+          "type": "integer",
+          "description": "신탁불입원금",
+          "expr": "trst_pymn_pcpl"
         },
         {
           "name": "ntst_stck_cnt",
-          "type": "integer",
-          "expr": "ntst_stck_cnt",
           "label": "국민주주식수",
-          "description": "국민주주식수"
+          "type": "integer",
+          "description": "국민주주식수",
+          "expr": "ntst_stck_cnt"
         },
         {
           "name": "csrrt",
-          "type": "integer",
-          "expr": "csrrt",
           "label": "지급준비율",
-          "description": "지급준비율"
+          "type": "integer",
+          "description": "지급준비율",
+          "expr": "csrrt"
         },
         {
           "name": "pnsn_prvs_yrcn",
-          "type": "integer",
-          "expr": "pnsn_prvs_yrcn",
           "label": "연금지급년수",
-          "description": "연금지급년수"
+          "type": "integer",
+          "description": "연금지급년수",
+          "expr": "pnsn_prvs_yrcn"
         },
         {
           "name": "pnsn_prvs_mcnt",
-          "type": "integer",
-          "expr": "pnsn_prvs_mcnt",
           "label": "연금지급개월수",
-          "description": "연금지급개월수"
+          "type": "integer",
+          "description": "연금지급개월수",
+          "expr": "pnsn_prvs_mcnt"
         },
         {
           "name": "pnsn_prvs_cycl_mcnt",
-          "type": "integer",
-          "expr": "pnsn_prvs_cycl_mcnt",
           "label": "연금지급주기개월수",
-          "description": "연금지급식 상품의 연금지급주기 개월수"
+          "type": "integer",
+          "description": "연금지급식 상품의 연금지급주기 개월수",
+          "expr": "pnsn_prvs_cycl_mcnt"
         },
         {
           "name": "evmm_qtr_pnsn_prvs_amt",
-          "type": "integer",
-          "expr": "evmm_qtr_pnsn_prvs_amt",
           "label": "매월분기연금지급금액",
-          "description": "매월분기연금지급금액"
+          "type": "integer",
+          "description": "매월분기연금지급금액",
+          "expr": "evmm_qtr_pnsn_prvs_amt"
         },
         {
           "name": "acco_bal",
-          "type": "integer",
-          "expr": "acco_bal",
           "label": "계좌잔액",
-          "description": "계좌잔액"
+          "type": "integer",
+          "description": "계좌잔액",
+          "expr": "acco_bal"
         },
         {
           "name": "bs_bal",
-          "type": "integer",
-          "expr": "bs_bal",
           "label": "BS잔액",
-          "description": "BS잔액"
+          "type": "integer",
+          "description": "BS잔액",
+          "expr": "bs_bal"
         },
         {
           "name": "avail_bal",
-          "type": "integer",
-          "expr": "avail_bal",
           "label": "가용잔액",
-          "description": "수신 지급가능 잔액"
+          "type": "integer",
+          "description": "수신 지급가능 잔액",
+          "expr": "avail_bal"
         },
         {
           "name": "cls_bal",
-          "type": "integer",
-          "expr": "cls_bal",
           "label": "해지잔액",
-          "description": "해지잔액"
+          "type": "integer",
+          "description": "해지잔액",
+          "expr": "cls_bal"
         },
         {
           "name": "wcuc_bal",
-          "type": "integer",
-          "expr": "wcuc_bal",
           "label": "원화환산잔액",
-          "description": "원화로 환산한 잔액"
+          "type": "integer",
+          "description": "원화로 환산한 잔액",
+          "expr": "wcuc_bal"
         },
         {
           "name": "usd_unch_bal",
-          "type": "integer",
-          "expr": "usd_unch_bal",
           "label": "미화환산잔액",
-          "description": "미화환산잔액"
+          "type": "integer",
+          "description": "미화환산잔액",
+          "expr": "usd_unch_bal"
         },
         {
           "name": "prvs_int",
-          "type": "integer",
-          "expr": "prvs_int",
           "label": "지급이자",
-          "description": "지급이자"
+          "type": "integer",
+          "description": "지급이자",
+          "expr": "prvs_int"
         },
         {
           "name": "eval_amt",
-          "type": "integer",
-          "expr": "eval_amt",
           "label": "평가금액",
-          "description": "평가금액"
+          "type": "integer",
+          "description": "평가금액",
+          "expr": "eval_amt"
         },
         {
           "name": "remn_annt",
-          "type": "integer",
-          "expr": "remn_annt",
           "label": "잔존좌수",
-          "description": "잔존좌수"
+          "type": "integer",
+          "description": "잔존좌수",
+          "expr": "remn_annt"
         },
         {
           "name": "yield",
-          "type": "integer",
-          "expr": "yield",
           "label": "수익률",
-          "description": "수익률"
+          "type": "integer",
+          "description": "수익률",
+          "expr": "yield"
         },
         {
           "name": "add_intr",
-          "type": "integer",
-          "expr": "add_intr",
           "label": "가산금리",
-          "description": "당좌대출의 가산금리"
+          "type": "integer",
+          "description": "당좌대출의 가산금리. 기준금리에 추가로 더해지는 금리로 신용도에 따라 차등 적용 (동의어 = Spread, 스프레드, 마진)",
+          "expr": "add_intr"
         },
         {
           "name": "bs_acmbal",
-          "type": "integer",
-          "expr": "bs_acmbal",
           "label": "BS적수",
-          "description": "BS적수"
+          "type": "integer",
+          "description": "BS적수",
+          "expr": "bs_acmbal"
         },
         {
           "name": "bs_avgbal",
-          "type": "integer",
-          "expr": "bs_avgbal",
           "label": "BS평잔",
-          "description": "BS 평잔 금액을 관리"
+          "type": "integer",
+          "description": "BS 평잔 금액을 관리",
+          "expr": "bs_avgbal"
         },
         {
           "name": "qtr_bs_acmbal",
-          "type": "integer",
-          "expr": "qtr_bs_acmbal",
           "label": "분기BS적수",
-          "description": "분기BS적수"
+          "type": "integer",
+          "description": "분기BS적수",
+          "expr": "qtr_bs_acmbal"
         },
         {
           "name": "qtr_bs_avgbal",
-          "type": "integer",
-          "expr": "qtr_bs_avgbal",
           "label": "분기BS평잔",
-          "description": "분기 BS 평잔 금액"
+          "type": "integer",
+          "description": "분기 BS 평잔 금액",
+          "expr": "qtr_bs_avgbal"
         },
         {
           "name": "hft_bs_acmbal",
-          "type": "integer",
-          "expr": "hft_bs_acmbal",
           "label": "반기BS적수",
-          "description": "당년도 반기말일자 BS적수를 나타낸다."
+          "type": "integer",
+          "description": "당년도 반기말일자 BS적수를 나타낸다.",
+          "expr": "hft_bs_acmbal"
         },
         {
           "name": "hft_bs_avgbal",
-          "type": "integer",
-          "expr": "hft_bs_avgbal",
           "label": "반기BS평잔",
-          "description": "당년도 반기말일자 BS평잔을 나타낸다."
+          "type": "integer",
+          "description": "당년도 반기말일자 BS평잔을 나타낸다.",
+          "expr": "hft_bs_avgbal"
         },
         {
           "name": "mdpr_bs_acmbal",
-          "type": "integer",
-          "expr": "mdpr_bs_acmbal",
           "label": "기중BS적수",
-          "description": "기중(1월1일~해당말일) BS 적수 금액 관리"
+          "type": "integer",
+          "description": "기중(1월1일~해당말일) BS 적수 금액 관리",
+          "expr": "mdpr_bs_acmbal"
         },
         {
           "name": "mdpr_bs_avgbal",
-          "type": "integer",
-          "expr": "mdpr_bs_avgbal",
           "label": "기중BS평잔",
-          "description": "기중(1월1일~해당말일) BS 평잔 금액 관리"
+          "type": "integer",
+          "description": "기중(1월1일~해당말일) BS 평잔 금액 관리",
+          "expr": "mdpr_bs_avgbal"
         },
         {
           "name": "tot_dep_amt",
-          "type": "integer",
-          "expr": "tot_dep_amt",
           "label": "총수신금액",
-          "description": "총수신금액"
+          "type": "integer",
+          "description": "총수신금액",
+          "expr": "tot_dep_amt"
         },
         {
           "name": "cor_mndp_amt",
-          "type": "integer",
-          "expr": "cor_mndp_amt",
           "label": "핵심예금금액",
-          "description": "은행의 과거 1년간의 요구불성예금의 월중평잔을 기간가중하여 연간 평잔및 표준편차를 산출한 후 최근월 평잔에서 연간 표준편차의 2.33배를 차감하여 산출한다"
+          "type": "integer",
+          "description": "은행의 과거 1년간의 요구불성예금의 월중평잔을 기간가중하여 연간 평잔및 표준편차를 산출한 후 최근월 평잔에서 연간 표준편차의 2.33배를 차감하여 산출한다",
+          "expr": "cor_mndp_amt"
         }
       ],
       "dimensions": [
         {
           "name": "base_dt",
           "type": "varchar",
-          "expr": "base_dt",
           "label": "기준일자",
-          "description": "기준조회일자 (YYYYMMDD). 사용자가 월말 기준 데이터를 요청 했을 경우 IN 조건을 활용하여 월말 날짜만 조건으로 걸어야 합니다.",
+          "expr": "base_dt",
+          "description": "기준조회일자 (YYYYMMDD). varchar type",
+          "type_params": null
+        },
+        {
+          "name": "base_month",
+          "type": "varchar",
+          "label": "기준년월",
+          "expr": "SUBSTR(deposit__base_dt, 1, 6)",
+          "description": "기준년월 (YYYYMM). varchar type",
           "type_params": null
         },
         {
           "name": "acno",
-          "type": "varchar",
-          "expr": "acno",
           "label": "계좌번호",
-          "description": "계좌원장을 갖는 업무별로 계좌에 부여되는 유일한 식별번호. 기본적으로 LIKE '%%' 조건을 활용하여 조회하세요.",
+          "type": "varchar",
+          "description": "계좌. 계좌번호. 계좌원장을 갖는 업무별로 계좌에 부여되는 유일한 식별번호로, 금융기관에서 고객 계좌를 식별하는 번호이다. 계좌번호 필터 적용 시 입력값 길이에 따라 검색 방식을 구분한다.입력값이 16자리 ex) '0000000000000000'인 경우 온전한 계좌번호로 판단하여 완전일치 조건을 사용한다. deposit__acno = '0000000000000000', 입력값이 16자리 미만 ex) '000'인 경우 계좌번호 일부로 판단하여 부분일치 조건을 사용한다. deposit__acno LIKE '%000%'. 숫자만 들어갈 수 있다.",
+          "expr": "acno",
           "type_params": null
         },
         {
           "name": "fxccy_mcurn_acco_yn",
-          "type": "varchar",
-          "expr": "fxccy_mcurn_acco_yn",
           "label": "외화다통화계좌여부",
+          "type": "varchar",
           "description": "외화다통화계좌여부 (Y/N)",
+          "expr": "fxccy_mcurn_acco_yn",
+          "type_params": null
+        },
+        {
+          "name": "gds_type",
+          "label": "상품 타입? (확인 필요)",
+          "type": "varchar",
+          "description": "상품 타입?",
+          "expr": "SUBSTR(gds_cd, 5, 2)",
+          "type_params": null
+        },
+        {
+          "name": "gds_code",
+          "label": "상품 코드? (확인 필요)",
+          "type": "varchar",
+          "description": "상품 코드?",
+          "expr": "SUBSTR(gds_cd, 1, 9)",
           "type_params": null
         },
         {
           "name": "mnus_loan_acco_yn",
-          "type": "varchar",
-          "expr": "mnus_loan_acco_yn",
           "label": "마이너스대출계좌여부",
+          "type": "varchar",
           "description": "마이너스대출이 설정된 요구불예금 계좌인지 여부 (Y/N)",
+          "expr": "mnus_loan_acco_yn",
           "type_params": null
         },
         {
           "name": "tx_chnl_dvcd",
-          "type": "varchar",
-          "expr": "tx_chnl_dvcd",
           "label": "거래채널구분코드",
+          "type": "varchar",
           "description": "거래채널구분코드",
+          "expr": "tx_chnl_dvcd",
           "type_params": null
         },
         {
           "name": "dep_acco_stcd",
-          "type": "varchar",
-          "expr": "dep_acco_stcd",
           "label": "수신계좌상태코드",
+          "type": "varchar",
           "description": "수신계좌상태코드",
+          "expr": "dep_acco_stcd",
           "type_params": null
         },
         {
           "name": "bchn_dep_acco_stcd",
-          "type": "varchar",
-          "expr": "bchn_dep_acco_stcd",
           "label": "변경전수신계좌상태코드",
+          "type": "varchar",
           "description": "변경전수신계좌상태코드",
+          "expr": "bchn_dep_acco_stcd",
           "type_params": null
         },
         {
           "name": "cstno",
-          "type": "varchar",
-          "expr": "cstno",
           "label": "고객번호",
+          "type": "varchar",
           "description": "거래고객에게 부여하는 유일한 식별번호",
+          "expr": "cstno",
           "type_params": null
         },
         {
           "name": "corp_dprm_no",
-          "type": "varchar",
-          "expr": "corp_dprm_no",
           "label": "기업부서번호",
+          "type": "varchar",
           "description": "기업(사업자) 고객의 부서 또는 부문별로 당행에서 부여 되어진 고유한 부서 식별번호",
+          "expr": "corp_dprm_no",
           "type_params": null
         },
         {
           "name": "odnw_acco_dvcd",
-          "type": "varchar",
-          "expr": "odnw_acco_dvcd",
           "label": "신구계좌구분코드",
+          "type": "varchar",
           "description": "신/구계좌번호 구분코드",
+          "expr": "odnw_acco_dvcd",
           "type_params": null
         },
         {
           "name": "orded_acno",
-          "type": "varchar",
-          "expr": "orded_acno",
           "label": "맞춤계좌번호",
+          "type": "varchar",
           "description": "고객이 예금 계좌번호를 편리하게 사용하기 위해 본인의 휴대폰번호,전화번호,생일,기타번호 등으로 계좌번호를 등록하고 이 번호로 거래를 한다. 이렇게 등록된 계좌번호를 맞춤계좌번호라 한다.",
+          "expr": "orded_acno",
           "type_params": null
         },
         {
           "name": "acco_mgmt_brcd",
-          "type": "varchar",
-          "expr": "acco_mgmt_brcd",
           "label": "계좌관리부점코드",
-          "description": "계좌관리부점코드 (점번)",
+          "type": "varchar",
+          "description": "계좌관리부점코드",
+          "expr": "acco_mgmt_brcd",
           "type_params": null
         },
         {
           "name": "acco_mgmt_mth_brcd",
-          "type": "varchar",
-          "expr": "acco_mgmt_mth_brcd",
           "label": "계좌관리모부점코드",
+          "type": "varchar",
           "description": "계좌를 관리하는 부점의 모점코드를 나타낸다.",
+          "expr": "acco_mgmt_mth_brcd",
           "type_params": null
         },
         {
           "name": "cust_idvd_crpt_dvcd",
-          "type": "varchar",
-          "expr": "cust_idvd_crpt_dvcd",
           "label": "고객개인법인구분코드",
+          "type": "varchar",
           "description": "고객이 개인, 개인사업자, 법인, 법인사업자인지를 구분하는 구분코드",
+          "expr": "cust_idvd_crpt_dvcd",
           "type_params": null
         },
         {
           "name": "acco_antt_brcd",
-          "type": "varchar",
-          "expr": "acco_antt_brcd",
           "label": "계좌계정처리부점코드",
+          "type": "varchar",
           "description": "계좌계정처리부점코드",
+          "expr": "acco_antt_brcd",
           "type_params": null
         },
         {
           "name": "new_mgmt_brcd",
-          "type": "varchar",
-          "expr": "new_mgmt_brcd",
           "label": "신규관리부점코드",
+          "type": "varchar",
           "description": "신규관리부점코드",
+          "expr": "new_mgmt_brcd",
           "type_params": null
         },
         {
           "name": "new_tx_brcd",
-          "type": "varchar",
-          "expr": "new_tx_brcd",
           "label": "신규거래부점코드",
+          "type": "varchar",
           "description": "신규거래부점코드",
+          "expr": "new_tx_brcd",
           "type_params": null
         },
         {
           "name": "curn_cd",
-          "type": "varchar",
-          "expr": "curn_cd",
           "label": "통화코드",
+          "type": "varchar",
           "description": "통화코드",
+          "expr": "curn_cd",
           "type_params": null
         },
         {
           "name": "acco_sbcd",
-          "type": "varchar",
-          "expr": "acco_sbcd",
           "label": "계좌과목코드",
-          "description": "계좌 과목에 해당되는 코드",
-          "type_params": null
-        },
-        {
-          "name": "gds_cd",
           "type": "varchar",
-          "expr": "gds_cd",
-          "label": "상품코드",
-          "description": "상품코드",
+          "description": "계좌 과목에 해당되는 코드",
+          "expr": "acco_sbcd",
           "type_params": null
         },
         {
           "name": "gds_dtls_cd",
-          "type": "varchar",
-          "expr": "gds_dtls_cd",
           "label": "상품세부코드",
+          "type": "varchar",
           "description": "상품팩토리에서 상품코드의 세부코드로 나누기 위한 코드로 여신의 자금원코드, 수신의 서브상품코드 등의 목적으로 관리",
+          "expr": "gds_dtls_cd",
           "type_params": null
         },
         {
           "name": "gds_brnd_cd",
-          "type": "varchar",
-          "expr": "gds_brnd_cd",
           "label": "상품브랜드코드",
+          "type": "varchar",
           "description": "광주은행 전체의 상품에 대하여 상품별 브랜드를 식별하기 위하여 부여한 코드이며, 상품업무유형코드(2)+일련번호(5)의 형태로 채번",
+          "expr": "gds_brnd_cd",
           "type_params": null
         },
         {
           "name": "bank_trst_cmbn_dvcd",
-          "type": "varchar",
-          "expr": "bank_trst_cmbn_dvcd",
           "label": "은행신탁합동구분코드",
+          "type": "varchar",
           "description": "은행신탁합동구분코드",
+          "expr": "bank_trst_cmbn_dvcd",
           "type_params": null
         },
         {
           "name": "dep_gds_bzwk_dvcd",
-          "type": "varchar",
-          "expr": "dep_gds_bzwk_dvcd",
           "label": "수신상품업무구분코드",
+          "type": "varchar",
           "description": "수신상품업무구분코드",
+          "expr": "dep_gds_bzwk_dvcd",
           "type_params": null
         },
         {
           "name": "dep_gds_ledgr_mgmt_cd",
-          "type": "varchar",
-          "expr": "dep_gds_ledgr_mgmt_cd",
           "label": "수신상품원장관리코드",
+          "type": "varchar",
           "description": "수신선처리시 상품별로 관련정보를 가지기 위한 코드",
+          "expr": "dep_gds_ledgr_mgmt_cd",
           "type_params": null
         },
         {
           "name": "pnsn_acco_yn",
-          "type": "varchar",
-          "expr": "pnsn_acco_yn",
           "label": "연금계좌여부",
+          "type": "varchar",
           "description": "연금계좌여부 (Y/N)",
+          "expr": "pnsn_acco_yn",
           "type_params": null
         },
         {
           "name": "accd",
-          "type": "varchar",
-          "expr": "accd",
           "label": "계정코드",
+          "type": "varchar",
           "description": "BS상의 계정코드",
+          "expr": "accd",
           "type_params": null
         },
         {
           "name": "lnbz_bs_accd",
-          "type": "varchar",
-          "expr": "lnbz_bs_accd",
           "label": "여신BS계정코드",
+          "type": "varchar",
           "description": "여신계정코드",
+          "expr": "lnbz_bs_accd",
           "type_params": null
         },
         {
           "name": "intg_accd",
-          "type": "varchar",
-          "expr": "intg_accd",
           "label": "통합계정코드",
+          "type": "varchar",
           "description": "통합계정코드",
+          "expr": "intg_accd",
           "type_params": null
         },
         {
           "name": "fxmn_acnt_dvcd",
-          "type": "varchar",
-          "expr": "fxmn_acnt_dvcd",
           "label": "외화예금계정구분코드",
+          "type": "varchar",
           "description": "외화예금계정구분코드",
+          "expr": "fxmn_acnt_dvcd",
           "type_params": null
         },
         {
           "name": "pbmn_mndp_rt_dvcd",
-          "type": "varchar",
-          "expr": "pbmn_mndp_rt_dvcd",
           "label": "공금예금이율구분코드",
+          "type": "varchar",
           "description": "공금예금이율구분코드",
+          "expr": "pbmn_mndp_rt_dvcd",
           "type_params": null
         },
         {
           "name": "prfr_rt_aply_yn",
-          "type": "varchar",
-          "expr": "prfr_rt_aply_yn",
           "label": "우대이율적용여부",
+          "type": "varchar",
           "description": "우대이율적용여부 (Y/N)",
+          "expr": "prfr_rt_aply_yn",
           "type_params": null
         },
         {
           "name": "new_dt",
-          "type": "varchar",
-          "expr": "new_dt",
           "label": "신규일자",
-          "description": "카드 신규일자",
+          "type": "varchar",
+          "description": "계좌 신규일자. 신규 날짜. 사용자의 질문에 신규 관련 키워드가 포함되어 있을 시 해당 컬럼도 날짜 조건으로 활용. ex) 신규 좌수, 신규 유치 잔액. (YYYYMMDD). varchar type",
+          "expr": "new_dt",
           "type_params": null
         },
         {
           "name": "new_time",
-          "type": "varchar",
-          "expr": "new_time",
           "label": "신규시각",
+          "type": "varchar",
           "description": "신규시각",
+          "expr": "new_time",
           "type_params": null
         },
         {
           "name": "new_tx_dt",
-          "type": "varchar",
-          "expr": "new_tx_dt",
           "label": "신규거래일자",
+          "type": "varchar",
           "description": "신규거래일자",
+          "expr": "new_tx_dt",
           "type_params": null
         },
         {
           "name": "new_tx_time",
-          "type": "varchar",
-          "expr": "new_tx_time",
           "label": "신규거래시각",
+          "type": "varchar",
           "description": "신규거래시각",
+          "expr": "new_tx_time",
           "type_params": null
         },
         {
           "name": "cls_dt",
-          "type": "varchar",
-          "expr": "cls_dt",
           "label": "해지일자",
+          "type": "varchar",
           "description": "카드해지일자",
+          "expr": "cls_dt",
           "type_params": null
         },
         {
           "name": "txtn_dvcd",
-          "type": "varchar",
-          "expr": "txtn_dvcd",
           "label": "과세구분코드",
+          "type": "varchar",
           "description": "과세구분코드",
+          "expr": "txtn_dvcd",
           "type_params": null
         },
         {
           "name": "lvtp_dvcd",
-          "type": "varchar",
-          "expr": "lvtp_dvcd",
           "label": "생계형구분코드",
+          "type": "varchar",
           "description": "생계형구분코드",
+          "expr": "lvtp_dvcd",
           "type_params": null
         },
         {
           "name": "taxp_svng_gds_cd",
-          "type": "varchar",
-          "expr": "taxp_svng_gds_cd",
           "label": "세금우대저축상품코드",
+          "type": "varchar",
           "description": "세금우대저축상품코드",
+          "expr": "taxp_svng_gds_cd",
           "type_params": null
         },
         {
           "name": "loan_setp_yn",
-          "type": "varchar",
-          "expr": "loan_setp_yn",
           "label": "대출설정여부",
+          "type": "varchar",
           "description": "대출설정여부 (Y/N)",
+          "expr": "loan_setp_yn",
           "type_params": null
         },
         {
           "name": "vlac_dvcd",
-          "type": "varchar",
-          "expr": "vlac_dvcd",
           "label": "임의단체구분코드",
+          "type": "varchar",
           "description": "임의단체여부",
+          "expr": "vlac_dvcd",
           "type_params": null
         },
         {
           "name": "pub_mndp_cd",
-          "type": "varchar",
-          "expr": "pub_mndp_cd",
           "label": "공공예금코드",
+          "type": "varchar",
           "description": "공공예금코드",
+          "expr": "pub_mndp_cd",
           "type_params": null
         },
         {
           "name": "last_trrc_dt",
-          "type": "varchar",
-          "expr": "last_trrc_dt",
           "label": "최종거래기록일자",
+          "type": "varchar",
           "description": "최종거래기록일자",
+          "expr": "last_trrc_dt",
           "type_params": null
         },
         {
           "name": "last_tx_dt",
-          "type": "varchar",
-          "expr": "last_tx_dt",
           "label": "최종거래일자",
+          "type": "varchar",
           "description": "최종이자원금일자",
+          "expr": "last_tx_dt",
           "type_params": null
         },
         {
           "name": "obrn_tx_dt",
-          "type": "varchar",
-          "expr": "obrn_tx_dt",
           "label": "타점거래일자",
+          "type": "varchar",
           "description": "타점거래일자",
+          "expr": "obrn_tx_dt",
           "type_params": null
         },
         {
           "name": "last_int_calc_dt",
-          "type": "varchar",
-          "expr": "last_int_calc_dt",
           "label": "최종이자계산일자",
+          "type": "varchar",
           "description": "최종 이자계산을 한일자(마이너스가발생한 일자로 갱신됨)",
+          "expr": "last_int_calc_dt",
           "type_params": null
         },
         {
           "name": "last_int_prvs_dt",
-          "type": "varchar",
-          "expr": "last_int_prvs_dt",
           "label": "최종이자지급일자",
+          "type": "varchar",
           "description": "최종이자지급일자",
+          "expr": "last_int_prvs_dt",
           "type_params": null
         },
         {
           "name": "mact_enrl_dt",
+          "label": "잡좌편입일자. 잡수입계좌. CMS(자금관리서비스)에서 잡좌(잡수입계좌)로 분류되는 계좌의 편입 및 관리와 관련된 용어",
           "type": "varchar",
-          "expr": "mact_enrl_dt",
-          "label": "잡좌편입일자. 잡수입계좌.",
           "description": "잡좌편입일자",
+          "expr": "mact_enrl_dt",
           "type_params": null
         },
         {
           "name": "pb_ctfc_dvcd",
-          "type": "varchar",
-          "expr": "pb_ctfc_dvcd",
           "label": "통장증서구분코드",
+          "type": "varchar",
           "description": "통장증서구분코드",
+          "expr": "pb_ctfc_dvcd",
           "type_params": null
         },
         {
           "name": "pb_dvcd",
-          "type": "varchar",
-          "expr": "pb_dvcd",
           "label": "통장구분코드",
+          "type": "varchar",
           "description": "통장구분코드",
+          "expr": "pb_dvcd",
           "type_params": null
         },
         {
           "name": "dep_fxccy_resi_dvcd",
-          "type": "varchar",
-          "expr": "dep_fxccy_resi_dvcd",
           "label": "수신외화거주구분코드",
+          "type": "varchar",
           "description": "수신외화거주구분코드",
+          "expr": "dep_fxccy_resi_dvcd",
           "type_params": null
         },
         {
           "name": "fxmn_open_prps_dvcd",
-          "type": "varchar",
-          "expr": "fxmn_open_prps_dvcd",
           "label": "외화예금개설목적구분코드",
+          "type": "varchar",
           "description": "외화예금계좌 개설목적 구분코드",
+          "expr": "fxmn_open_prps_dvcd",
           "type_params": null
         },
         {
           "name": "tuc_yn",
-          "type": "varchar",
-          "expr": "tuc_yn",
           "label": "이수관여부",
+          "type": "varchar",
           "description": "이수관여부 (Y/N)",
+          "expr": "tuc_yn",
           "type_params": null
         },
         {
           "name": "remit_fee_exmpt_dvcd",
-          "type": "varchar",
-          "expr": "remit_fee_exmpt_dvcd",
           "label": "송금수수료면제구분코드",
+          "type": "varchar",
           "description": "송금수수료면제구분코드",
+          "expr": "remit_fee_exmpt_dvcd",
           "type_params": null
         },
         {
           "name": "insr_excp_cd",
-          "type": "varchar",
-          "expr": "insr_excp_cd",
           "label": "부보제외코드",
-          "description": "부보제외코드",
+          "type": "varchar",
+          "description": "부보제외코드. 예금자보호법상 '부보금융기관'(예금자보호 대상 은행)에 해당하지 않는 금융회사를 식별하는 코드",
+          "expr": "insr_excp_cd",
           "type_params": null
         },
         {
           "name": "tlntf_aply_trgt_yn",
-          "type": "varchar",
-          "expr": "tlntf_aply_trgt_yn",
           "label": "국고단수법적용대상여부",
+          "type": "varchar",
           "description": "국가의 세입(세금 등)으로 납입된 현금이나 현금과 동등한 자산을 효율적으로 관리하기 위해 적용되는 법률 및 관련 규정. 이자 10원미만 절사 (Y/N)",
+          "expr": "tlntf_aply_trgt_yn",
           "type_params": null
         },
         {
           "name": "new_tlrno",
-          "type": "varchar",
-          "expr": "new_tlrno",
           "label": "신규텔러번호",
+          "type": "varchar",
           "description": "신규텔러번호",
+          "expr": "new_tlrno",
           "type_params": null
         },
         {
           "name": "sgst_brcd",
-          "type": "varchar",
-          "expr": "sgst_brcd",
           "label": "권유부점코드",
+          "type": "varchar",
           "description": "권유부점코드",
+          "expr": "sgst_brcd",
           "type_params": null
         },
         {
           "name": "sgsr_empno1",
-          "type": "varchar",
-          "expr": "sgsr_empno1",
           "label": "권유자직원번호1",
+          "type": "varchar",
           "description": "권유자직원번호",
+          "expr": "sgsr_empno1",
           "type_params": null
         },
         {
           "name": "sgsr_empno2",
-          "type": "varchar",
-          "expr": "sgsr_empno2",
           "label": "권유자직원번호2",
+          "type": "varchar",
           "description": "권유자직원번호",
+          "expr": "sgsr_empno2",
           "type_params": null
         },
         {
           "name": "emp_acco_yn",
-          "type": "varchar",
-          "expr": "emp_acco_yn",
           "label": "직원계좌여부",
+          "type": "varchar",
           "description": "직원계좌여부 (Y/N)",
+          "expr": "emp_acco_yn",
           "type_params": null
         },
         {
           "name": "bizu_acco_yn",
-          "type": "varchar",
-          "expr": "bizu_acco_yn",
           "label": "사업용계좌여부",
+          "type": "varchar",
           "description": "사업용계좌 여부 (Y/N)",
+          "expr": "bizu_acco_yn",
           "type_params": null
         },
         {
           "name": "busi_cstno",
-          "type": "varchar",
-          "expr": "busi_cstno",
           "label": "사업자고객번호",
+          "type": "varchar",
           "description": "사업자번호에 해당하는 고객번호",
+          "expr": "busi_cstno",
           "type_params": null
         },
         {
           "name": "bisno",
-          "type": "varchar",
-          "expr": "bisno",
           "label": "사업자등록번호",
+          "type": "varchar",
           "description": "사업자등록번호",
+          "expr": "bisno",
           "type_params": null
         },
         {
           "name": "corp_scal_cd",
-          "type": "varchar",
-          "expr": "corp_scal_cd",
           "label": "기업규모코드",
+          "type": "varchar",
           "description": "금융결제원이 국내 은행을 식별하기 위해 부여하는 고유 식별 번호. select cvol_cd, cvol_nm from cipcvol",
+          "expr": "corp_scal_cd",
           "type_params": null
         },
         {
           "name": "auto_redp_yn",
-          "type": "varchar",
-          "expr": "auto_redp_yn",
           "label": "자동재예치여부",
+          "type": "varchar",
           "description": "자동재예치여부 (Y/N)",
+          "expr": "auto_redp_yn",
           "type_params": null
         },
         {
           "name": "gds_sprd_cd",
-          "type": "varchar",
-          "expr": "gds_sprd_cd",
           "label": "상품스프레드코드",
-          "description": "상품스프레드코드",
+          "type": "varchar",
+          "description": "상품스프레드코드. 은행에서 제공하는 금융상품(예- 적금, 대출 등)의 거래 시 적용되는 수수료 또는 스프레드(차익) 관련 코드",
+          "expr": "gds_sprd_cd",
           "type_params": null
         },
         {
           "name": "endp_sprd_cd",
-          "type": "varchar",
-          "expr": "endp_sprd_cd",
           "label": "사업부스프레드코드",
+          "type": "varchar",
           "description": "사업부스프레드코드",
+          "expr": "endp_sprd_cd",
           "type_params": null
         },
         {
           "name": "secu_acco_dvcd",
-          "type": "varchar",
-          "expr": "secu_acco_dvcd",
           "label": "보안계좌구분코드",
+          "type": "varchar",
           "description": "보안계좌구분코드",
+          "expr": "secu_acco_dvcd",
           "type_params": null
         },
         {
           "name": "iqry_rstrc_acco_reg_dvcd",
-          "type": "varchar",
-          "expr": "iqry_rstrc_acco_reg_dvcd",
           "label": "조회제한계좌등록구분코드",
+          "type": "varchar",
           "description": "조회제한계좌등록구분코드",
+          "expr": "iqry_rstrc_acco_reg_dvcd",
           "type_params": null
         },
         {
           "name": "fntr_noti_dvcd",
-          "type": "varchar",
-          "expr": "fntr_noti_dvcd",
           "label": "금융거래통지구분코드",
+          "type": "varchar",
           "description": "금융거래통지구분코드",
+          "expr": "fntr_noti_dvcd",
           "type_params": null
         },
         {
           "name": "sfdep_yn",
-          "type": "varchar",
-          "expr": "sfdep_yn",
           "label": "보호예수여부",
+          "type": "varchar",
           "description": "보호예수여부 (Y/N)",
+          "expr": "sfdep_yn",
           "type_params": null
         },
         {
           "name": "bchn_mgmt_brcd",
-          "type": "varchar",
-          "expr": "bchn_mgmt_brcd",
           "label": "변경전관리부점코드",
+          "type": "varchar",
           "description": "변경전관리부점코드",
+          "expr": "bchn_mgmt_brcd",
           "type_params": null
         },
         {
           "name": "brn_chng_rscd",
-          "type": "varchar",
-          "expr": "brn_chng_rscd",
           "label": "부점변경사유코드",
+          "type": "varchar",
           "description": "부점변경사유코드",
+          "expr": "brn_chng_rscd",
           "type_params": null
         },
         {
           "name": "acco_bkkp_yn",
-          "type": "varchar",
-          "expr": "acco_bkkp_yn",
           "label": "계좌부기여부",
+          "type": "varchar",
           "description": "계좌부기여부 (Y/N)",
+          "expr": "acco_bkkp_yn",
           "type_params": null
         },
         {
           "name": "acco_bkkp_nm",
-          "type": "varchar",
-          "expr": "acco_bkkp_nm",
           "label": "계좌부기명",
+          "type": "varchar",
           "description": "계좌부기명",
+          "expr": "acco_bkkp_nm",
           "type_params": null
         },
         {
           "name": "tx_cust_yn",
-          "type": "varchar",
-          "expr": "tx_cust_yn",
           "label": "거래고객여부 (Y/N)",
+          "type": "varchar",
           "description": "당행의 금융거래가 가능한 고객인지의 여부",
+          "expr": "tx_cust_yn",
           "type_params": null
         },
         {
           "name": "cust_kor_nm",
-          "type": "varchar",
-          "expr": "cust_kor_nm",
           "label": "고객한글명",
+          "type": "varchar",
           "description": "고객한글명",
+          "expr": "cust_kor_nm",
           "type_params": null
         },
         {
           "name": "chtr_cd",
-          "type": "varchar",
-          "expr": "chtr_cd",
           "label": "인격코드",
+          "type": "varchar",
           "description": "금융기관 및 공공기관을 식별하기 위해 부여되는 고유 코드 체계",
+          "expr": "chtr_cd",
           "type_params": null
         },
         {
           "name": "cust_endp_cd",
-          "type": "varchar",
-          "expr": "cust_endp_cd",
           "label": "고객사업부코드",
+          "type": "varchar",
           "description": "고객의 규모 및 성격에 따라 통계 및 영업 활동을 위해 사업부를 구분하는 코드",
+          "expr": "cust_endp_cd",
           "type_params": null
         },
         {
           "name": "same_cstno",
-          "type": "varchar",
-          "expr": "same_cstno",
           "label": "동일고객번호",
+          "type": "varchar",
           "description": "동일한 고객의 고객번호",
+          "expr": "same_cstno",
           "type_params": null
         },
         {
           "name": "slry_trsf_acco_yn",
-          "type": "varchar",
-          "expr": "slry_trsf_acco_yn",
           "label": "급여이체계좌여부",
+          "type": "varchar",
           "description": "급여이체계좌여부 (Y/N)",
+          "expr": "slry_trsf_acco_yn",
           "type_params": null
         },
         {
           "name": "slry_dd",
-          "type": "varchar",
-          "expr": "slry_dd",
           "label": "급여일",
+          "type": "varchar",
           "description": "급여계좌등록여부/급여일자",
+          "expr": "slry_dd",
           "type_params": null
         },
         {
           "name": "nego_dvcd",
-          "type": "varchar",
-          "expr": "nego_dvcd",
           "label": "네고구분코드",
-          "description": "요구불 기업자유MMDA계좌중 네고이율을 적용하는 계좌를 구분하기위한 코드",
+          "type": "varchar",
+          "description": "요구불 기업자유MMDA(시장금리 연동 예금)계좌중 네고이율을 적용하는 계좌를 구분하기위한 코드. (네고 동의어 = 매입, 수출환어음 매입, Negotiation)",
+          "expr": "nego_dvcd",
           "type_params": null
         },
         {
           "name": "expr_dt",
-          "type": "varchar",
-          "expr": "expr_dt",
           "label": "만기일자",
+          "type": "varchar",
           "description": "분할금 주기에 따른 상환일자(월중 상환일자)",
+          "expr": "expr_dt",
           "type_params": null
         },
         {
           "name": "frst_expr_dt",
-          "type": "varchar",
-          "expr": "frst_expr_dt",
           "label": "최초만기일자",
+          "type": "varchar",
           "description": "최초만기일자",
+          "expr": "frst_expr_dt",
           "type_params": null
         },
         {
           "name": "nxtr_pymn_dt",
-          "type": "varchar",
-          "expr": "nxtr_pymn_dt",
           "label": "차기불입일자.",
+          "type": "varchar",
           "description": "차기불입일자. 이번 거래의 납입이 끝난 후, 다음 번 언제 돈을 입금해야 하는지를 정하는 날짜",
+          "expr": "nxtr_pymn_dt",
           "type_params": null
         },
         {
           "name": "nxtr_int_prvs_sche_dt",
-          "type": "varchar",
-          "expr": "nxtr_int_prvs_sche_dt",
           "label": "차기이자지급예정일자",
+          "type": "varchar",
           "description": "차기이자지급예정일자",
+          "expr": "nxtr_int_prvs_sche_dt",
           "type_params": null
         },
         {
           "name": "mrtg_ofr_yn",
-          "type": "varchar",
-          "expr": "mrtg_ofr_yn",
           "label": "담보제공여부",
+          "type": "varchar",
           "description": "담보신용구분코드 (Y/N)",
+          "expr": "mrtg_ofr_yn",
           "type_params": null
         },
         {
           "name": "bond_nth_nm",
-          "type": "varchar",
-          "expr": "bond_nth_nm",
           "label": "채권회차명",
+          "type": "varchar",
           "description": "채권회차명",
+          "expr": "bond_nth_nm",
           "type_params": null
         },
         {
           "name": "issu_dt",
-          "type": "varchar",
-          "expr": "issu_dt",
           "label": "발행일자",
+          "type": "varchar",
           "description": "발행일자",
+          "expr": "issu_dt",
           "type_params": null
         },
         {
           "name": "bkdbt_kncd",
-          "type": "varchar",
-          "expr": "bkdbt_kncd",
           "label": "금융채종류코드",
+          "type": "varchar",
           "description": "금융채의 종류(복리채,이표채, 할인채 등)",
+          "expr": "bkdbt_kncd",
           "type_params": null
         },
         {
           "name": "pbin_spsh_noti_dvcd",
-          "type": "varchar",
-          "expr": "pbin_spsh_noti_dvcd",
           "label": "공익후원통지구분코드",
+          "type": "varchar",
           "description": "공익후원통지구분코드",
+          "expr": "pbin_spsh_noti_dvcd",
           "type_params": null
         },
         {
           "name": "infl_cpt_dvcd",
-          "type": "varchar",
-          "expr": "infl_cpt_dvcd",
           "label": "유입자금구분코드",
-          "description": "신규유입, 타예금",
+          "type": "varchar",
+          "description": "신규유입, 타예금, 신규 유치",
+          "expr": "infl_cpt_dvcd",
           "type_params": null
         },
         {
           "name": "infl_cpt_dtl_dvcd",
-          "type": "varchar",
-          "expr": "infl_cpt_dtl_dvcd",
           "label": "유입자금상세구분코드",
+          "type": "varchar",
           "description": "만기로인한 재가입, 중도해지후 재가입, 요구불예금으로 이동으로 인한 재가입, 전액신규, 일부 유입",
+          "expr": "infl_cpt_dtl_dvcd",
           "type_params": null
         },
         {
           "name": "dep_gds_gpcd",
-          "type": "varchar",
-          "expr": "dep_gds_gpcd",
           "label": "수신상품그룹코드",
-          "description": "수신상품그룹코드",
+          "type": "varchar",
+          "description": "수신상품그룹코드. 여러 수신상품(예·적금 등)을 공통 성격별로 묶기 위한 분류 코드",
+          "expr": "dep_gds_gpcd",
           "type_params": null
         },
         {
           "name": "dep_bzwk_dvcd",
-          "type": "varchar",
-          "expr": "dep_bzwk_dvcd",
           "label": "수신업무구분코드",
+          "type": "varchar",
           "description": "수신상품을 요구불, 거치식, 적립식으로 분류한 코드",
+          "expr": "dep_bzwk_dvcd",
           "type_params": null
         },
         {
           "name": "fund_svng_kncd",
-          "type": "varchar",
-          "expr": "fund_svng_kncd",
           "label": "펀드저축종류코드",
+          "type": "varchar",
           "description": "펀드상품이 거치식, 적립식, 임의식인지를 구분하는 코드",
+          "expr": "fund_svng_kncd",
           "type_params": null
         },
         {
           "name": "fund_snpr_gds_intr_cd",
-          "type": "varchar",
-          "expr": "fund_snpr_gds_intr_cd",
           "label": "펀드기준가상품금리코드",
+          "type": "varchar",
           "description": "펀드 기준가를 관리하는 금리팩토리의 금리코드",
+          "expr": "fund_snpr_gds_intr_cd",
           "type_params": null
         },
         {
           "name": "fund_gds_tycd",
-          "type": "varchar",
-          "expr": "fund_gds_tycd",
           "label": "펀드상품유형코드",
+          "type": "varchar",
           "description": "펀드상품 유형코드",
+          "expr": "fund_gds_tycd",
           "type_params": null
         },
         {
           "name": "fund_gds_kncd",
-          "type": "varchar",
-          "expr": "fund_gds_kncd",
           "label": "펀드상품종류코드",
+          "type": "varchar",
           "description": "펀드 상품종류를 구분하는 코드",
+          "expr": "fund_gds_kncd",
           "type_params": null
         },
         {
           "name": "dep_instl_tycd",
-          "type": "varchar",
-          "expr": "dep_instl_tycd",
           "label": "수신적립유형코드",
+          "type": "varchar",
           "description": "적립식 수신상품의 적립방법(주기,금액) 유형코드",
+          "expr": "dep_instl_tycd",
           "type_params": null
         },
         {
           "name": "instl_dvcd",
-          "type": "varchar",
-          "expr": "instl_dvcd",
           "label": "적립구분코드",
+          "type": "varchar",
           "description": "적립구분코드",
+          "expr": "instl_dvcd",
           "type_params": null
         },
         {
           "name": "acng_dvcd",
-          "type": "varchar",
-          "expr": "acng_dvcd",
           "label": "회계구분코드",
+          "type": "varchar",
           "description": "회계구분코드",
+          "expr": "acng_dvcd",
           "type_params": null
         },
         {
           "name": "old_sbcd",
-          "type": "varchar",
-          "expr": "old_sbcd",
           "label": "구과목코드",
+          "type": "varchar",
           "description": "as-is의 수신상품(과목코드)을 관리하기 위한 코드",
+          "expr": "old_sbcd",
           "type_params": null
         },
         {
           "name": "dep_gds_grp_ftr_cd",
-          "type": "varchar",
-          "expr": "dep_gds_grp_ftr_cd",
           "label": "수신상품과목특성코드",
+          "type": "varchar",
           "description": "수신상품과목특성코드",
+          "expr": "dep_gds_grp_ftr_cd",
           "type_params": null
         },
         {
           "name": "trm_dvcd",
-          "type": "varchar",
-          "expr": "trm_dvcd",
           "label": "기간구분코드",
+          "type": "varchar",
           "description": "기간구분코드",
+          "expr": "trm_dvcd",
           "type_params": null
         },
         {
           "name": "scfc_tcfnd_mnin_aset_cd1",
-          "type": "varchar",
-          "expr": "scfc_tcfnd_mnin_aset_cd1",
           "label": "특정금전신탁운용자산코드1",
+          "type": "varchar",
           "description": "특정_금전신탁_운용_자산코드",
+          "expr": "scfc_tcfnd_mnin_aset_cd1",
           "type_params": null
         },
         {
           "name": "scfc_tcfnd_mnin_aset_cd2",
-          "type": "varchar",
-          "expr": "scfc_tcfnd_mnin_aset_cd2",
           "label": "특정금전신탁운용자산코드2",
+          "type": "varchar",
           "description": "특정_금전신탁_운용_자산코드",
+          "expr": "scfc_tcfnd_mnin_aset_cd2",
           "type_params": null
         },
         {
           "name": "scfc_tcfnd_mnin_aset_cd3",
-          "type": "varchar",
-          "expr": "scfc_tcfnd_mnin_aset_cd3",
           "label": "특정금전신탁운용자산코드3",
+          "type": "varchar",
           "description": "특정_금전신탁_운용_자산코드",
+          "expr": "scfc_tcfnd_mnin_aset_cd3",
           "type_params": null
         },
         {
           "name": "safe_kncd",
-          "type": "varchar",
-          "expr": "safe_kncd",
           "label": "금고종류코드",
+          "type": "varchar",
           "description": "금고종류코드",
+          "expr": "safe_kncd",
           "type_params": null
         },
         {
           "name": "acng_yr",
-          "type": "varchar",
-          "expr": "acng_yr",
           "label": "회계년도",
+          "type": "varchar",
           "description": "회계년도",
+          "expr": "acng_yr",
           "type_params": null
         },
         {
           "name": "safe_acng_dvcd",
-          "type": "varchar",
-          "expr": "safe_acng_dvcd",
           "label": "금고회계구분코드",
+          "type": "varchar",
           "description": "금고회계구분코드",
+          "expr": "safe_acng_dvcd",
           "type_params": null
         },
         {
           "name": "safe_acng_kncd",
-          "type": "varchar",
-          "expr": "safe_acng_kncd",
           "label": "금고회계종류코드",
+          "type": "varchar",
           "description": "금고의 회계종류를 구분하는코드",
+          "expr": "safe_acng_kncd",
           "type_params": null
         },
         {
           "name": "rcvg_atcl_cd",
-          "type": "varchar",
-          "expr": "rcvg_atcl_cd",
           "label": "징수관코드",
-          "description": "1",
+          "type": "varchar",
+          "description": "징수관코드",
+          "expr": "rcvg_atcl_cd",
           "type_params": null
         },
         {
           "name": "add_intr_aprv_dvcd",
-          "type": "varchar",
-          "expr": "add_intr_aprv_dvcd",
           "label": "가산금리승인구분코드",
+          "type": "varchar",
           "description": "금리 가산 요청에 대한 금리승인 주체(본부, 영업점)를 구분하는 코드이다.",
+          "expr": "add_intr_aprv_dvcd",
           "type_params": null
         },
         {
           "name": "int_prvs_kncd",
-          "type": "varchar",
-          "expr": "int_prvs_kncd",
           "label": "이자지급종류코드",
+          "type": "varchar",
           "description": "이자지급종류코드",
-          "type_params": null
-        },
-        {
-          "name": "biz_dt",
-          "type": "varchar",
-          "expr": "MAX( CASE WHEN ISODOW(strptime(base_dt, '%Y%m%d')) < 6 THEN base_dt ELSE NULL END ) OVER ()",
-          "label": "최근 영업일",
-          "description": "가장 최근 영업일",
-          "type_params": null
-        },
-        {
-          "name": "prev_biz_dt",
-          "type": "varchar",
-          "expr": "TO_CHAR(   CASE      WHEN EXTRACT(ISODOW FROM TO_DATE(MAX(CASE WHEN EXTRACT(ISODOW FROM TO_DATE(base_dt, 'YYYYMMDD')) < 6 THEN base_dt ELSE NULL END) OVER (), 'YYYYMMDD')) = 1      THEN TO_DATE(MAX(CASE WHEN EXTRACT(ISODOW FROM TO_DATE(base_dt, 'YYYYMMDD')) < 6 THEN base_dt ELSE NULL END) OVER (), 'YYYYMMDD') - INTERVAL '3 DAY'     ELSE TO_DATE(MAX(CASE WHEN EXTRACT(ISODOW FROM TO_DATE(base_dt, 'YYYYMMDD')) < 6 THEN base_dt ELSE NULL END) OVER (), 'YYYYMMDD') - INTERVAL '1 DAY'   END,   'YYYYMMDD' )",
-          "label": "전영업일",
-          "description": "영업일 기준 전일",
+          "expr": "int_prvs_kncd",
           "type_params": null
         }
       ],
@@ -2587,6 +3500,14 @@
           "name": "loan",
           "type": "primary",
           "expr": "acno",
+          "description": null,
+          "role": null,
+          "label": null
+        },
+        {
+          "name": "loan_cstno",
+          "type": "primary",
+          "expr": "cstno",
           "description": null,
           "role": null,
           "label": null
@@ -2669,6 +3590,13 @@
           "type": "integer",
           "description": "외화잔액",
           "expr": "fxbal"
+        },
+        {
+          "name": "cnt",
+          "label": "대출 취급건수",
+          "type": "integer",
+          "description": "대출 취급건수",
+          "expr": "1"
         }
       ],
       "dimensions": [
@@ -2681,10 +3609,18 @@
           "type_params": null
         },
         {
+          "name": "base_month",
+          "type": "varchar",
+          "label": "기준년월",
+          "expr": "SUBSTR(loan__base_dt, 1, 6)",
+          "description": "기준년월 (YYYYMM). varchar type",
+          "type_params": null
+        },
+        {
           "name": "acno",
           "label": "계좌번호",
           "type": "varchar",
-          "description": "계좌원장을 갖는 업무별로 계좌에 부여되는 유일한 식별번호",
+          "description": "계좌원장을 갖는 업무별로 계좌에 부여되는 유일한 식별번호. 금융기관에서 고객 계좌를 식별하는 번호",
           "expr": "acno",
           "type_params": null
         },
@@ -2692,7 +3628,7 @@
           "name": "bs_accd",
           "label": "BS계정코드",
           "type": "varchar",
-          "description": "BS계정코드",
+          "description": "BS계정코드. BS계정코드는 은행의 자산·부채·자본을 재무상태표 기준으로 관리·집계하기 위한 핵심 회계 코드",
           "expr": "bs_accd",
           "type_params": null
         },
@@ -2740,7 +3676,7 @@
           "name": "lnbz_corp_scal_cd",
           "label": "여신기업규모코드",
           "type": "varchar",
-          "description": "select cvol_cd, cvol_nm from cipcvol",
+          "description": "여신기업규모코드",
           "expr": "lnbz_corp_scal_cd",
           "type_params": null
         },
@@ -2777,11 +3713,19 @@
           "type_params": null
         },
         {
-          "name": "frst_new_acqs_dt",
+          "name": "new_dt",
           "label": "최초신규취득일자",
           "type": "varchar",
           "description": "최초로 신규 취득한 일자를 말한다.",
           "expr": "frst_new_acqs_dt",
+          "type_params": null
+        },
+        {
+          "name": "new_month",
+          "label": "최초신규취득월",
+          "type": "varchar",
+          "description": "최초로 신규 취득한 월을 말한다.",
+          "expr": "SUBSTR(frst_new_acqs_dt,1,6)",
           "type_params": null
         },
         {
@@ -2796,7 +3740,7 @@
           "name": "trst_cmbn_cd",
           "label": "신탁합동코드",
           "type": "varchar",
-          "description": "은행신탁합동구분코드",
+          "description": "은행신탁합동구분코드. 여러 고객의 자금을 하나의 자금풀(공동운용)로 통합해 운용하는 신탁상품의 코드 또는 분류명칭",
           "expr": "trst_cmbn_cd",
           "type_params": null
         },
@@ -3031,6 +3975,14 @@
           "description": "차세대 시스템 오픈 이후 참고용으로 여신영역의 舊이율코드(iyulcd)를 보관하기 위한 항목이다.",
           "expr": "gu_rt_cd_val",
           "type_params": null
+        },
+        {
+          "name": "loan_type",
+          "label": "대출상품군",
+          "type": "varchar",
+          "description": "대출상품군.",
+          "expr": "CASE WHEN loan__pcpl_repay_mtcd='01' AND loan__lnbz_prgr_cd='01601' THEN '1.일반_일시' \n     WHEN loan__pcpl_repay_mtcd='05' AND loan__lnbz_prgr_cd='01601' THEN '2.일반_분할' \n     WHEN loan__pcpl_repay_mtcd='01' AND loan__lnbz_prgr_cd='01603' THEN '3.대환_일시' \n     WHEN loan__pcpl_repay_mtcd='05' AND loan__lnbz_prgr_cd='01603' THEN '4.대환_분할' \nEND AS loan_type\n",
+          "type_params": null
         }
       ],
       "label": null,
@@ -3049,9 +4001,17 @@
       "primary_entity": null,
       "entities": [
         {
-          "name": "employee",
+          "name": "employee_no",
           "type": "primary",
           "expr": "empno",
+          "description": null,
+          "role": null,
+          "label": null
+        },
+        {
+          "name": "employee_dt",
+          "type": "primary",
+          "expr": "base_dt",
           "description": null,
           "role": null,
           "label": null
@@ -3340,644 +4300,764 @@
   ],
   "metrics": [
     {
-      "name": "total_customer_count",
+      "name": "total_tax_inv_supply_amt",
+      "description": "총 공급가액. \"공급가액\"을 물어볼 때 추가하세요. 이 메트릭이 선택되면, `total_tax_inv_vat_amt`(세액)와 `total_tax_inv_amt`(합계)도 반드시 함께 선택해야 합니다. (Set 구성)",
+      "type": "decimal",
       "metric_type": "simple",
-      "type": "integer",
-      "expr": "COUNT(DISTINCT customer__cstno_count)",
-      "label": "총 customer 수",
-      "description": "총 customer 수(중복 제거)"
+      "label": "공급가액",
+      "expr": "SUM(tax_inv__supply_amt_tax_inv)"
     },
     {
-      "name": "total_brn_cnt",
+      "name": "total_tax_inv_vat_amt",
+      "description": "총 세액(부가가치세, 부가세). \"세액\"을 특정해서 묻거나, `supply_amt`가 선택될 때 자동 포함.",
+      "type": "decimal",
       "metric_type": "simple",
+      "label": "세액",
+      "expr": "SUM(tax_inv__vat_amt_tax_inv)"
+    },
+    {
+      "name": "total_tax_inv_amt",
+      "description": "합계금액(세액 포함). “총금액”, “합계”, “세금 포함금액”, \"총매출액\", \"총매입액\" 을 묻거나, `supply_amt`가 선택될 때 자동 포함.",
+      "type": "decimal",
+      "metric_type": "simple",
+      "label": "합계금액",
+      "expr": "SUM(tax_inv__amt_tax_inv)"
+    },
+    {
+      "name": "total_tax_inv_count",
+      "description": "전자세금계산서 발행/수취 건수.  \"몇 건?\", \"건수는?\"등 건수를 물어보거나, 순위/비교 질문시(ex. \"가장 많은 업체\") metrics에 추가하세요.",
       "type": "integer",
-      "expr": "COUNT(DISTINCT branch__brcd_count)",
+      "metric_type": "simple",
+      "label": "전자세금계산서 건수",
+      "expr": "COUNT(DISTINCT tax_inv__inv_count_tax_inv)"
+    },
+    {
+      "name": "avg_tax_inv_unit_price",
+      "description": "전자세금계산서 1건당 평균 단가. (공급가액 기준)",
+      "type": "decimal",
+      "metric_type": "derived",
+      "label": "평균 단가",
+      "expr": "total_tax_inv_supply_amt / NULLIF(total_tax_inv_count, 0)"
+    },
+    {
+      "name": "total_tax_inv_vat_amt_in",
+      "description": "총 매출세액(부가가치세, 부가세).",
+      "type": "decimal",
+      "metric_type": "simple",
+      "label": "총 매출세액",
+      "expr": "SUM(tax_inv__vat_amt_in_tax_inv)"
+    },
+    {
+      "name": "total_tax_inv_vat_amt_out",
+      "description": "총 매입세액(부가가치세, 부가세).",
+      "type": "decimal",
+      "metric_type": "simple",
+      "label": "총 매입세액",
+      "expr": "SUM(tax_inv__vat_amt_out_tax_inv)"
+    },
+    {
+      "name": "total_tax_inv_vat_refund_amt",
+      "description": "총 환급세액. 부가세 환급 세액 질문시 사용 metrics",
+      "type": "decimal",
+      "metric_type": "derived",
+      "label": "총 환급세액",
+      "expr": "total_tax_inv_vat_amt_in - total_tax_inv_vat_amt_out"
+    },
+    {
+      "name": "total_customer_count",
+      "description": "총 customer 수(중복 제거)",
+      "type": "integer",
+      "metric_type": "simple",
+      "label": "총 customer 수",
+      "expr": "COUNT(DISTINCT customer__cstno_count)"
+    },
+    {
+      "name": "total_branch_count",
+      "description": "총 지점 수(중복 제거)",
+      "type": "integer",
+      "metric_type": "simple",
       "label": "총 지점 수",
-      "description": "총 지점 수(중복 제거)"
+      "expr": "COUNT(DISTINCT branch__brcd_count)"
     },
     {
       "name": "total_cash_hold_limt_amt",
-      "metric_type": "",
-      "type": "integer",
-      "expr": "SUM(branch__cash_hold_limt_amt)",
       "label": "총 현금보유한도금액",
-      "description": "총 현금보유한도금액"
+      "type": "integer",
+      "description": "총 현금보유한도금액",
+      "expr": "SUM(branch__cash_hold_limt_amt)",
+      "metric_type": null
     },
     {
       "name": "total_fxccy_cshn_hold_limt_amt",
-      "metric_type": "",
-      "type": "integer",
-      "expr": "SUM(branch__fxccy_cshn_hold_limt_amt)",
       "label": "총 외화시재보유한도금액",
-      "description": "총 외화시재보유한도금액"
+      "type": "integer",
+      "description": "총 외화시재보유한도금액",
+      "expr": "SUM(branch__fxccy_cshn_hold_limt_amt)",
+      "metric_type": null
     },
     {
       "name": "total_mnrc_limt_amt",
-      "metric_type": "",
-      "type": "integer",
-      "expr": "SUM(branch__mnrc_limt_amt)",
       "label": "총 입금한도금액",
-      "description": "영업점의 총 입금한도금액을 정의하는부분"
+      "type": "integer",
+      "description": "영업점의 총 입금한도금액을 정의하는부분",
+      "expr": "SUM(branch__mnrc_limt_amt)",
+      "metric_type": null
     },
     {
       "name": "total_wdl_limt_amt",
-      "metric_type": "",
-      "type": "integer",
-      "expr": "SUM(branch__wdl_limt_amt)",
       "label": "출금한도금액",
-      "description": "영업점의 출금한도금액을 정의하는부분"
+      "type": "integer",
+      "description": "영업점의 출금한도금액을 정의하는부분",
+      "expr": "SUM(branch__wdl_limt_amt)",
+      "metric_type": null
     },
     {
-      "name": "total_goods_count",
+      "name": "total_dep_new_posb_amt_mxvl",
+      "description": "총 수신신규가능금액최대값",
+      "type": "number",
       "metric_type": "simple",
-      "type": "integer",
-      "expr": "COUNT_DISTINCT(wrppf_gdsbs_m__gds_cd_cnt)",
-      "label": "상품 수",
-      "description": "상품코드 수(중복 제거)"
+      "label": "총 수신신규가능금액최대값",
+      "expr": "SUM(goods__dep_new_posb_amt_mxvl)"
     },
     {
-      "name": "total_goods_detail_count",
+      "name": "total_dep_new_posb_amt_mnvl",
+      "description": "총 수신신규가능금액최소값",
+      "type": "number",
       "metric_type": "simple",
-      "type": "integer",
-      "expr": "COUNT_DISTINCT(wrppf_gdsbs_m__gds_dtls_cd_cnt)",
-      "label": "상품세부 수",
-      "description": "상품세부코드 수(중복 제거)"
+      "label": "총 수신신규가능금액최소값",
+      "expr": "SUM(goods__dep_new_posb_amt_mnvl)"
+    },
+    {
+      "name": "total_dep_new_posb_amt_unvl",
+      "description": "총 수신신규가능금액단위값",
+      "type": "number",
+      "metric_type": "simple",
+      "label": "총 수신신규가능금액단위값",
+      "expr": "SUM(goods__dep_new_posb_amt_unvl)"
+    },
+    {
+      "name": "total_dep_days_mhod_icdnd",
+      "description": "총 수신일수방식이자계산분모일수",
+      "type": "number",
+      "metric_type": "simple",
+      "label": "총 DEP_DAYS_MHOD_ICDND",
+      "expr": "SUM(goods__dep_days_mhod_icdnd)"
+    },
+    {
+      "name": "total_csrrt_gd",
+      "description": "총 지급준비율",
+      "type": "number",
+      "metric_type": "simple",
+      "label": "총 지급준비율",
+      "expr": "SUM(goods__csrrt)"
+    },
+    {
+      "name": "total_pb_line_cnt",
+      "description": "총 통장라인수",
+      "type": "number",
+      "metric_type": "simple",
+      "label": "총 통장라인수",
+      "expr": "SUM(goods__pb_line_cnt)"
     },
     {
       "name": "total_account_count",
-      "metric_type": "simple",
+      "description": "총 계좌 수(중복 제거)",
       "type": "integer",
-      "expr": "COUNT(DISTINCT deposit__acno)",
+      "metric_type": "simple",
       "label": "총 계좌 수",
-      "description": "총 계좌 수(중복 제거)"
+      "expr": "COUNT(DISTINCT deposit__acno)"
     },
     {
       "name": "total_aply_rt",
-      "metric_type": "simple",
+      "description": "총 적용이율",
       "type": "integer",
-      "expr": "SUM(deposit__aply_rt)",
+      "metric_type": "simple",
       "label": "총 적용이율",
-      "description": "총 적용이율"
+      "expr": "SUM(deposit__aply_rt)"
     },
     {
       "name": "avg_aply_rt",
-      "metric_type": "simple",
+      "description": "평균 적용이율",
       "type": "integer",
-      "expr": "AVG(deposit__aply_rt)",
+      "metric_type": "simple",
       "label": "평균 적용이율",
-      "description": "평균 적용이율"
+      "expr": "AVG(deposit__aply_rt)"
+    },
+    {
+      "name": "avg_weighted_rate",
+      "description": "가중 평균 금리 (수신계좌)",
+      "type": "integer",
+      "metric_type": "simple",
+      "label": "가중평균 금리",
+      "expr": "ROUND(SUM(deposit__bs_bal * deposit__aply_rt) / (SUM(deposit__bs_bal) * 100),3)"
+    },
+    {
+      "name": "avg_interest_rate",
+      "description": "평균취급금리 (수신계좌)",
+      "type": "integer",
+      "metric_type": "simple",
+      "label": "평균취급금리",
+      "expr": "ROUND(SUM(deposit__ftmp_dsam * deposit__aply_rt) / SUM(deposit__ftmp_dsam), 2)"
+    },
+    {
+      "name": "avg_contract_month",
+      "description": "평균계약개월수",
+      "type": "integer",
+      "metric_type": "simple",
+      "label": "평균계약개월수",
+      "expr": "ROUND(SUM(deposit__cntr_mcnt) / COUNT(*), 2)"
     },
     {
       "name": "total_pref_rt",
-      "metric_type": "simple",
+      "description": "총 실효이율",
       "type": "integer",
-      "expr": "SUM(deposit__pref_rt)",
+      "metric_type": "simple",
       "label": "총 실효이율",
-      "description": "총 실효이율"
+      "expr": "SUM(deposit__pref_rt)"
     },
     {
       "name": "avg_pref_rt",
-      "metric_type": "simple",
+      "description": "평균 실효이율",
       "type": "integer",
-      "expr": "AVG(deposit__pref_rt)",
+      "metric_type": "simple",
       "label": "평균 실효이율",
-      "description": "평균 실효이율"
+      "expr": "AVG(deposit__pref_rt)"
     },
     {
       "name": "total_new_mnrc_amt",
-      "metric_type": "simple",
+      "description": "총 신규입금금액",
       "type": "integer",
-      "expr": "SUM(deposit__new_mnrc_amt)",
+      "metric_type": "simple",
       "label": "총 신규입금금액",
-      "description": "총 신규입금금액"
+      "expr": "SUM(deposit__new_mnrc_amt)"
     },
     {
       "name": "total_cls_pcpl",
-      "metric_type": "simple",
+      "description": "총 해지원금",
       "type": "integer",
-      "expr": "SUM(deposit__cls_pcpl)",
+      "metric_type": "simple",
       "label": "총 해지원금",
-      "description": "총 해지원금"
+      "expr": "SUM(deposit__cls_pcpl)"
     },
     {
       "name": "total_cls_int",
-      "metric_type": "simple",
+      "description": "총 해지이자",
       "type": "integer",
-      "expr": "SUM(deposit__cls_int)",
+      "metric_type": "simple",
       "label": "총 해지이자",
-      "description": "총 해지이자"
+      "expr": "SUM(deposit__cls_int)"
     },
     {
       "name": "total_cls_txam",
-      "metric_type": "simple",
+      "description": "총 해지세액",
       "type": "integer",
-      "expr": "SUM(deposit__cls_txam)",
+      "metric_type": "simple",
       "label": "총 해지세액",
-      "description": "총 해지세액"
+      "expr": "SUM(deposit__cls_txam)"
     },
     {
       "name": "total_tax_prfr_amt",
-      "metric_type": "simple",
+      "description": "총 세금우대금액",
       "type": "integer",
-      "expr": "SUM(deposit__tax_prfr_amt)",
+      "metric_type": "simple",
       "label": "총 세금우대금액",
-      "description": "총 세금우대금액"
+      "expr": "SUM(deposit__tax_prfr_amt)"
     },
     {
       "name": "total_info_ccnt",
-      "metric_type": "simple",
+      "description": "총 정보건수",
       "type": "integer",
-      "expr": "SUM(deposit__info_ccnt)",
+      "metric_type": "simple",
       "label": "총 정보건수",
-      "description": "총 정보건수"
+      "expr": "SUM(deposit__info_ccnt)"
     },
     {
       "name": "total_prvs_stop_ccnt",
-      "metric_type": "simple",
+      "description": "총 지급정지건수",
       "type": "integer",
-      "expr": "SUM(deposit__prvs_stop_ccnt)",
+      "metric_type": "simple",
       "label": "총 지급정지건수",
-      "description": "총 지급정지건수"
+      "expr": "SUM(deposit__prvs_stop_ccnt)"
     },
     {
       "name": "total_prvs_stop_amt",
-      "metric_type": "simple",
+      "description": "총 지급정지금액",
       "type": "integer",
-      "expr": "SUM(deposit__prvs_stop_amt)",
+      "metric_type": "simple",
       "label": "총 지급정지금액",
-      "description": "총 지급정지금액"
+      "expr": "SUM(deposit__prvs_stop_amt)"
     },
     {
       "name": "total_tx_stop_ccnt",
-      "metric_type": "simple",
+      "description": "총 거래정지건수",
       "type": "integer",
-      "expr": "SUM(deposit__tx_stop_ccnt)",
+      "metric_type": "simple",
       "label": "총 거래정지건수",
-      "description": "총 거래정지건수"
+      "expr": "SUM(deposit__tx_stop_ccnt)"
     },
     {
       "name": "total_card_setp_ccnt",
-      "metric_type": "simple",
+      "description": "총 카드설정건수",
       "type": "integer",
-      "expr": "SUM(deposit__card_setp_ccnt)",
+      "metric_type": "simple",
       "label": "총 카드설정건수",
-      "description": "총 카드설정건수"
+      "expr": "SUM(deposit__card_setp_ccnt)"
     },
     {
       "name": "total_atrsf_setp_ccnt",
-      "metric_type": "simple",
+      "description": "총 자동이체설정건수",
       "type": "integer",
-      "expr": "SUM(deposit__atrsf_setp_ccnt)",
+      "metric_type": "simple",
       "label": "총 자동이체설정건수",
-      "description": "총 자동이체설정건수"
+      "expr": "SUM(deposit__atrsf_setp_ccnt)"
     },
     {
       "name": "total_sgsr_rate",
-      "metric_type": "simple",
+      "description": "총 권유자비율",
       "type": "integer",
-      "expr": "SUM(deposit__sgsr_rate)",
+      "metric_type": "simple",
       "label": "총 권유자비율",
-      "description": "총 권유자비율"
+      "expr": "SUM(deposit__sgsr_rate)"
     },
     {
       "name": "avg_sgsr_rate",
-      "metric_type": "simple",
+      "description": "평균 권유자비율",
       "type": "integer",
-      "expr": "AVG(deposit__sgsr_rate)",
+      "metric_type": "simple",
       "label": "평균 권유자비율",
-      "description": "평균 권유자비율"
+      "expr": "AVG(deposit__sgsr_rate)"
     },
     {
       "name": "total_ftp_aply_rt",
-      "metric_type": "simple",
+      "description": "총 FTP적용이율",
       "type": "integer",
-      "expr": "SUM(deposit__ftp_aply_rt)",
+      "metric_type": "simple",
       "label": "총 FTP적용이율",
-      "description": "총 FTP적용이율"
+      "expr": "SUM(deposit__ftp_aply_rt)"
     },
     {
       "name": "avg_ftp_aply_rt",
-      "metric_type": "simple",
+      "description": "평균 FTP적용이율",
       "type": "integer",
-      "expr": "AVG(deposit__ftp_aply_rt)",
+      "metric_type": "simple",
       "label": "평균 FTP적용이율",
-      "description": "평균 FTP적용이율"
+      "expr": "AVG(deposit__ftp_aply_rt)"
     },
     {
       "name": "total_gds_sprd_intr",
-      "metric_type": "simple",
+      "description": "총 상품스프레드금리",
       "type": "integer",
-      "expr": "SUM(deposit__gds_sprd_intr)",
+      "metric_type": "simple",
       "label": "총 상품스프레드금리",
-      "description": "총 상품스프레드금리"
+      "expr": "SUM(deposit__gds_sprd_intr)"
     },
     {
       "name": "total_endp_sprd_intr",
-      "metric_type": "simple",
+      "description": "총 사업부스프레드금리",
       "type": "integer",
-      "expr": "SUM(deposit__endp_sprd_intr)",
+      "metric_type": "simple",
       "label": "총 사업부스프레드금리",
-      "description": "총 사업부스프레드금리"
+      "expr": "SUM(deposit__endp_sprd_intr)"
     },
     {
       "name": "total_cntr_mcnt",
-      "metric_type": "simple",
+      "description": "총 계약개월수",
       "type": "integer",
-      "expr": "SUM(deposit__cntr_mcnt)",
+      "metric_type": "simple",
       "label": "총 계약개월수",
-      "description": "총 계약개월수"
+      "expr": "SUM(deposit__cntr_mcnt)"
     },
     {
       "name": "total_cntr_days",
-      "metric_type": "simple",
+      "description": "총 계약일수",
       "type": "integer",
-      "expr": "SUM(deposit__cntr_days)",
+      "metric_type": "simple",
       "label": "총 계약일수",
-      "description": "총 계약일수"
+      "expr": "SUM(deposit__cntr_days)"
     },
     {
       "name": "total_ftmp_dsam",
-      "metric_type": "simple",
+      "description": "총 정기성예치금액",
       "type": "integer",
-      "expr": "SUM(deposit__ftmp_dsam)",
+      "metric_type": "simple",
       "label": "총 정기성예치금액",
-      "description": "총 정기성예치금액"
+      "expr": "SUM(deposit__ftmp_dsam)"
     },
     {
       "name": "total_prvs_splm_amt",
-      "metric_type": "simple",
+      "description": "총 지급보충금액",
       "type": "integer",
-      "expr": "SUM(deposit__prvs_splm_amt)",
+      "metric_type": "simple",
       "label": "총 지급보충금액",
-      "description": "총 지급보충금액"
+      "expr": "SUM(deposit__prvs_splm_amt)"
     },
     {
       "name": "total_cntr_amt",
-      "metric_type": "simple",
+      "description": "총 계약금액",
       "type": "integer",
-      "expr": "SUM(deposit__cntr_amt)",
+      "metric_type": "simple",
       "label": "총 계약금액",
-      "description": "총 계약금액"
+      "expr": "SUM(deposit__cntr_amt)"
     },
     {
       "name": "total_frst_dpsy_amt",
-      "metric_type": "simple",
+      "description": "총 최초예치금액",
       "type": "integer",
-      "expr": "SUM(deposit__frst_dpsy_amt)",
+      "metric_type": "simple",
       "label": "총 최초예치금액",
-      "description": "총 최초예치금액"
+      "expr": "SUM(deposit__frst_dpsy_amt)"
     },
     {
       "name": "total_ftmp_prtl_prvs_tmcnt",
-      "metric_type": "simple",
+      "description": "총 정기성일부지급횟수",
       "type": "integer",
-      "expr": "SUM(deposit__ftmp_prtl_prvs_tmcnt)",
+      "metric_type": "simple",
       "label": "총 정기성일부지급횟수",
-      "description": "총 정기성일부지급횟수"
+      "expr": "SUM(deposit__ftmp_prtl_prvs_tmcnt)"
     },
     {
       "name": "total_ti1_int_prvs_amt",
-      "metric_type": "simple",
+      "description": "총 1회이자지급금액",
       "type": "integer",
-      "expr": "SUM(deposit__ti1_int_prvs_amt)",
+      "metric_type": "simple",
       "label": "총 1회이자지급금액",
-      "description": "총 1회이자지급금액"
+      "expr": "SUM(deposit__ti1_int_prvs_amt)"
     },
     {
       "name": "total_int_prvs_cycl_mcnt",
-      "metric_type": "simple",
+      "description": "총 이자지급주기개월수",
       "type": "integer",
-      "expr": "SUM(deposit__int_prvs_cycl_mcnt)",
+      "metric_type": "simple",
       "label": "총 이자지급주기개월수",
-      "description": "총 이자지급주기개월수"
+      "expr": "SUM(deposit__int_prvs_cycl_mcnt)"
     },
     {
       "name": "total_int_prvs_tmcnt",
-      "metric_type": "simple",
+      "description": "총 이자지급횟수",
       "type": "integer",
-      "expr": "SUM(deposit__int_prvs_tmcnt)",
+      "metric_type": "simple",
       "label": "총 이자지급횟수",
-      "description": "총 이자지급횟수"
+      "expr": "SUM(deposit__int_prvs_tmcnt)"
     },
     {
       "name": "total_dep_intr_rttn_cycl_mcnt",
-      "metric_type": "simple",
+      "description": "총 수신금리회전주기개월수",
       "type": "integer",
-      "expr": "SUM(deposit__dep_intr_rttn_cycl_mcnt)",
+      "metric_type": "simple",
       "label": "총 수신금리회전주기개월수",
-      "description": "총 수신금리회전주기개월수"
+      "expr": "SUM(deposit__dep_intr_rttn_cycl_mcnt)"
     },
     {
       "name": "total_mm_instl_amt",
-      "metric_type": "simple",
+      "description": "총 월적립금액",
       "type": "integer",
-      "expr": "SUM(deposit__mm_instl_amt)",
+      "metric_type": "simple",
       "label": "총 월적립금액",
-      "description": "총 월적립금액"
+      "expr": "SUM(deposit__mm_instl_amt)"
     },
     {
       "name": "total_instl_cycl_mcnt",
-      "metric_type": "simple",
+      "description": "총 적립주기개월수",
       "type": "integer",
-      "expr": "SUM(deposit__instl_cycl_mcnt)",
+      "metric_type": "simple",
       "label": "총 적립주기개월수",
-      "description": "총 적립주기개월수"
+      "expr": "SUM(deposit__instl_cycl_mcnt)"
     },
     {
       "name": "total_instl_tmcnt",
-      "metric_type": "simple",
+      "description": "총 적립횟수",
       "type": "integer",
-      "expr": "SUM(deposit__instl_tmcnt)",
+      "metric_type": "simple",
       "label": "총 적립횟수",
-      "description": "총 적립횟수"
+      "expr": "SUM(deposit__instl_tmcnt)"
     },
     {
       "name": "total_dep_rlov_tmcnt",
-      "metric_type": "simple",
+      "description": "총 수신만기연장횟수",
       "type": "integer",
-      "expr": "SUM(deposit__dep_rlov_tmcnt)",
+      "metric_type": "simple",
       "label": "총 수신만기연장횟수",
-      "description": "총 수신만기연장횟수"
+      "expr": "SUM(deposit__dep_rlov_tmcnt)"
     },
     {
       "name": "total_extns_mcnt",
-      "metric_type": "simple",
+      "description": "총 연장개월수",
       "type": "integer",
-      "expr": "SUM(deposit__extns_mcnt)",
+      "metric_type": "simple",
       "label": "총 연장개월수",
-      "description": "총 연장개월수"
+      "expr": "SUM(deposit__extns_mcnt)"
     },
     {
       "name": "total_spcl_int",
-      "metric_type": "simple",
+      "description": "총 특별이자",
       "type": "integer",
-      "expr": "SUM(deposit__spcl_int)",
+      "metric_type": "simple",
       "label": "총 특별이자",
-      "description": "총 특별이자"
+      "expr": "SUM(deposit__spcl_int)"
     },
     {
       "name": "total_sale_amt",
-      "metric_type": "simple",
+      "description": "총 매출금액",
       "type": "integer",
-      "expr": "SUM(deposit__sale_amt)",
+      "metric_type": "simple",
       "label": "총 매출금액",
-      "description": "총 매출금액"
+      "expr": "SUM(deposit__sale_amt)"
     },
     {
       "name": "total_expr_repay_amt",
-      "metric_type": "simple",
+      "description": "총 만기상환금액",
       "type": "integer",
-      "expr": "SUM(deposit__expr_repay_amt)",
+      "metric_type": "simple",
       "label": "총 만기상환금액",
-      "description": "총 만기상환금액"
+      "expr": "SUM(deposit__expr_repay_amt)"
     },
     {
       "name": "total_prsal_trm_dsf",
-      "metric_type": "simple",
+      "description": "총 선매출기간할인료",
       "type": "integer",
-      "expr": "SUM(deposit__prsal_trm_dsf)",
+      "metric_type": "simple",
       "label": "총 선매출기간할인료",
-      "description": "총 선매출기간할인료"
+      "expr": "SUM(deposit__prsal_trm_dsf)"
     },
     {
       "name": "total_trst_pymn_pcpl",
-      "metric_type": "simple",
+      "description": "총 신탁불입원금",
       "type": "integer",
-      "expr": "SUM(deposit__trst_pymn_pcpl)",
+      "metric_type": "simple",
       "label": "총 신탁불입원금",
-      "description": "총 신탁불입원금"
+      "expr": "SUM(deposit__trst_pymn_pcpl)"
     },
     {
       "name": "total_ntst_stck_cnt",
-      "metric_type": "simple",
+      "description": "총 국민주주식수",
       "type": "integer",
-      "expr": "SUM(deposit__ntst_stck_cnt)",
+      "metric_type": "simple",
       "label": "총 국민주주식수",
-      "description": "총 국민주주식수"
+      "expr": "SUM(deposit__ntst_stck_cnt)"
     },
     {
       "name": "total_csrrt",
-      "metric_type": "simple",
+      "description": "총 지급준비율",
       "type": "integer",
-      "expr": "SUM(deposit__csrrt)",
+      "metric_type": "simple",
       "label": "총 지급준비율",
-      "description": "총 지급준비율"
+      "expr": "SUM(deposit__csrrt)"
     },
     {
       "name": "avg_csrrt",
-      "metric_type": "simple",
+      "description": "평균 지급준비율",
       "type": "integer",
-      "expr": "AVG(deposit__csrrt)",
+      "metric_type": "simple",
       "label": "평균 지급준비율",
-      "description": "평균 지급준비율"
+      "expr": "AVG(deposit__csrrt)"
     },
     {
       "name": "total_pnsn_prvs_yrcn",
-      "metric_type": "simple",
+      "description": "총 연금지급년수",
       "type": "integer",
-      "expr": "SUM(deposit__pnsn_prvs_yrcn)",
+      "metric_type": "simple",
       "label": "총 연금지급년수",
-      "description": "총 연금지급년수"
+      "expr": "SUM(deposit__pnsn_prvs_yrcn)"
     },
     {
       "name": "total_pnsn_prvs_mcnt",
-      "metric_type": "simple",
+      "description": "총 연금지급개월수",
       "type": "integer",
-      "expr": "SUM(deposit__pnsn_prvs_mcnt)",
+      "metric_type": "simple",
       "label": "총 연금지급개월수",
-      "description": "총 연금지급개월수"
+      "expr": "SUM(deposit__pnsn_prvs_mcnt)"
     },
     {
       "name": "total_pnsn_prvs_cycl_mcnt",
-      "metric_type": "simple",
+      "description": "총 연금지급주기개월수",
       "type": "integer",
-      "expr": "SUM(deposit__pnsn_prvs_cycl_mcnt)",
+      "metric_type": "simple",
       "label": "총 연금지급주기개월수",
-      "description": "총 연금지급주기개월수"
+      "expr": "SUM(deposit__pnsn_prvs_cycl_mcnt)"
     },
     {
       "name": "total_evmm_qtr_pnsn_prvs_amt",
-      "metric_type": "simple",
+      "description": "총 매월분기연금지급금액",
       "type": "integer",
-      "expr": "SUM(deposit__evmm_qtr_pnsn_prvs_amt)",
+      "metric_type": "simple",
       "label": "총 매월분기연금지급금액",
-      "description": "총 매월분기연금지급금액"
+      "expr": "SUM(deposit__evmm_qtr_pnsn_prvs_amt)"
     },
     {
       "name": "total_acco_bal",
-      "metric_type": "simple",
+      "description": "총 계좌잔액",
       "type": "integer",
-      "expr": "SUM(deposit__acco_bal)",
+      "metric_type": "simple",
       "label": "총 계좌잔액",
-      "description": "총 계좌잔액"
+      "expr": "SUM(deposit__acco_bal)"
     },
     {
-      "name": "total_bs_bal",
-      "metric_type": "simple",
+      "name": "avg_acco_bal",
+      "description": "평균 계좌잔액",
       "type": "integer",
-      "expr": "SUM(deposit__bs_bal)",
+      "metric_type": "simple",
+      "label": "평균 계좌잔액",
+      "expr": "AVG(deposit__acco_bal)"
+    },
+    {
+      "name": "total_bs_bal_waidp",
+      "description": "총 BS잔액",
+      "type": "integer",
+      "metric_type": "simple",
       "label": "총 BS잔액",
-      "description": "총 BS잔액. 사용자가 BS잔액을 질문했을 경우 metric에 total_avail_bal도 같이 출력하세요."
+      "expr": "SUM(deposit__bs_bal)"
     },
     {
       "name": "total_avail_bal",
-      "metric_type": "simple",
+      "description": "총 가용잔액",
       "type": "integer",
-      "expr": "SUM(deposit__avail_bal)",
+      "metric_type": "simple",
       "label": "총 가용잔액",
-      "description": "총 가용잔액"
+      "expr": "SUM(deposit__avail_bal)"
     },
     {
       "name": "total_cls_bal",
-      "metric_type": "simple",
+      "description": "총 해지잔액",
       "type": "integer",
-      "expr": "SUM(deposit__cls_bal)",
+      "metric_type": "simple",
       "label": "총 해지잔액",
-      "description": "총 해지잔액"
+      "expr": "SUM(deposit__cls_bal)"
     },
     {
       "name": "total_wcuc_bal",
-      "metric_type": "simple",
+      "description": "총 원화환산잔액",
       "type": "integer",
-      "expr": "SUM(deposit__wcuc_bal)",
+      "metric_type": "simple",
       "label": "총 원화환산잔액",
-      "description": "총 원화환산잔액"
+      "expr": "SUM(deposit__wcuc_bal)"
     },
     {
       "name": "total_usd_unch_bal",
-      "metric_type": "simple",
+      "description": "총 미화환산잔액",
       "type": "integer",
-      "expr": "SUM(deposit__usd_unch_bal)",
+      "metric_type": "simple",
       "label": "총 미화환산잔액",
-      "description": "총 미화환산잔액"
+      "expr": "SUM(deposit__usd_unch_bal)"
     },
     {
       "name": "total_prvs_int",
-      "metric_type": "simple",
+      "description": "총 지급이자",
       "type": "integer",
-      "expr": "SUM(deposit__prvs_int)",
+      "metric_type": "simple",
       "label": "총 지급이자",
-      "description": "총 지급이자"
+      "expr": "SUM(deposit__prvs_int)"
     },
     {
       "name": "total_eval_amt",
-      "metric_type": "simple",
+      "description": "총 평가금액",
       "type": "integer",
-      "expr": "SUM(deposit__eval_amt)",
+      "metric_type": "simple",
       "label": "총 평가금액",
-      "description": "총 평가금액"
+      "expr": "SUM(deposit__eval_amt)"
     },
     {
       "name": "total_remn_annt",
-      "metric_type": "simple",
+      "description": "총 잔존좌수. 좌수",
       "type": "integer",
-      "expr": "SUM(deposit__remn_annt)",
+      "metric_type": "simple",
       "label": "총 잔존좌수",
-      "description": "총 잔존좌수"
+      "expr": "SUM(deposit__remn_annt)"
     },
     {
       "name": "total_yield",
-      "metric_type": "simple",
+      "description": "총 수익률",
       "type": "integer",
-      "expr": "SUM(deposit__yield)",
+      "metric_type": "simple",
       "label": "총 수익률",
-      "description": "총 수익률"
+      "expr": "SUM(deposit__yield)"
     },
     {
       "name": "total_add_intr",
-      "metric_type": "simple",
+      "description": "총 가산금리",
       "type": "integer",
-      "expr": "SUM(deposit__add_intr)",
+      "metric_type": "simple",
       "label": "총 가산금리",
-      "description": "총 가산금리"
+      "expr": "SUM(deposit__add_intr)"
     },
     {
       "name": "total_bs_acmbal",
-      "metric_type": "simple",
+      "description": "총 BS적수",
       "type": "integer",
-      "expr": "SUM(deposit__bs_acmbal)",
+      "metric_type": "simple",
       "label": "총 BS적수",
-      "description": "총 BS적수"
+      "expr": "SUM(deposit__bs_acmbal)"
     },
     {
       "name": "total_bs_avgbal",
-      "metric_type": "simple",
+      "description": "총 BS평잔",
       "type": "integer",
-      "expr": "SUM(deposit__bs_avgbal)",
+      "metric_type": "simple",
       "label": "총 BS평잔",
-      "description": "총 BS평잔"
+      "expr": "SUM(deposit__bs_avgbal)"
     },
     {
       "name": "total_qtr_bs_acmbal",
-      "metric_type": "simple",
+      "description": "총 분기BS적수",
       "type": "integer",
-      "expr": "SUM(deposit__qtr_bs_acmbal)",
+      "metric_type": "simple",
       "label": "총 분기BS적수",
-      "description": "총 분기BS적수"
+      "expr": "SUM(deposit__qtr_bs_acmbal)"
     },
     {
       "name": "total_qtr_bs_avgbal",
-      "metric_type": "simple",
+      "description": "총 분기BS평잔",
       "type": "integer",
-      "expr": "SUM(deposit__qtr_bs_avgbal)",
+      "metric_type": "simple",
       "label": "총 분기BS평잔",
-      "description": "총 분기BS평잔"
+      "expr": "SUM(deposit__qtr_bs_avgbal)"
     },
     {
       "name": "total_hft_bs_acmbal",
-      "metric_type": "simple",
+      "description": "총 반기BS적수",
       "type": "integer",
-      "expr": "SUM(deposit__hft_bs_acmbal)",
+      "metric_type": "simple",
       "label": "총 반기BS적수",
-      "description": "총 반기BS적수"
+      "expr": "SUM(deposit__hft_bs_acmbal)"
     },
     {
       "name": "total_hft_bs_avgbal",
-      "metric_type": "simple",
+      "description": "총 반기BS평잔",
       "type": "integer",
-      "expr": "SUM(deposit__hft_bs_avgbal)",
+      "metric_type": "simple",
       "label": "총 반기BS평잔",
-      "description": "총 반기BS평잔"
+      "expr": "SUM(deposit__hft_bs_avgbal)"
     },
     {
       "name": "total_mdpr_bs_acmbal",
-      "metric_type": "simple",
+      "description": "총 기중BS적수",
       "type": "integer",
-      "expr": "SUM(deposit__mdpr_bs_acmbal)",
+      "metric_type": "simple",
       "label": "총 기중BS적수",
-      "description": "총 기중BS적수"
+      "expr": "SUM(deposit__mdpr_bs_acmbal)"
     },
     {
       "name": "total_mdpr_bs_avgbal",
-      "metric_type": "simple",
+      "description": "총 기중BS평잔",
       "type": "integer",
-      "expr": "SUM(deposit__mdpr_bs_avgbal)",
+      "metric_type": "simple",
       "label": "총 기중BS평잔",
-      "description": "총 기중BS평잔"
+      "expr": "SUM(deposit__mdpr_bs_avgbal)"
     },
     {
       "name": "total_tot_dep_amt",
-      "metric_type": "simple",
+      "description": "총 총수신금액",
       "type": "integer",
-      "expr": "SUM(deposit__tot_dep_amt)",
+      "metric_type": "simple",
       "label": "총 총수신금액",
-      "description": "총 총수신금액"
+      "expr": "SUM(deposit__tot_dep_amt)"
     },
     {
       "name": "total_cor_mndp_amt",
-      "metric_type": "simple",
+      "description": "총 핵심예금금액",
       "type": "integer",
-      "expr": "SUM(deposit__cor_mndp_amt)",
+      "metric_type": "simple",
       "label": "총 핵심예금금액",
-      "description": "총 핵심예금금액"
-    },
-    {
-      "name": "average_aply_rt",
-      "metric_type": "simple",
-      "type": "integer",
-      "expr": "AVG(deposit__aply_rt)",
-      "label": "평균 금리",
-      "description": "평균 금리"
+      "expr": "SUM(deposit__cor_mndp_amt)"
     },
     {
       "name": "total_loan_account_count",
@@ -3988,8 +5068,16 @@
       "expr": "COUNT(DISTINCT loan__acno)"
     },
     {
+      "name": "total_loan_cnt",
+      "description": "총 대출 취급건수",
+      "type": "integer",
+      "metric_type": "simple",
+      "label": "총 대출 취급건수",
+      "expr": "COUNT(loan__cnt)"
+    },
+    {
       "name": "total_frst_lbam",
-      "description": "총 최초여신금액",
+      "description": "총 최초여신금액. 취급금액 질문에도 해당 컬럼 활용. metrics에 총 최초여신금액 선택 시 가중평균금리(total_weighter_rate)도 함께 선택 필수.",
       "type": "integer",
       "metric_type": "simple",
       "label": "총 최초여신금액",
@@ -4002,6 +5090,22 @@
       "metric_type": "simple",
       "label": "총 이율",
       "expr": "SUM(loan__rt)"
+    },
+    {
+      "name": "weighted_rate",
+      "description": "대출 금액 가중치",
+      "type": "integer",
+      "metric_type": "simple",
+      "label": "대출 금액 가중치",
+      "expr": "SUM(loan__frst_lbam * loan__rt)"
+    },
+    {
+      "name": "total_weighted_rate",
+      "description": "가중평균금리. 사용자의 질문에 취급금액, 여신금액 등의 키워드가 있어서 metrics에 총 최초여신금액 선택 시 해당 컬럼도 함께 metrics에 출력 필수.",
+      "type": "integer",
+      "metric_type": "derived",
+      "label": "가중평균금리",
+      "expr": "weighted_rate / total_frst_lbam"
     },
     {
       "name": "avg_rt",
@@ -4090,14 +5194,6 @@
       "metric_type": "simple",
       "label": "총 직원 수",
       "expr": "COUNT(DISTINCT employee__empno_count)"
-    },
-    {
-      "name": "sum_empno_count",
-      "description": "직원 수의 합계",
-      "type": "integer",
-      "metric_type": "simple",
-      "label": "직원 수 합계",
-      "expr": "SUM(employee__empno_count)"
     }
   ],
   "project_configuration": {

@@ -10,9 +10,11 @@
 
 ### 답변 포맷 (이 형식을 정확히 따르세요 / group_by에는 metrics를 넣으면 안됩니다.)
 {{
+        "reason": "metrics와 group_by를 뽑은 구체적인 이유, 활용할수있는 metrics, dimensions 중 <조건부규칙> 확인 후 해당없음/적용완료",  -- <조건부>규칙 적용여부확인후 해당없음 또는 적용완료 멘트 반드시 추가
         "metrics": ["metric1", "metric2"],
-        "group_by": ["semantic_model_name__dimension1", "semantic_model_name__dimension2"]
+        "group_by": ["entity_id__dimension1", "entity_id__dimension2"]
 }}
+
 
 ### 활용할 수 있는 entities
 {entities}
@@ -23,23 +25,29 @@
 ### 활용할 수 있는 group_by dimensions
 {dimensions}
 
+### reason 출력 규칙
+- 해당 metrics와 group_by를 출력한 이유를 작성하세요.
+
 ### 메트릭(Metrics) 선택 규칙
+- metircs와 dimension을 보고 질문별 필수로 넣어줘야하는 칼럼들을 상세히 파악 후 최종 답변을 생성해주세요. "name : description"의 형태로 칼럼별 설명이 들어가있으며 각 질문별 필수 칼럼들을 description에 설명해두었습니다.
+**특히 description에서 <조건부규칙>이 포함되었을경우 사용자 질문과 비교하며 해당될경우 해당 규칙대로 반드시 수행시켜주세요. 비지니스로직이기때문에 반드시 추가되어야합니다.**
+**판단이 애매할경우 description을 보고 포함되어야한다고 생각되는 칼럼은 되도록 모두 선택해주세요. 많이 보여주는건 괜찮지만 적게 선택해서 안보여주는경우 문제가 발생합니다. **
 
-**✅ 올바른 사용**:
+**올바른 사용**:
 - YML 파일의 최상위 `metrics` 섹션에 정의된 `name` 필드 값만 사용하세요.
-- 예: `"metrics": ["total_brn_cnt"]` ✅
+- 예: `"metrics": ["total_brn_cnt"]`
 
-**❌ 절대로 하지 말아야 할 것**:
-- `"metrics": ["SUM(total_brn_cnt)"]` ❌ - 집계 함수(SUM, COUNT, AVG 등)를 메트릭 이름 앞에 추가하지 마세요.
-- `"metrics": ["부점코드"]` ❌ - semantic model 이름을 메트릭으로 사용하지 마세요.
-- `"metrics": ["entity_name"]` ❌ - entity 이름을 메트릭으로 사용하지 마세요.
-- `"metrics": ["measure_name"]` ❌ - measure 이름을 메트릭으로 사용하지 마세요.
-- `"metrics": ["dimension_name"]` ❌ - dimension 이름을 메트릭으로 사용하지 마세요.
+**절대로 하지 말아야 할 것**:
+- `"metrics": ["SUM(total_brn_cnt)"]` - 집계 함수(SUM, COUNT, AVG 등)를 메트릭 이름 앞에 추가하지 마세요.
+- `"metrics": ["부점코드"]` - semantic model 이름을 메트릭으로 사용하지 마세요.
+- `"metrics": ["entity_name"]` - entity 이름을 메트릭으로 사용하지 마세요.
+- `"metrics": ["measure_name"]` - measure 이름을 메트릭으로 사용하지 마세요.
+- `"metrics": ["dimension_name"]` - dimension 이름을 메트릭으로 사용하지 마세요.
 
-**✅ 윈도우 함수 지원**:
+**윈도우 함수 지원**:
 - 윈도우 함수가 포함된 SQL 식은 직접 `metrics`에 사용 가능합니다.
-- 예: `"metrics": ["SUM(revenue) OVER (PARTITION BY customer_id ORDER BY order_date)"]` ✅
-- 예: `"metrics": ["ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC)"]` ✅
+- 예: `"metrics": ["SUM(revenue) OVER (PARTITION BY customer_id ORDER BY order_date)"]`
+- 예: `"metrics": ["ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC)"]`
 
 **중요**: 오직 `metrics` 섹션의 `name` 필드 값만 메트릭으로 사용하세요! 다른 섹션의 이름을 메트릭으로 사용하면 오류가 발생합니다.
 
@@ -49,8 +57,8 @@
 
 **예시**:
 - Semantic model: "부점코드", Dimension: "brn_stcd"
-- 올바른 표현: `"group_by": ["부점코드__brn_stcd"]` ✅
-- 잘못된 표현: `"group_by": ["brn_stcd"]` ❌ (semantic model 이름 접두어 없음)
+- 올바른 표현: `"group_by": ["부점코드__brn_stcd"]`
+- 잘못된 표현: `"group_by": ["brn_stcd"]` (semantic model 이름 접두어 없음)
 
 **중요**: 차원 이름은 반드시 `semantic_model_name__dimension_name` 형식으로 작성해야 합니다.
 

@@ -183,6 +183,7 @@ function NodeTest() {
   const processingRef = useRef(false) // 현재 큐 처리 중인지 여부
   const displayTimerRef = useRef(null) // 현재 표시 중인 노드의 타이머
   const [visualQueueLength, setVisualQueueLength] = useState(0) // 큐 길이 (리렌더링 트리거용)
+  const completeNodeTimersRef = useRef({}) // 완료된 노드 제거 타이머 { step: timer }
   
   // 프롬프트 관리 상태
   const [selectedPromptType, setSelectedPromptType] = useState('classify_joy')
@@ -240,6 +241,7 @@ function NodeTest() {
   ]
   
   const [promptContent, setPromptContent] = useState('')
+  const promptTextareaRef = useRef(null)
   
   // LLM 설정 상태
   const [llmProvider, setLlmProvider] = useState('devstral') // 'gpt' or 'devstral'
@@ -305,6 +307,25 @@ function NodeTest() {
       loadPrompt(selectedPromptType)
     }
   }, [activeTab])
+
+  // textarea 높이 자동 조절
+  useEffect(() => {
+    const textarea = promptTextareaRef.current
+    if (textarea) {
+      // 높이를 초기화하고 내용에 맞게 조절
+      textarea.style.height = 'auto'
+      textarea.style.height = `${textarea.scrollHeight}px`
+    }
+  }, [promptContent, selectedPromptType])
+
+  // textarea 높이 조절 함수
+  const handleTextareaChange = (e) => {
+    setPromptContent(e.target.value)
+    const textarea = e.target
+    // 높이를 초기화하고 내용에 맞게 조절
+    textarea.style.height = 'auto'
+    textarea.style.height = `${textarea.scrollHeight}px`
+  }
 
   // WebSocket 연결
   useEffect(() => {
@@ -419,6 +440,17 @@ function NodeTest() {
 
       // prompt 이벤트: running 상태로 표시 시작
       if (eventType === 'prompt') {
+        // 이전에 완료된 노드들의 타이머를 취소
+        Object.keys(displayedNodeStatuses).forEach(key => {
+          if (key !== 'complete' && key !== step && displayedNodeStatuses[key]?.status === 'complete') {
+            if (completeNodeTimersRef.current[key]) {
+              clearTimeout(completeNodeTimersRef.current[key])
+              delete completeNodeTimersRef.current[key]
+            }
+          }
+        })
+        
+        // 새 노드를 running 상태로 추가
         setDisplayedNodeStatuses(prev => ({
           ...prev,
           [step]: {
@@ -427,6 +459,32 @@ function NodeTest() {
             prompt: data.content
           }
         }))
+        
+        // 이전 완료된 노드들을 페이드아웃 후 제거
+        const completedKeys = Object.keys(displayedNodeStatuses).filter(key => 
+          key !== 'complete' && key !== step && displayedNodeStatuses[key]?.status === 'complete'
+        )
+        
+        if (completedKeys.length > 0) {
+          // 먼저 opacity를 0으로 설정 (fade out 시작)
+          completedKeys.forEach(key => {
+            const nodeElement = document.querySelector(`[data-node-step="${key}"]`)
+            if (nodeElement) {
+              nodeElement.style.opacity = '0'
+            }
+          })
+          
+          // 애니메이션 시간 후 실제 제거
+          setTimeout(() => {
+            setDisplayedNodeStatuses(prev => {
+              const updated = { ...prev }
+              completedKeys.forEach(key => {
+                delete updated[key]
+              })
+              return updated
+            })
+          }, 300) // 0.3초 후 제거 (transition 시간)
+        }
         
         // 1초 후 다음 큐 항목 처리
         if (displayTimerRef.current) {
@@ -454,6 +512,32 @@ function NodeTest() {
               processingRef.current = false
               processQueue()
             }, 50) // 짧은 딜레이로 상태 업데이트 후 처리
+            
+            // 완료된 노드를 다음 노드가 시작될 때까지 유지
+            // (다음 노드의 prompt 이벤트에서 제거됨)
+            // 만약 다음 노드가 없을 경우를 대비해 긴 시간 후 자동 제거
+            if (completeNodeTimersRef.current[step]) {
+              clearTimeout(completeNodeTimersRef.current[step])
+            }
+            completeNodeTimersRef.current[step] = setTimeout(() => {
+              // 다음 노드가 아직 시작되지 않았을 때만 제거
+              setDisplayedNodeStatuses(prevStatuses => {
+                // 다음 노드가 이미 실행 중이면 제거하지 않음 (다음 노드에서 처리)
+                const hasNextRunning = Object.keys(prevStatuses).some(key => 
+                  key !== step && key !== 'complete' && prevStatuses[key]?.status === 'running'
+                )
+                
+                if (hasNextRunning) {
+                  // 다음 노드가 이미 시작되었으므로 제거하지 않음
+                  return prevStatuses
+                }
+                
+                const updated = { ...prevStatuses }
+                delete updated[step]
+                return updated
+              })
+              delete completeNodeTimersRef.current[step]
+            }, 10000) // 10초 후 제거 (안전장치)
             
             return {
               ...prev,
@@ -489,6 +573,20 @@ function NodeTest() {
             result: data.content
           }
         }))
+        
+        // 에러 노드도 3초 후 자동으로 제거
+        if (completeNodeTimersRef.current[step]) {
+          clearTimeout(completeNodeTimersRef.current[step])
+        }
+        completeNodeTimersRef.current[step] = setTimeout(() => {
+          setDisplayedNodeStatuses(prevStatuses => {
+            const updated = { ...prevStatuses }
+            delete updated[step]
+            return updated
+          })
+          delete completeNodeTimersRef.current[step]
+        }, 3000) // 3초 후 제거
+        
         processingRef.current = false
         setTimeout(() => processQueue(), 0)
       }
@@ -510,13 +608,27 @@ function NodeTest() {
             toolResult: data.toolResult
           }
           
-          // 모든 running 상태의 노드를 complete로 변경
+          // 모든 running 상태의 노드를 complete로 변경하고 자동 제거 타이머 설정
           Object.keys(updated).forEach(key => {
             if (key !== 'complete' && updated[key]?.status === 'running') {
               updated[key] = {
                 ...updated[key],
                 status: 'complete'
               }
+              
+              // 완료된 노드는 다음 노드가 시작될 때 제거됨
+              // (안전장치로 긴 시간 후 자동 제거)
+              if (completeNodeTimersRef.current[key]) {
+                clearTimeout(completeNodeTimersRef.current[key])
+              }
+              completeNodeTimersRef.current[key] = setTimeout(() => {
+                setDisplayedNodeStatuses(prevStatuses => {
+                  const updatedStatuses = { ...prevStatuses }
+                  delete updatedStatuses[key]
+                  return updatedStatuses
+                })
+                delete completeNodeTimersRef.current[key]
+              }, 10000) // 10초 후 제거 (안전장치)
             }
           })
           
@@ -536,6 +648,11 @@ function NodeTest() {
       if (displayTimerRef.current) {
         clearTimeout(displayTimerRef.current)
       }
+      // 모든 완료 노드 타이머 정리
+      Object.values(completeNodeTimersRef.current).forEach(timer => {
+        clearTimeout(timer)
+      })
+      completeNodeTimersRef.current = {}
     }
   }, [])
 
@@ -906,6 +1023,11 @@ function NodeTest() {
       clearTimeout(displayTimerRef.current)
       displayTimerRef.current = null
     }
+    // 모든 완료 노드 타이머 정리
+    Object.values(completeNodeTimersRef.current).forEach(timer => {
+      clearTimeout(timer)
+    })
+    completeNodeTimersRef.current = {}
     processingRef.current = false
     
     // 이전 핸들러와 타임아웃 정리
@@ -1438,8 +1560,9 @@ function NodeTest() {
               </button>
             </div>
             <textarea
+              ref={promptTextareaRef}
               value={promptContent}
-              onChange={(e) => setPromptContent(e.target.value)}
+              onChange={handleTextareaChange}
               placeholder="프롬프트 내용을 입력하세요..."
               className="prompt-textarea-full"
             />
@@ -1488,6 +1611,19 @@ function NodeTest() {
             {/* 에러 메시지 표시 (질문 아래) */}
             {conversation.filter(msg => msg.role === 'error').length > 0 && (
               <div className="error-message-section">
+                <div className="error-message-header">
+                  <h3>오류 발생</h3>
+                  {Object.keys(nodeStatuses).length > 0 && (
+                    <button 
+                      className="detail-view-button"
+                      onClick={() => setSelectedNodeDetail({ 
+                        allNodes: nodeStatuses
+                      })}
+                    >
+                      상세보기
+                    </button>
+                  )}
+                </div>
                 {conversation.filter(msg => msg.role === 'error').map((msg, idx) => (
                   <div key={idx} className="message message-error">
                     <div className="message-header">
@@ -1502,31 +1638,11 @@ function NodeTest() {
               </div>
             )}
             
-            {/* 생성된 SMQ 표시 (질문 아래, 에러 아래) */}
-            {displayedNodeStatuses['complete']?.toolResult?.smq && (
-              <div className="smq-display-section">
-                <div className="message message-tool">
-                  <div className="message-header">
-                    <span className="message-role">📋 생성된 SMQ</span>
-                  </div>
-                  <div className="message-content">
-                    <details open>
-                      <summary><strong>SMQ (Semantic Model Query)</strong></summary>
-                      <pre className="json-code"><code>{JSON.stringify(displayedNodeStatuses['complete'].toolResult.smq, null, 2)}</code></pre>
-                    </details>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* 노드 실행 카드 - 현재 실행 중인 노드만 표시 (Visual Queue 처리된 상태) */}
+            {/* 노드 실행 상태 목록 - 모든 노드의 진행 상황 표시 */}
             {(() => {
-              // displayedNodeStatuses에서 현재 실행 중인 노드 찾기
-              const runningNodes = Object.keys(displayedNodeStatuses)
-                .filter(step => {
-                  const status = displayedNodeStatuses[step]?.status
-                  return step !== 'complete' && status === 'running'
-                })
+              // 모든 노드를 실행 순서대로 정렬 (complete 제외)
+              const allNodes = Object.keys(displayedNodeStatuses)
+                .filter(step => step !== 'complete')
                 .sort((a, b) => {
                   const indexA = nodeOrder.indexOf(a)
                   const indexB = nodeOrder.indexOf(b)
@@ -1536,104 +1652,132 @@ function NodeTest() {
                   return indexA - indexB
                 })
               
-              // 실행 중인 노드 중 가장 앞선 노드 (실행 순서상 첫 번째)
-              const currentRunningNode = runningNodes.length > 0 ? runningNodes[0] : null
+              // 실행 중인 노드가 있는지 확인
+              const hasRunningNodes = allNodes.some(step => 
+                displayedNodeStatuses[step]?.status === 'running'
+              )
               
-              if (!currentRunningNode) return null
-              
-              const nodeStatus = displayedNodeStatuses[currentRunningNode]
-              const nodeName = nodeNameMap[currentRunningNode] || currentRunningNode
+              // 노드가 하나도 없으면 표시하지 않음
+              if (allNodes.length === 0) return null
               
               return (
-                <div className="node-running-card-container">
-                  <div key={currentRunningNode} className="node-running-card">
-                    <div className="node-running-card-header">
-                      <div className="node-running-card-icon">🔄</div>
-                      <div className="node-running-card-title">{nodeName}</div>
-                    </div>
-                    <div className="node-running-card-body">
-                      <div className="node-running-card-status">실행 중...</div>
-                    </div>
+                <div className="node-execution-list">
+                  <div className="node-execution-list-header">
+                    <h3>실행 진행 상황</h3>
+                    {hasRunningNodes && (
+                      <span className="execution-status-badge running">실행 중</span>
+                    )}
+                    {!hasRunningNodes && displayedNodeStatuses['complete'] && (
+                      <span className="execution-status-badge complete">완료</span>
+                    )}
+                  </div>
+                  <div className="node-execution-items">
+                    {allNodes.map(step => {
+                      const nodeStatus = displayedNodeStatuses[step]
+                      if (!nodeStatus) return null
+                      
+                      const nodeName = nodeNameMap[step] || step
+                      const status = nodeStatus.status
+                      
+                      return (
+                        <div 
+                          key={step}
+                          data-node-step={step}
+                          className={`node-execution-item node-execution-item-${status}`}
+                        >
+                          <div className="node-execution-item-icon">
+                            {status === 'running' && '🔄'}
+                            {status === 'complete' && '✅'}
+                            {status === 'error' && '❌'}
+                            {!status && '⏸️'}
+                          </div>
+                          <div className="node-execution-item-info">
+                            <div className="node-execution-item-name">{nodeName}</div>
+                            <div className="node-execution-item-status">
+                              {status === 'running' && '실행 중...'}
+                              {status === 'complete' && '완료'}
+                              {status === 'error' && '오류 발생'}
+                              {!status && '대기 중'}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )
             })()}
             
-            {/* 최종 결과 표시 (complete 노드) - displayedNodeStatuses 사용 */}
+            {/* 최종 결과 표시 (complete 노드) - 비교 테스트 스타일로 요약 표시 */}
             {displayedNodeStatuses['complete'] && displayedNodeStatuses['complete'].status === 'complete' && (
-              <div className="final-result-section">
-                <h3>최종 결과</h3>
-                <div className="final-result-content">
-                  {displayedNodeStatuses['complete'].result && (
-                    <div className="final-result-text">{displayedNodeStatuses['complete'].result}</div>
-                  )}
-                  {displayedNodeStatuses['complete'].toolResult && (
-                    <div className="final-result-data">
-                      {/* query_result가 있으면 테이블로 표시 */}
-                      {displayedNodeStatuses['complete'].toolResult.query_result && (
-                        <div className="query-result-section">
-                          <details open>
-                            <summary><strong>📊 생성된 예시 데이터</strong></summary>
-                            {displayedNodeStatuses['complete'].toolResult.query_result.rows && displayedNodeStatuses['complete'].toolResult.query_result.rows.length > 0 ? (
-                              <div className="data-table-container">
-                                <table className="data-table">
-                                  <thead>
-                                    <tr>
+              <div className="compare-final-result">
+                <h5>최종 결과</h5>
+                {displayedNodeStatuses['complete'].result && (
+                  <div className="compare-result-text">{displayedNodeStatuses['complete'].result}</div>
+                )}
+                {displayedNodeStatuses['complete'].toolResult && (
+                  <div className="compare-result-data">
+                    {/* 1. 생성된 예시 데이터 (기본 펼침) */}
+                    {displayedNodeStatuses['complete'].toolResult.query_result && (
+                      <div className="compare-query-result">
+                        <details open>
+                          <summary><strong>📊 생성된 예시 데이터</strong></summary>
+                          {displayedNodeStatuses['complete'].toolResult.query_result.rows && displayedNodeStatuses['complete'].toolResult.query_result.rows.length > 0 ? (
+                            <div className="data-table-container">
+                              <table className="data-table">
+                                <thead>
+                                  <tr>
+                                    {displayedNodeStatuses['complete'].toolResult.query_result.columns && displayedNodeStatuses['complete'].toolResult.query_result.columns.map((col, colIdx) => (
+                                      <th key={colIdx}>{col}</th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {displayedNodeStatuses['complete'].toolResult.query_result.rows.map((row, rowIdx) => (
+                                    <tr key={rowIdx}>
                                       {displayedNodeStatuses['complete'].toolResult.query_result.columns && displayedNodeStatuses['complete'].toolResult.query_result.columns.map((col, colIdx) => (
-                                        <th key={colIdx}>{col}</th>
+                                        <td key={colIdx}>{row[col] !== null && row[col] !== undefined ? String(row[col]) : '-'}</td>
                                       ))}
                                     </tr>
-                                  </thead>
-                                  <tbody>
-                                    {displayedNodeStatuses['complete'].toolResult.query_result.rows.map((row, rowIdx) => (
-                                      <tr key={rowIdx}>
-                                        {displayedNodeStatuses['complete'].toolResult.query_result.columns && displayedNodeStatuses['complete'].toolResult.query_result.columns.map((col, colIdx) => (
-                                          <td key={colIdx}>{row[col] !== null && row[col] !== undefined ? String(row[col]) : '-'}</td>
-                                        ))}
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            ) : (
-                              <p>데이터가 없습니다.</p>
-                            )}
-                          </details>
-                        </div>
-                      )}
-                      
-                      {/* sql_query가 있으면 코드 블록으로 표시 */}
-                      {displayedNodeStatuses['complete'].toolResult.sql_query && (
-                        <div className="sql-query-section">
-                          <details>
-                            <summary><strong>🔍 생성된 SQL 쿼리</strong></summary>
-                            <pre className="sql-code"><code>{displayedNodeStatuses['complete'].toolResult.sql_query}</code></pre>
-                          </details>
-                        </div>
-                      )}
-                      
-                      {/* smq가 있으면 JSON으로 표시 */}
-                      {displayedNodeStatuses['complete'].toolResult.smq && (
-                        <div className="smq-section">
-                          <details>
-                            <summary><strong>📋 생성된 SMQ</strong></summary>
-                            <pre className="json-code"><code>{JSON.stringify(displayedNodeStatuses['complete'].toolResult.smq, null, 2)}</code></pre>
-                          </details>
-                        </div>
-                      )}
-                      
-                      {/* sql_result가 있으면 메타데이터 표시 */}
-                      {displayedNodeStatuses['complete'].toolResult.sql_result && (
-                        <div className="sql-result-section">
-                          <details>
-                            <summary><strong>🔧 SQL 변환 결과 (메타데이터)</strong></summary>
-                            <pre className="json-code"><code>{JSON.stringify(displayedNodeStatuses['complete'].toolResult.sql_result, null, 2)}</code></pre>
-                          </details>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p>데이터가 없습니다.</p>
+                          )}
+                        </details>
+                      </div>
+                    )}
+                    {/* 2. 생성된 SMQ (기본 펼침) */}
+                    {displayedNodeStatuses['complete'].toolResult.smq && (
+                      <div className="compare-smq">
+                        <details open>
+                          <summary><strong>📋 생성된 SMQ</strong></summary>
+                          <pre className="json-code"><code>{JSON.stringify(displayedNodeStatuses['complete'].toolResult.smq, null, 2)}</code></pre>
+                        </details>
+                      </div>
+                    )}
+                    {/* 3. 생성된 SQL 쿼리 */}
+                    {displayedNodeStatuses['complete'].toolResult.sql_query && (
+                      <div className="compare-sql-query">
+                        <details>
+                          <summary><strong>🔍 생성된 SQL 쿼리</strong></summary>
+                          <pre className="sql-code"><code>{displayedNodeStatuses['complete'].toolResult.sql_query}</code></pre>
+                        </details>
+                      </div>
+                    )}
+                    {/* 4. SQL 변환 결과 (메타데이터) */}
+                    {displayedNodeStatuses['complete'].toolResult.sql_result && (
+                      <div className="compare-sql-result">
+                        <details>
+                          <summary><strong>🔧 SQL 변환 결과 (메타데이터)</strong></summary>
+                          <pre className="json-code"><code>{JSON.stringify(displayedNodeStatuses['complete'].toolResult.sql_result, null, 2)}</code></pre>
+                        </details>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             

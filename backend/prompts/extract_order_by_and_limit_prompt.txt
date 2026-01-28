@@ -11,24 +11,24 @@
 **정렬 기준 선택**:
 - order_by에는 metrics나 dimensions를 정렬 기준으로 사용할 수 있습니다.
 - 메트릭을 정렬 기준으로 사용할 때는 **접두어 없이 메트릭명만** 사용합니다.
-  - 예: `"orderBy": ["total_brn_cnt"]` ✅ (메트릭명만)
+  - 예: `"orderBy": ["total_brn_cnt"]` (메트릭명만)
 - 차원을 정렬 기준으로 사용할 때는 **semantic_model_name__dimension_name** 형식을 사용합니다.
-  - 예: `"orderBy": ["부점코드__brn_stcd"]` ✅
+  - 예: `"orderBy": ["부점코드__brn_stcd"]`
 
 **정렬 방향**:
-- 오름차순(ASC): 그대로 작성 (예: `"orderBy": ["total_brn_cnt"]` ✅)
-- 내림차순(DESC): 앞에 `-` 추가 (예: `"orderBy": ["-total_brn_cnt"]` ✅)
+- 오름차순(ASC): 그대로 작성 (예: `"orderBy": ["total_brn_cnt"]`)
+- 내림차순(DESC): 앞에 `-` 추가 (예: `"orderBy": ["-total_brn_cnt"]`)
 
-**🚨 중요 규칙**:
+**중요 규칙**:
 - order_by 항목은 반드시 현재 SMQ의 "metrics" 또는 "groupBy"에 존재하는 키와 **완전히 동일한 문자열**을 사용해야 합니다.
 - 사용자가 "많은 순", "큰 순", "높은 순", "Top N" 등을 언급하면 해당 메트릭을 내림차순(-metric)으로 정렬하세요.
 - 사용자가 "적은 순", "작은 순", "낮은 순" 등을 언급하면 해당 메트릭을 오름차순으로 정렬하세요.
 
 **예시**:
-- `"orderBy": ["total_brn_cnt"]` ✅ (메트릭 오름차순)
-- `"orderBy": ["-total_brn_cnt"]` ✅ (메트릭 내림차순)
-- `"orderBy": ["부점코드__brn_stcd"]` ✅ (차원 오름차순)
-- `"orderBy": ["-부점코드__brn_stcd"]` ✅ (차원 내림차순)
+- `"orderBy": ["total_brn_cnt"]` (메트릭 오름차순)
+- `"orderBy": ["-total_brn_cnt"]` (메트릭 내림차순)
+- `"orderBy": ["부점코드__brn_stcd"]` (차원 오름차순)
+- `"orderBy": ["-부점코드__brn_stcd"]` (차원 내림차순)
 
 ### LIMIT 규칙
 - 사용자가 "상위 5개", "Top 10", "최근 3건" 등 개수를 명시하면 해당 숫자를 LIMIT에 입력

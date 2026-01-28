@@ -2,13 +2,14 @@ semantic_models:
 - name: loan
   table: kjbank_daquv('wailn_d1030_l')
   description: 대출·여신 계좌의 일별 스냅샷 정보를 관리하며, 기준일자(base_dt) 기준 대출잔액, 한도, 금리 분석에 사용되는 semantic 모델
-  defaults:
-    agg_time_dimension: base_dt
 
   entities: 
   - name: loan
     type: primary
     expr: acno
+  - name: loan_cstno
+    type: primary
+    expr: cstno
 
   dimensions:
   - name: base_dt
@@ -16,15 +17,20 @@ semantic_models:
     label: 기준일자
     expr: base_dt
     description: 기준조회일자
+  - name: base_month
+    type: varchar
+    label: 기준년월
+    expr: SUBSTR(loan__base_dt, 1, 6)
+    description: 기준년월 (YYYYMM). varchar type
   - name: acno
     label: 계좌번호
     type: varchar
-    description: 계좌원장을 갖는 업무별로 계좌에 부여되는 유일한 식별번호
+    description: 계좌원장을 갖는 업무별로 계좌에 부여되는 유일한 식별번호. 금융기관에서 고객 계좌를 식별하는 번호
     expr: acno
   - name: bs_accd
     label: BS계정코드
     type: varchar
-    description: BS계정코드
+    description: BS계정코드. BS계정코드는 은행의 자산·부채·자본을 재무상태표 기준으로 관리·집계하기 위한 핵심 회계 코드
     expr: bs_accd
   - name: cstno
     label: 고객번호
@@ -54,7 +60,7 @@ semantic_models:
   - name: lnbz_corp_scal_cd
     label: 여신기업규모코드
     type: varchar
-    description: select cvol_cd, cvol_nm from cipcvol
+    description: 여신기업규모코드
     expr: lnbz_corp_scal_cd
   - name: ltly_corp_cred_gd20_cd
     label: 최근기업신용20등급코드
@@ -76,11 +82,16 @@ semantic_models:
     type: varchar
     description: 본부에서 승인여부를 관리한다 (Y/N)
     expr: hq_aprv_yn
-  - name: frst_new_acqs_dt
+  - name: new_dt
     label: 최초신규취득일자
     type: varchar
     description: 최초로 신규 취득한 일자를 말한다.
     expr: frst_new_acqs_dt
+  - name: new_month
+    label: 최초신규취득월
+    type: varchar
+    description: 최초로 신규 취득한 월을 말한다.
+    expr: SUBSTR(frst_new_acqs_dt,1,6)
   - name: last_tx_dt
     label: 최종거래일자
     type: varchar
@@ -89,7 +100,7 @@ semantic_models:
   - name: trst_cmbn_cd
     label: 신탁합동코드
     type: varchar
-    description: 은행신탁합동구분코드
+    description: 은행신탁합동구분코드. 여러 고객의 자금을 하나의 자금풀(공동운용)로 통합해 운용하는 신탁상품의 코드 또는 분류명칭
     expr: trst_cmbn_cd
   - name: lnbz_hndl_frst_appr_empno
     label: 여신취급최초승인권자직원번호
@@ -236,6 +247,16 @@ semantic_models:
     type: varchar
     description: 차세대 시스템 오픈 이후 참고용으로 여신영역의 舊이율코드(iyulcd)를 보관하기 위한 항목이다.
     expr: gu_rt_cd_val
+  - name: loan_type
+    label: 대출상품군
+    type: varchar
+    description: 대출상품군.
+    expr: >
+      CASE WHEN loan__pcpl_repay_mtcd='01' AND loan__lnbz_prgr_cd='01601' THEN '1.일반_일시' 
+           WHEN loan__pcpl_repay_mtcd='05' AND loan__lnbz_prgr_cd='01601' THEN '2.일반_분할' 
+           WHEN loan__pcpl_repay_mtcd='01' AND loan__lnbz_prgr_cd='01603' THEN '3.대환_일시' 
+           WHEN loan__pcpl_repay_mtcd='05' AND loan__lnbz_prgr_cd='01603' THEN '4.대환_분할' 
+      END AS loan_type
     
   measures:
   - name: frst_lbam
@@ -293,6 +314,11 @@ semantic_models:
     type: integer
     description: 외화잔액
     expr: fxbal
+  - name: cnt
+    label: 대출 취급건수
+    type: integer
+    description: 대출 취급건수
+    expr: 1
 
 metrics:
 - name: total_loan_account_count
@@ -301,8 +327,14 @@ metrics:
   metric_type: simple
   label: 총 대출계좌 수
   expr: COUNT(DISTINCT loan__acno)
+- name: total_loan_cnt
+  description: 총 대출 취급건수
+  type: integer
+  metric_type: simple
+  label: 총 대출 취급건수
+  expr: COUNT(loan__cnt)
 - name: total_frst_lbam
-  description: 총 최초여신금액
+  description: 총 최초여신금액. 취급금액 질문에도 해당 컬럼 활용. metrics에 총 최초여신금액 선택 시 가중평균금리(total_weighter_rate)도 함께 선택 필수.
   type: integer
   metric_type: simple
   label: 총 최초여신금액
@@ -313,6 +345,18 @@ metrics:
   metric_type: simple
   label: 총 이율
   expr: SUM(loan__rt)
+- name: weighted_rate
+  description: 대출 금액 가중치
+  type: integer
+  metric_type: simple
+  label: 대출 금액 가중치
+  expr: SUM(loan__frst_lbam * loan__rt)
+- name: total_weighted_rate
+  description: 가중평균금리. 사용자의 질문에 취급금액, 여신금액 등의 키워드가 있어서 metrics에 총 최초여신금액 선택 시 해당 컬럼도 함께 metrics에 출력 필수.
+  type: integer
+  metric_type: derived
+  label: 가중평균금리
+  expr: weighted_rate / total_frst_lbam 
 - name: avg_rt
   description: 평균 이율
   type: integer

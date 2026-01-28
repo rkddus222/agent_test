@@ -3,6 +3,31 @@ import os
 from typing import Dict, Any, Optional, Tuple
 from backend.semantic.model_manager.utils.ddl_types import TableInfo
 
+def _parse_comment(comment: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
+    """
+    주석을 ':' 기준으로 분리하여 label과 description을 반환합니다.
+    
+    Args:
+        comment: 주석 문자열 (예: "기준일자 : 기준일자")
+        
+    Returns:
+        (label, description) 튜플
+        - ':'가 있으면: (앞부분, 뒷부분)
+        - ':'가 없으면: (전체, 전체)
+        - comment가 None이면: (None, None)
+    """
+    if not comment:
+        return None, None
+    
+    comment = comment.strip()
+    if ':' in comment:
+        parts = comment.split(':', 1)
+        label = parts[0].strip()
+        description = parts[1].strip() if len(parts) > 1 else label
+        return label, description
+    else:
+        return comment, comment
+
 def _find_source_name_for_table(table_name: str, sources_yml_path: Optional[str] = None) -> Optional[str]:
     """
     sources.yml에서 테이블명으로 source name을 찾습니다.
@@ -107,14 +132,21 @@ def generate_semantic_model_from_ddl(
     for col in table_info.columns:
         col_type = _map_db_type_to_semantic_type(col.type)
         
+        # 주석 파싱 (':' 기준으로 label과 description 분리)
+        label, description = _parse_comment(col.comment)
+        if not label:
+            label = col.name
+        if not description:
+            description = label  # description이 없으면 label과 동일하게 설정
+        
         # number 타입이 아닌 컬럼만 dimension으로 추가
         if col_type != "number":
             dim = {
                 "name": col.name.lower(),
                 "type": col_type,
                 "expr": col.name,
-                "label": col.comment or col.name, # 코멘트가 있으면 라벨로 사용
-                "description": col.comment
+                "label": label,
+                "description": description
             }
             
             # 날짜 타입인 경우 granularity 추가
@@ -130,8 +162,8 @@ def generate_semantic_model_from_ddl(
                 "name": col.name.lower(),
                 "type": col_type,
                 "expr": col.name,
-                "label": col.comment or col.name,
-                "description": col.comment
+                "label": label,
+                "description": description
             }
             semantic_model["measures"].append(measure)
     
@@ -145,12 +177,19 @@ def generate_semantic_model_from_ddl(
         pk_col = next((col for col in table_info.columns if col.name == first_pk), None)
         pk_comment = pk_col.comment if pk_col else None
         
+        # PK 주석 파싱 (':' 기준으로 label과 description 분리)
+        pk_label, pk_description = _parse_comment(pk_comment)
+        if not pk_label:
+            pk_label = f"{first_pk} 수"
+        if not pk_description:
+            pk_description = pk_label  # description이 없으면 label과 동일하게 설정
+        
         semantic_model["measures"].append({
             "name": pk_count_measure_name,
             "type": "number",
             "expr": first_pk,
-            "label": pk_comment or f"{first_pk} 수",
-            "description": pk_comment or f"{first_pk} 수"
+            "label": pk_label,
+            "description": pk_description
         })
 
     # 전체 구조 조립

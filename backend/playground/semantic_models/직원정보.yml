@@ -2,13 +2,14 @@ semantic_models:
 - name: employee
   table: kjbank_daquv('wahpn_pinfo_mn')
   description: 직원번호(empno)를 기준으로 근무 상태, 직위, 고용 구분 등 직원 단위 분석의 기준이 되는 semantic 모델
-  defaults:
-    agg_time_dimension: base_dt
 
   entities:
-  - name: employee
+  - name: employee_no
     type: primary
     expr: empno
+  - name: employee_dt
+    type: primary
+    expr: base_dt
 
   dimensions:
   - name: base_dt
@@ -190,9 +191,3 @@ metrics:
   metric_type: simple
   label: 총 직원 수
   expr: COUNT(DISTINCT employee__empno_count)
-- name: sum_empno_count
-  description: 직원 수의 합계
-  type: integer
-  metric_type: simple
-  label: 직원 수 합계
-  expr: SUM(employee__empno_count)

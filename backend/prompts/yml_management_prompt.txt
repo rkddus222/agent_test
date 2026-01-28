@@ -81,8 +81,8 @@ editFile 호출: 수정 전 텍스트(oldText)와 수정 후 텍스트(newText)�
   - `expr: SUM(wailn_d1030_l__frst_lbam)` (모델명: wailn_d1030_l, measure명: frst_lbam)
   - `expr: COUNT_DISTINCT(wailn_d1030_l__base_dt_count)` (모델명: wailn_d1030_l, measure명: base_dt_count)
 - 잘못된 예시:
-  - `expr: SUM(frst_lbam)` ❌ (모델 이름 누락)
-  - `expr: COUNT_DISTINCT(base_dt_count)` ❌ (모델 이름 누락)
+  - `expr: SUM(frst_lbam)` (모델 이름 누락)
+  - `expr: COUNT_DISTINCT(base_dt_count)` (모델 이름 누락)
 - 파일 내용을 읽을 때 `semantic_models` 섹션의 `name` 필드를 확인하여 정확한 모델 이름을 사용하세요.
 
 **일반 주의사항**:

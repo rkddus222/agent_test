@@ -18,6 +18,10 @@ function YMLManagement() {
   const [ddlText, setDdlText] = useState('')
   const [parseLoading, setParseLoading] = useState(false)
   const [ddlLoading, setDdlLoading] = useState(false)
+  const [modalTab, setModalTab] = useState('ddl') // 'ddl' or 'yml'
+  const [ymlContent, setYmlContent] = useState('')
+  const [modalFileName, setModalFileName] = useState('')
+  const [ymlLoading, setYmlLoading] = useState(false)
   const [loadingFiles, setLoadingFiles] = useState(true)
   const [viewMode, setViewMode] = useState('table') // 'table' or 'text'
   const [tableData, setTableData] = useState(null)
@@ -267,20 +271,56 @@ function YMLManagement() {
       return
     }
     
+    if (!modalFileName.trim()) {
+      alert('파일 이름을 입력해주세요.')
+      return
+    }
+    
     setDdlLoading(true)
     try {
       const response = await axios.post('/api/ddl/create', {
         dialect: ddlDialect,
-        ddl_text: ddlText
+        ddl_text: ddlText,
+        filename: modalFileName.trim()
       })
       await loadFiles()
       setDdlText('')
+      setModalFileName('')
       setShowDDLModal(false)
       alert(`✅ ${response.data.message || 'DDL에서 파일이 생성되었습니다!'}`)
     } catch (error) {
       alert('❌ DDL 생성 실패: ' + (error.response?.data?.detail || error.message))
     } finally {
       setDdlLoading(false)
+    }
+  }
+
+  const handleCreateFromYML = async () => {
+    if (!ymlContent.trim()) {
+      alert('YML 내용을 입력해주세요.')
+      return
+    }
+    
+    if (!modalFileName.trim()) {
+      alert('파일 이름을 입력해주세요.')
+      return
+    }
+    
+    setYmlLoading(true)
+    try {
+      const response = await axios.post('/api/files', {
+        filename: modalFileName.trim(),
+        content: ymlContent.trim()
+      })
+      await loadFiles()
+      setYmlContent('')
+      setModalFileName('')
+      setShowDDLModal(false)
+      alert(`✅ ${response.data.message || 'YML 파일이 생성되었습니다!'}`)
+    } catch (error) {
+      alert('❌ YML 파일 생성 실패: ' + (error.response?.data?.detail || error.message))
+    } finally {
+      setYmlLoading(false)
     }
   }
 
@@ -467,9 +507,9 @@ function YMLManagement() {
                             columns={[
                               { key: 'name', label: 'Name', width: '150px' },
                               { key: 'type', label: 'Type', width: '120px' },
-                              { key: 'expr', label: 'Expr', width: '200px' },
+                              { key: 'expr', label: 'Expr', width: '200px', type: 'textarea' },
                               { key: 'label', label: 'Label', width: '150px' },
-                              { key: 'description', label: 'Description', width: '250px' },
+                              { key: 'description', label: 'Description', width: '250px', type: 'textarea' },
                               { key: 'role', label: 'Role', width: '100px' }
                             ]}
                             data={model.entities || []}
@@ -491,9 +531,9 @@ function YMLManagement() {
                             columns={[
                               { key: 'name', label: 'Name', width: '150px' },
                               { key: 'type', label: 'Type', width: '120px' },
-                              { key: 'expr', label: 'Expr', width: '200px' },
+                              { key: 'expr', label: 'Expr', width: '200px', type: 'textarea' },
                               { key: 'label', label: 'Label', width: '150px' },
-                              { key: 'description', label: 'Description', width: '300px' }
+                              { key: 'description', label: 'Description', width: '300px', type: 'textarea' }
                             ]}
                             data={model.dimensions || []}
                             onDataChange={(newData) => handleTableDataChange('dimensions', newData, modelIndex)}
@@ -514,9 +554,9 @@ function YMLManagement() {
                             columns={[
                               { key: 'name', label: 'Name', width: '150px' },
                               { key: 'type', label: 'Type', width: '120px' },
-                              { key: 'expr', label: 'Expr', width: '200px' },
+                              { key: 'expr', label: 'Expr', width: '200px', type: 'textarea' },
                               { key: 'label', label: 'Label', width: '150px' },
-                              { key: 'description', label: 'Description', width: '250px' },
+                              { key: 'description', label: 'Description', width: '250px', type: 'textarea' },
                               { key: 'agg', label: 'Agg', width: '100px' }
                             ]}
                             data={model.measures || []}
@@ -559,9 +599,9 @@ function YMLManagement() {
                                 })
                                 return allMeasures
                               })() },
-                              { key: 'expr', label: 'Expr', width: '200px' },
+                              { key: 'expr', label: 'Expr', width: '200px', type: 'textarea' },
                               { key: 'label', label: 'Label', width: '150px' },
-                              { key: 'description', label: 'Description', width: '300px' }
+                              { key: 'description', label: 'Description', width: '300px', type: 'textarea' }
                             ]}
                             data={tableData.metrics}
                             onDataChange={(newData) => {
@@ -689,44 +729,96 @@ function YMLManagement() {
         </div>
       </div>
 
-      {/* DDL 모달 */}
+      {/* 새 파일 생성 모달 */}
       {showDDLModal && (
         <div className="modal-overlay" onClick={() => setShowDDLModal(false)}>
           <div className="modal-content modal-content-large" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>DDL에서 Semantic Model 생성</h3>
+              <h3>새 파일 생성</h3>
               <button
                 className="modal-close"
-                onClick={() => setShowDDLModal(false)}
+                onClick={() => {
+                  setShowDDLModal(false)
+                  setDdlText('')
+                  setYmlContent('')
+                  setModalFileName('')
+                  setModalTab('ddl')
+                }}
               >
                 ×
               </button>
             </div>
             <div className="modal-body">
-              <div className="ddl-form">
+              {/* 파일 이름 입력 */}
+              <div className="modal-form-item">
                 <label>
-                  DBMS 타입
-                  <select
-                    value={ddlDialect}
-                    onChange={(e) => setDdlDialect(e.target.value)}
-                  >
-                    <option value="bigquery">BigQuery</option>
-                    <option value="mysql">MySQL</option>
-                    <option value="postgresql">PostgreSQL</option>
-                    <option value="oracle">Oracle</option>
-                    <option value="mssql">MSSQL</option>
-                  </select>
-                </label>
-                <label>
-                  DDL 문 입력
-                  <textarea
-                    placeholder={`-- ${ddlDialect}\nCREATE TABLE \`project.dataset.table_name\` (\n  \`id\` INTEGER NOT NULL,\n  \`name\` STRING,\n  \`amount\` DECIMAL(10, 2),\n  PRIMARY KEY (\`id\`)\n);`}
-                    value={ddlText}
-                    onChange={(e) => setDdlText(e.target.value)}
-                    rows={15}
+                  파일 이름
+                  <input
+                    type="text"
+                    placeholder="예: 상품기본.yml"
+                    value={modalFileName}
+                    onChange={(e) => setModalFileName(e.target.value)}
+                    className="modal-input"
                   />
                 </label>
               </div>
+
+              {/* 탭 */}
+              <div className="modal-tabs">
+                <button
+                  className={`modal-tab ${modalTab === 'ddl' ? 'active' : ''}`}
+                  onClick={() => setModalTab('ddl')}
+                >
+                  📝 DDL에서 생성
+                </button>
+                <button
+                  className={`modal-tab ${modalTab === 'yml' ? 'active' : ''}`}
+                  onClick={() => setModalTab('yml')}
+                >
+                  ✏️ YML 직접 입력
+                </button>
+              </div>
+
+              {/* 탭 내용 */}
+              {modalTab === 'ddl' ? (
+                <div className="ddl-form">
+                  <label>
+                    DBMS 타입
+                    <select
+                      value={ddlDialect}
+                      onChange={(e) => setDdlDialect(e.target.value)}
+                    >
+                      <option value="bigquery">BigQuery</option>
+                      <option value="mysql">MySQL</option>
+                      <option value="postgresql">PostgreSQL</option>
+                      <option value="oracle">Oracle</option>
+                      <option value="mssql">MSSQL</option>
+                    </select>
+                  </label>
+                  <label>
+                    DDL 문 입력
+                    <textarea
+                      placeholder={`-- ${ddlDialect}\nCREATE TABLE \`project.dataset.table_name\` (\n  \`id\` INTEGER NOT NULL,\n  \`name\` STRING,\n  \`amount\` DECIMAL(10, 2),\n  PRIMARY KEY (\`id\`)\n);`}
+                      value={ddlText}
+                      onChange={(e) => setDdlText(e.target.value)}
+                      rows={15}
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div className="yml-form">
+                  <label>
+                    YML 내용 입력
+                    <textarea
+                      placeholder={`type: semantic_model\nname: 모델명\ntable: 테이블명\n\nentities:\n  - name: entity1\n    type: string\n    expr: column1\n\ndimensions:\n  - name: dim1\n    type: string\n    expr: column2\n\nmeasures:\n  - name: measure1\n    type: number\n    expr: column3\n    agg: sum`}
+                      value={ymlContent}
+                      onChange={(e) => setYmlContent(e.target.value)}
+                      rows={20}
+                      className="yml-textarea"
+                    />
+                  </label>
+                </div>
+              )}
             </div>
             <div className="modal-footer">
               <button
@@ -734,16 +826,25 @@ function YMLManagement() {
                 onClick={() => {
                   setShowDDLModal(false)
                   setDdlText('')
+                  setYmlContent('')
+                  setModalFileName('')
+                  setModalTab('ddl')
                 }}
               >
                 취소
               </button>
               <button
                 className="modal-button-submit"
-                onClick={handleCreateFromDDL}
-                disabled={ddlLoading || !ddlText.trim()}
+                onClick={modalTab === 'ddl' ? handleCreateFromDDL : handleCreateFromYML}
+                disabled={
+                  !modalFileName.trim() || 
+                  (modalTab === 'ddl' ? (ddlLoading || !ddlText.trim()) : (ymlLoading || !ymlContent.trim()))
+                }
               >
-                {ddlLoading ? '생성 중...' : 'DDL에서 생성'}
+                {modalTab === 'ddl' 
+                  ? (ddlLoading ? '생성 중...' : 'DDL에서 생성')
+                  : (ymlLoading ? '생성 중...' : 'YML 파일 생성')
+                }
               </button>
             </div>
           </div>

@@ -4,6 +4,7 @@ import './EditableTable.css'
 function EditableTable({ title, columns, data, onDataChange, onAddRow, onDeleteRow, onCellChange }) {
   const [editingCell, setEditingCell] = useState(null)
   const [editValue, setEditValue] = useState('')
+  const [modalEdit, setModalEdit] = useState(null) // { rowIndex, columnKey, value }
 
   const handleCellClick = (rowIndex, columnKey) => {
     const cellKey = `${rowIndex}-${columnKey}`
@@ -11,6 +12,17 @@ function EditableTable({ title, columns, data, onDataChange, onAddRow, onDeleteR
     
     // dropdown 타입인 경우 바로 편집 모드로 진입하지 않고 클릭만 처리
     if (column && column.type === 'select') {
+      return
+    }
+    
+    // textarea 타입인 경우 모달로 편집
+    if (column && column.type === 'textarea') {
+      setModalEdit({
+        rowIndex,
+        columnKey,
+        value: data[rowIndex][columnKey] || '',
+        label: column.label
+      })
       return
     }
     
@@ -127,6 +139,25 @@ function EditableTable({ title, columns, data, onDataChange, onAddRow, onDeleteR
     }
   }
 
+  const handleModalSave = () => {
+    if (modalEdit) {
+      const { rowIndex, columnKey, value } = modalEdit
+      const newData = [...data]
+      const oldValue = newData[rowIndex][columnKey]
+      newData[rowIndex][columnKey] = value
+      
+      if (oldValue !== value) {
+        onDataChange(newData)
+      }
+      
+      setModalEdit(null)
+    }
+  }
+
+  const handleModalCancel = () => {
+    setModalEdit(null)
+  }
+
   return (
     <div className="editable-table-container">
       <div className="editable-table-header">
@@ -214,11 +245,18 @@ function EditableTable({ title, columns, data, onDataChange, onAddRow, onDeleteR
                           />
                         ) : (
                           <div
-                            className="editable-cell"
+                            className={`editable-cell ${col.type === 'textarea' ? 'editable-cell-long' : ''}`}
                             onClick={() => handleCellClick(rowIndex, col.key)}
-                            title="클릭하여 편집"
+                            title={col.type === 'textarea' ? '클릭하여 편집 (긴 텍스트)' : '클릭하여 편집'}
                           >
-                            {cellValue || <span className="empty-cell-placeholder">-</span>}
+                            {col.type === 'textarea' && cellValue ? (
+                              <div className="cell-preview">
+                                {cellValue.length > 100 ? `${cellValue.substring(0, 100)}...` : cellValue}
+                                <span className="cell-expand-hint">✏️ 편집</span>
+                              </div>
+                            ) : (
+                              cellValue || <span className="empty-cell-placeholder">-</span>
+                            )}
                           </div>
                         )}
                       </td>
@@ -239,6 +277,56 @@ function EditableTable({ title, columns, data, onDataChange, onAddRow, onDeleteR
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* 텍스트 편집 모달 */}
+      {modalEdit && (
+        <div className="cell-edit-modal-overlay" onClick={handleModalCancel}>
+          <div className="cell-edit-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cell-edit-modal-header">
+              <h3>{modalEdit.label} 편집</h3>
+              <button
+                className="cell-edit-modal-close"
+                onClick={handleModalCancel}
+              >
+                ×
+              </button>
+            </div>
+            <div className="cell-edit-modal-body">
+              <textarea
+                className="cell-edit-textarea"
+                value={modalEdit.value}
+                onChange={(e) => setModalEdit({ ...modalEdit, value: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    e.preventDefault()
+                    handleModalCancel()
+                  } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault()
+                    handleModalSave()
+                  }
+                }}
+                placeholder="내용을 입력하세요..."
+                autoFocus
+                rows={10}
+              />
+            </div>
+            <div className="cell-edit-modal-footer">
+              <button
+                className="cell-edit-modal-button cell-edit-modal-button-cancel"
+                onClick={handleModalCancel}
+              >
+                취소
+              </button>
+              <button
+                className="cell-edit-modal-button cell-edit-modal-button-save"
+                onClick={handleModalSave}
+              >
+                저장
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

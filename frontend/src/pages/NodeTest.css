@@ -4,6 +4,7 @@
   height: 100%;
   background-color: #f5f5f5;
   overflow: hidden;
+  position: relative;
 }
 
 .node-test-header {
@@ -119,7 +120,9 @@
   display: flex;
   gap: 1rem;
   padding: 1rem;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }
 
 .node-test-conversation {
@@ -825,11 +828,33 @@
 
 /* 프롬프트 관리 스타일 */
 .prompt-management {
-  flex: 1;
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   background-color: #f9fafb;
+  min-height: 0;
+  position: relative;
+}
+
+/* 스크롤바 스타일링 */
+.prompt-management::-webkit-scrollbar {
+  width: 12px;
+}
+
+.prompt-management::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 6px;
+}
+
+.prompt-management::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 6px;
+}
+
+.prompt-management::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .prompt-management-header {
@@ -1059,14 +1084,14 @@
 }
 
 .prompt-editor-container {
-  flex: 1;
+  flex: 0 0 auto;
   padding: 2rem;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+  padding-bottom: 4rem; /* 하단 여백 추가로 저장 버튼이 잘리지 않도록 */
 }
 
 .prompt-editor-header {
@@ -1154,7 +1179,6 @@
 }
 
 .prompt-textarea-full {
-  flex: 1;
   width: 100%;
   padding: 1.5rem;
   border: 2px solid #e5e7eb;
@@ -1165,9 +1189,29 @@
   line-height: 1.6;
   color: #1f2937;
   background-color: #fafafa;
-  transition: all 0.2s;
-  overflow-y: auto;
-  min-height: 400px;
+  transition: height 0.1s ease;
+  overflow-y: hidden;
+  min-height: 200px;
+  flex-shrink: 0;
+}
+
+/* textarea 스크롤바 스타일링 */
+.prompt-textarea-full::-webkit-scrollbar {
+  width: 10px;
+}
+
+.prompt-textarea-full::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 5px;
+}
+
+.prompt-textarea-full::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 5px;
+}
+
+.prompt-textarea-full::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .prompt-textarea-full:focus {
@@ -1386,6 +1430,25 @@
   font-weight: 600;
 }
 
+/* 에러 메시지 섹션 */
+.error-message-section {
+  margin-bottom: 2rem;
+}
+
+.error-message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.error-message-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #991b1b;
+  font-weight: 600;
+}
+
 .detail-view-button {
   padding: 0.5rem 1rem;
   background-color: #3b82f6;
@@ -1480,7 +1543,150 @@
   }
 }
 
-/* 노드 실행 카드 */
+/* 노드 실행 목록 */
+.node-execution-list {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: white;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.node-execution-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.node-execution-list-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.execution-status-badge {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.execution-status-badge.running {
+  background-color: #dbeafe;
+  color: #1e40af;
+  animation: pulse 2s infinite;
+}
+
+.execution-status-badge.complete {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.node-execution-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.node-execution-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 2px solid #e5e7eb;
+  background-color: #f9fafb;
+  transition: all 0.3s ease;
+  animation: fadeInSlide 0.4s ease-out;
+}
+
+@keyframes fadeInSlide {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.node-execution-item-running {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  animation: highlightPulse 2s ease-in-out infinite;
+}
+
+.node-execution-item-complete {
+  border-color: #10b981;
+  background-color: #f0fdf4;
+  opacity: 1;
+  transition: opacity 0.3s ease-out;
+}
+
+.node-execution-item-error {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.node-execution-item-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  width: 32px;
+  text-align: center;
+}
+
+.node-execution-item-running .node-execution-item-icon {
+  animation: spin 2s linear infinite;
+}
+
+.node-execution-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.node-execution-item-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.9375rem;
+}
+
+.node-execution-item-status {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.node-execution-item-running .node-execution-item-status {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.node-execution-item-complete .node-execution-item-status {
+  color: #059669;
+}
+
+.node-execution-item-error .node-execution-item-status {
+  color: #dc2626;
+}
+
+@keyframes highlightPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.15);
+  }
+}
+
+/* 노드 실행 카드 (기존 스타일 유지 - 필요시 사용) */
 .node-running-card-container {
   margin-bottom: 1rem;
   position: relative;
@@ -1828,8 +2034,10 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   background-color: #f9fafb;
+  min-height: 0;
 }
 
 .compare-test-header {
@@ -2148,19 +2356,22 @@
 
 .compare-query-result,
 .compare-sql-query,
-.compare-smq {
+.compare-smq,
+.compare-sql-result {
   margin-top: 0.5rem;
 }
 
 .compare-query-result details,
 .compare-sql-query details,
-.compare-smq details {
+.compare-smq details,
+.compare-sql-result details {
   cursor: pointer;
 }
 
 .compare-query-result summary,
 .compare-sql-query summary,
-.compare-smq summary {
+.compare-smq summary,
+.compare-sql-result summary {
   font-weight: 600;
   color: #0c4a6e;
   padding: 0.75rem 1rem;
@@ -2173,7 +2384,8 @@
 
 .compare-query-result summary:hover,
 .compare-sql-query summary:hover,
-.compare-smq summary:hover {
+.compare-smq summary:hover,
+.compare-sql-result summary:hover {
   background: #f0f9ff;
   border-color: #0284c7;
   transform: translateY(-1px);
@@ -2182,7 +2394,8 @@
 
 .compare-query-result details[open] summary,
 .compare-sql-query details[open] summary,
-.compare-smq details[open] summary {
+.compare-smq details[open] summary,
+.compare-sql-result details[open] summary {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   border-bottom: none;
@@ -2191,7 +2404,8 @@
 
 .compare-query-result details > div,
 .compare-sql-query details > div,
-.compare-smq details > div {
+.compare-smq details > div,
+.compare-sql-result details > div {
   background: white;
   border-radius: 0 0 0.5rem 0.5rem;
   border: 1px solid #0ea5e9;

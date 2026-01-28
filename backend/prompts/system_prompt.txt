@@ -105,13 +105,13 @@
 - **중요**: 사용자 요청이 메타 요청인 경우, user_query는 yml 파일의 메트릭과 차원을 활용한 의미 있는 쿼리로 생성해야 합니다. 예: "전체 매출 합계를 보여줘", "지역별 판매량을 보여줘" 등
   - **매우 중요한 규칙**: SMQ 생성 시 YML 파일에 정의된 메트릭과 차원의 `name` 필드 값을 사용하되, **semantic_model name을 접두어로 붙여야 합니다**.
   - **메트릭 (metrics)**: 반드시 YML 파일의 최상위 `metrics` 섹션에 정의된 각 메트릭의 `name` 필드 값만 사용합니다. 접두어를 붙이지 않습니다.
-    - 예: `"metrics": ["total_waidp_d1010_l_count"]` ✅
+    - 예: `"metrics": ["total_waidp_d1010_l_count"]`
     - 잘못된 예들:
-      - `"metrics": ["일수신계좌실적내역__total_waidp_d1010_l_count"]` ❌ (접두어 추가)
-      - `"metrics": ["일수신계좌실적내역"]` ❌ (semantic model 이름 사용)
-      - `"metrics": ["wapco_brncd_cn"]` ❌ (entity 이름 사용)
-      - `"metrics": ["brn_cnt"]` ❌ (measure 이름 사용)
-      - `"metrics": ["SUM(total_waidp_d1010_l_count)"]` ❌ (집계 함수 추가)
+      - `"metrics": ["일수신계좌실적내역__total_waidp_d1010_l_count"]` (접두어 추가)
+      - `"metrics": ["일수신계좌실적내역"]` (semantic model 이름 사용)
+      - `"metrics": ["wapco_brncd_cn"]` (entity 이름 사용)
+      - `"metrics": ["brn_cnt"]` (measure 이름 사용)
+      - `"metrics": ["SUM(total_waidp_d1010_l_count)"]` (집계 함수 추가)
     - **절대로 다음을 메트릭으로 사용하지 마세요:**
       - semantic_models의 `name` 필드 값
       - entities의 `name` 필드 값
@@ -120,13 +120,13 @@
     - **오직 최상위 `metrics` 섹션의 `name` 필드 값만 메트릭으로 사용하세요!**
   - **차원 (groupBy, filters)**: YML 파일의 `semantic_models` 내 `dimensions` 섹션에 정의된 각 차원의 `name` 필드 값 앞에 **semantic_model의 `name`을 접두어로 붙이고 `__`로 연결**합니다.
     - 형식: `{semantic_model_name}__{dimension_name}`
-    - 예: semantic_model name이 "일수신계좌실적내역"이고 dimension name이 "cstno"인 경우 → `"groupBy": ["일수신계좌실적내역__cstno"]` ✅
-    - 잘못된 예: `"groupBy": ["cstno"]` ❌ (접두어 없음)
+    - 예: semantic_model name이 "일수신계좌실적내역"이고 dimension name이 "cstno"인 경우 → `"groupBy": ["일수신계좌실적내역__cstno"]`
+    - 잘못된 예: `"groupBy": ["cstno"]` (접두어 없음)
   - **정렬 (orderBy)**: orderBy도 메트릭과 동일하게 **접두어를 붙이지 않고** 그대로 사용합니다.
-    - 예: `"orderBy": ["total_waidp_d1010_l_count"]` ✅
+    - 예: `"orderBy": ["total_waidp_d1010_l_count"]`
   - **필터 (filters)**: filters의 차원 참조는 groupBy와 동일하게 **semantic_model name을 접두어로 붙이고 `__`로 연결**합니다.
-    - 예: `"filters": [{"dimension": "일수신계좌실적내역__cstno", "operator": "=", "value": "12345"}]` ✅
-  - **절대로 집계 함수(SUM, COUNT 등)를 메트릭 이름 앞에 추가하지 마세요.** 잘못된 예: `"metrics": ["SUM(waidp_d1010_l__sale_amt)"]` ❌
+    - 예: `"filters": [{"dimension": "일수신계좌실적내역__cstno", "operator": "=", "value": "12345"}]`
+  - **절대로 집계 함수(SUM, COUNT 등)를 메트릭 이름 앞에 추가하지 마세요.** 잘못된 예: `"metrics": ["SUM(waidp_d1010_l__sale_amt)"]`
   - 집계 함수는 YML 파일의 메트릭 정의에 이미 포함되어 있거나, SQL 변환 시 자동으로 처리됩니다.
 - manifest_path는 일반적으로 "semantic_manifest.json"이지만, directory_structure를 확인하여 정확한 경로를 사용하십시오.
 - tool 응답에서 생성된 SMQ와 SQL 쿼리를 확인합니다.

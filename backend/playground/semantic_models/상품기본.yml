@@ -1,121 +1,498 @@
 semantic_models:
-  - name: gds_cd
-    table: kjbank_daquv('gds_cd')
-    description: 테이블(WRPPF_GDSBS_M)을 기반으로 한 상품 유형, 판매 상태, 적용 상태 등 상품 속성 분석의 기준이 되는 semantic 모델
-    entities:
-      - name: gds_cd
-        type: primary
-        expr: gds_cd
-    dimensions:
-      - name: m_gds_cd
-        type: varchar
-        expr: gds_cd
-        label: 상품코드
-        description: 상품코드
-      - name: gds_dtls_cd
-        type: varchar
-        expr: gds_dtls_cd
-        label: 상품세부코드
-        description: 상품팩토리에서 상품코드의 세부코드로 나누기 위한 코드로 여신의 자금원코드, 수신의 서브상품코드 등의 목적으로 관리
-      - name: com_tx_dt
-        type: varchar
-        expr: com_tx_dt
-        label: 공통거래일자
-        description: 시스템 공통 속성으로 모든 테이블에 등록되는 공통 거래일자
-      - name: gds_aply_stcd
-        type: varchar
-        expr: gds_aply_stcd
-        label: 상품적용상태코드
-        description: 해당 레코드의 상태를 구분하는 코드
-      - name: gds_sle_stcd
-        type: varchar
-        expr: gds_sle_stcd
-        label: 상품판매상태코드
-        description: 상품의 판매상태를 관리하기 위한 구분코드 (1:판매중, 2:판매중지, 3:판매예정, 9:폐지상품)
-      - name: sle_stdd
-        type: varchar
-        expr: sle_stdd
-        label: 판매시작일자
-        description: 판매시작일자
-      - name: sle_endt
-        type: varchar
-        expr: sle_endt
-        label: 판매종료일자
-        description: 판매종료일자
-      - name: gds_bzwk_tycd
-        type: varchar
-        expr: gds_bzwk_tycd
-        label: 상품업무유형코드
-        description: 조건코드별로 필수등록, 등록불가 요건을 관리하기 위하여 그룹화한 코드
-      - name: mgmt_seqno
-        type: varchar
-        expr: mgmt_seqno
-        label: 관리일련번호
-        description: 관리일련번호
-      - name: reg_brcd
-        type: varchar
-        expr: reg_brcd
-        label: 등록부점코드
-        description: 실시간 처리등록점
-      - name: reg_tlrno
-        type: varchar
-        expr: reg_tlrno
-        label: 등록텔러번호
-        description: 예상손실율 등록자 행번
-      - name: reg_dt
-        type: varchar
-        expr: reg_dt
-        label: 등록일자
-        description: 정보등록일자
-      - name: reg_time
-        type: varchar
-        expr: reg_time
-        label: 등록시각
-        description: 등록시각
-      - name: last_chng_brcd
-        type: varchar
-        expr: last_chng_brcd
-        label: 최종변경부점코드
-        description: 최종변경부점코드
-      - name: last_chng_tlrno
-        type: varchar
-        expr: last_chng_tlrno
-        label: 최종변경텔러번호
-        description: 최종변경텔러번호
-      - name: last_chng_dt
-        type: varchar
-        expr: last_chng_dt
-        label: 최종변경일자
-        description: 최종변경일자
-      - name: last_chng_time
-        type: varchar
-        expr: last_chng_time
-        label: 최종변경시각
-        description: 최종변경시각
-      - name: gds_nm
-        type: varchar
-        expr: 'gds_nm '
-        label: 상품명
-        description: 상품명
-    measures:
-      - name: gds_cd_cnt
-        type: integer
-        expr: gds_cd
-        label: 상품코드 카운트용
-      - name: gds_dtls_cd_cnt
-        type: integer
-        expr: gds_dtls_cd
-        label: 상품세부코드 카운트용
+- name: goods
+  table: kjbank_daquv('wappf_dpgrp_bn')
+  description: 예·적금, 대출 상품 그룹 관리 정보(WAPPF_DPGRP_BN)를 기반으로, 상품 그룹 코드 및 관련 속성을 차원으로 관리하며, 숫자형 항목에 대해서는 집계 분석이 가능하도록 구성된 semantic 모델.
+
+  entities:
+  - name: goods_cd
+    type: primary
+    expr: gds_cd
+  - name: goods_dt
+    type: primary
+    expr: base_dt
+
+  dimensions:
+  - name: base_dt
+    type: varchar
+    label: 기준일자
+    expr: base_dt
+    description: 기준일자
+  - name: pd_gds_cd
+    type: varchar
+    label: 상품코드
+    expr: gds_cd
+    description: 전행 차원에서  금융상품에 대하여 통일된 기준으로 부여하여 관리하는 코드
+  - name: gds_dtls_cd
+    type: varchar
+    label: 상품세부코드
+    expr: gds_dtls_cd
+    description: 상품코드를 세분화하여 사용하는 코드로, 상품코드=母상품, 상품세부코드=子상품의 개념을 갖음
+  - name: com_tx_dt
+    type: varchar
+    label: 공통거래일자
+    expr: com_tx_dt
+    description: 시스템 공통 속성으로 모든 테이블에 등록되는 공통 거래일자
+  - name: old_sbcd
+    type: varchar
+    label: 구과목코드
+    expr: old_sbcd
+    description: as-is의 수신상품(과목코드)을 관리하기 위한 코드
+  - name: dep_gds_gpcd
+    type: varchar
+    label: 수신상품그룹코드
+    expr: dep_gds_gpcd
+    description: 수신상품그룹코드
+  - name: acco_sbcd
+    type: varchar
+    label: 계좌과목코드
+    expr: acco_sbcd
+    description: 계좌 과목에 해당되는 코드
+  - name: dep_bzwk_dvcd
+    type: varchar
+    label: 수신업무구분코드
+    expr: dep_bzwk_dvcd
+    description: 수신상품을 요구불, 거치식, 적립식으로 분류한 코드
+  - name: dep_instl_tycd
+    type: varchar
+    label: 수신적립유형코드
+    expr: dep_instl_tycd
+    description: 적립식 수신상품의 적립방법(주기,금액) 유형코드
+  - name: gds_nm
+    type: varchar
+    label: 상품한글명
+    expr: gds_kor_nm
+    description: 상품의 한글 명칭. 정기예금, 적금, 대출, 여신 등에 대한 데이터 포함. 사용자의 질문에 상품명이 포함되어 있으면 해당 컬럼을 LIKE 조건으로 검색 필수. -> ex) goods__gds_nm LIKE '%정기예금%'
+  - name: gds_kor_abbr_nm
+    type: varchar
+    label: 상품한글약어명
+    expr: gds_kor_abbr_nm
+    description: 상품한글약어명
+  - name: gds_ennm
+    type: varchar
+    label: 상품영문명
+    expr: gds_ennm
+    description: 상품영문명
+  - name: dd_unit_cntr_posb_yn
+    type: varchar
+    label: 일단위계약가능여부
+    expr: dd_unit_cntr_posb_yn
+    description: 일단위로 계약이 가능한 상품인지 여부
+  - name: mm_unit_cntr_posb_yn
+    type: varchar
+    label: 월단위계약가능여부
+    expr: mm_unit_cntr_posb_yn
+    description: 월단위로 계약이 가능한 상품인지 여부
+  - name: dpcnpd_strt_val
+    type: varchar
+    label: 수신가능계약기간시작값
+    expr: dpcnpd_strt_val
+    description: 수신가능계약기간의 시작값 (형식:MMMMDDDD)
+  - name: dpcnpd_end_val
+    type: varchar
+    label: 수신가능계약기간종료값
+    expr: dpcnpd_end_val
+    description: 수신가능계약기간의 종료값 (형식:MMMMDDDD)
+  - name: curn_cd
+    type: varchar
+    label: 통화코드
+    expr: curn_cd
+    description: 통화코드
+  - name: int_prvs_kncd
+    type: varchar
+    label: 이자지급종류코드
+    expr: int_prvs_kncd
+    description: 이자지급종류코드
+  - name: dep_int_calc_mtcd
+    type: varchar
+    label: 수신이자계산방법코드
+    expr: dep_int_calc_mtcd
+    description: 수신이자계산방법코드
+  - name: dep_sint_cmin_dvcd
+    type: varchar
+    label: 수신단리복리구분코드
+    expr: dep_sint_cmin_dvcd
+    description: 수신 이자계산시 단리인지, 복리인지를 구분하는 코드
+  - name: psn1_ac1_valdtn_dvcd
+    type: varchar
+    label: 1인1계좌검증구분코드
+    expr: psn1_ac1_valdtn_dvcd
+    description: |
+      - 1인 1계좌 관련 검증요건을 구분하는 코드
+      "2-현재상품 1인1계좌"는 현재의 상품코드만드로 가입된 상품있는지를 검증하고,
+      "2-여러 개의 상품합산 1인1계좌"는 동일 상품이 여러개의 상품코드가 부여되었다는 의미로서,
+      "1인1계좌검증상품목록" 조건을 조회하여 출력된 상품코드 목록으로 이미 가입된 상품이 하나라도 있으면 안된다는 의미
+  - name: psn1_bbk1_gds_yn
+    type: varchar
+    label: 1인1통장상품여부
+    expr: psn1_bbk1_gds_yn
+    description: 1인 1통장만 허용하는 상품인지 여부
+  - name: dptp_loan_setp_posb_yn
+    type: varchar
+    label: 수신성대출설정가능여부
+    expr: dptp_loan_setp_posb_yn
+    description: 수신성대출인 당좌/가계당좌대출, 마이너스대출, 카드론 설정이 가능한 수신상품인지 여부
+  - name: loan_kncd
+    type: varchar
+    label: 대출종류코드
+    expr: loan_kncd
+    description: 수신대출내부적으로 분류한 종류코드
+  - name: tax_dvcd
+    type: varchar
+    label: 세금구분코드
+    expr: tax_dvcd
+    description: 세금구분코드
+  - name: nts_fnnc_gds_cd
+    type: varchar
+    label: 국세청금융상품코드
+    expr: nts_fnnc_gds_cd
+    description: 국세청에서 관리하는 금융상품을 구분하는 코드
+  - name: acng_dvcd
+    type: varchar
+    label: 회계구분코드
+    expr: acng_dvcd
+    description: 회계구분코드
+  - name: bs_accd
+    type: varchar
+    label: BS계정코드
+    expr: bs_accd
+    description: BS계정코드
+  - name: fxccy_bs_accd
+    type: varchar
+    label: 외화BS계정코드
+    expr: fxccy_bs_accd
+    description: 외화BS계정코드
+  - name: is_accd
+    type: varchar
+    label: IS계정코드
+    expr: is_accd
+    description: Income Sheet 계정코드를 관리
+  - name: urgd_new_posb_yn
+    type: varchar
+    label: 무기명신규가능여부
+    expr: urgd_new_posb_yn
+    description: 무기명으로 신규가 가능한 상품인지 여부 (Y/N)
+  - name: soff_cls_posb_yn
+    type: varchar
+    label: 상계해지가능여부
+    expr: soff_cls_posb_yn
+    description: 상계해지가 가능한 상품인지 여부 (Y/N)
+  - name: expad_cls_posb_yn
+    type: varchar
+    label: 만기체상해지가능여부
+    expr: expad_cls_posb_yn
+    description: 만기체상해지가 가능한 상품인지 여부 (Y/N)
+  - name: bal_cert_iss_posb_yn
+    type: varchar
+    label: 잔액증명서발급가능여부
+    expr: bal_cert_iss_posb_yn
+    description: 잔액증명서 발급이 가능한 상품인지 여부 (Y/N)
+  - name: rgpl_setp_posb_yn
+    type: varchar
+    label: 질권설정가능여부
+    expr: rgpl_setp_posb_yn
+    description: 질권설정(예금·적금·보험·유가증권 등 고객의 재산권을 담보로 잡는 법적 권리(질권)를 은행이 설정하는 것)가능여부 (Y/N)
+  - name: trnr_posb_yn
+    type: varchar
+    label: 양도가능여부
+    expr: trnr_posb_yn
+    description: 양도가능여부 (Y/N)
+  - name: spcl_mdcl_posb_yn
+    type: varchar
+    label: 특별중도해지가능여부
+    expr: spcl_mdcl_posb_yn
+    description: 특별중도해지가 가능한 상품인지 여부 (Y/N)
+  - name: dvn_cls_posb_yn
+    type: varchar
+    label: 분할해지가능여부
+    expr: dvn_cls_posb_yn
+    description: 분할해지가능여부 (Y/N)
+  - name: acco_dvn_posb_yn
+    type: varchar
+    label: 계좌분할가능여부
+    expr: acco_dvn_posb_yn
+    description: 계좌분할가능여부 (Y/N)
+  - name: tuc_posb_yn
+    type: varchar
+    label: 이수관가능여부
+    expr: tuc_posb_yn
+    description: 이수관가능여부 (Y/N)
+  - name: tx_spnd_acco_enrl_trgt_yn
+    type: varchar
+    label: 거래중지계좌편입대상여부
+    expr: tx_spnd_acco_enrl_trgt_yn
+    description: 거래중지계좌 편입대상 상품인지 여부 (Y/N)
+  - name: prgds_prfr_intr_aply_yn
+    type: varchar
+    label: 상품별우대금리적용여부
+    expr: prgds_prfr_intr_aply_yn
+    description: 상품별 우대금리 적용이 가능한 상품인지 여부 (Y/N)
+  - name: spcl_rt_aply_yn
+    type: varchar
+    label: 특별이율적용여부
+    expr: spcl_rt_aply_yn
+    description: 특별이율적용여부 (Y/N)
+  - name: rt_rprs_gds_aply_yn
+    type: varchar
+    label: 이율대표상품적용여부
+    expr: rt_rprs_gds_aply_yn
+    description: 이율대표상품적용여부 (Y/N)
+  - name: net_cls_posb_yn
+    type: varchar
+    label: NET해지가능여부
+    expr: net_cls_posb_yn
+    description: NET해지가능여부 (Y/N)
+  - name: gds_sle_limt_yn
+    type: varchar
+    label: 상품판매한도여부
+    expr: gds_sle_limt_yn
+    description: 상품별 판매한도가 설정되어 있는지 여부 (Y/N)
+  - name: dptc_law_ptct_trgt_yn
+    type: varchar
+    label: 예금자보호법보호대상여부
+    expr: dptc_law_ptct_trgt_yn
+    description: 예금자보호법상 보호 대상 상품인지 여부 (Y/N)
+  - name: pb_ctfc_dvcd
+    type: varchar
+    label: 통장증서구분코드
+    expr: pb_ctfc_dvcd
+    description: 통장증서구분코드
+  - name: pb_dvcd
+    type: varchar
+    label: 통장구분코드
+    expr: pb_dvcd
+    description: 통장구분코드
+  - name: usitm_artc_no
+    type: varchar
+    label: 용도품품목번호
+    expr: usitm_artc_no
+    description: 용도품 품목을 구별하는 식별자
+  - name: ltbb_lnkn_dvcd
+    type: varchar
+    label: 평생통장연결구분코드
+    expr: ltbb_lnkn_dvcd
+    description: 평생통장연결구분코드
+  - name: bkln_posb_dvcd
+    type: varchar
+    label: 뱅크라인가능구분코드
+    expr: bkln_posb_dvcd
+    description: 뱅크라인가능구분코드
+  - name: bkln_sbcd
+    type: varchar
+    label: 뱅크라인과목코드
+    expr: bkln_sbcd
+    description: 뱅크라인과목코드
+  - name: bank_trst_cmbn_dvcd
+    type: varchar
+    label: 은행신탁합동구분코드
+    expr: bank_trst_cmbn_dvcd
+    description: 은행신탁합동구분코드
+  - name: otpr_trst_posb_yn
+    type: varchar
+    label: 타익신탁가능여부
+    expr: otpr_trst_posb_yn
+    description: 타익신탁가능여부 (Y/N)
+  - name: mdcl_posb_yn
+    type: varchar
+    label: 중도해지가능여부
+    expr: mdcl_posb_yn
+    description: 중도해지가능여부 (Y/N)
+  - name: hshl_lvng_svng_yn
+    type: varchar
+    label: 가계생활저축여부
+    expr: hshl_lvng_svng_yn
+    description: 가계생활저축 상품인지 여부 (Y/N)
+  - name: txfr_ltsv_yn
+    type: varchar
+    label: 비과세장기저축여부
+    expr: txfr_ltsv_yn
+    description: 비과세 장기저축 상품인지 여부 (Y/N)
+  - name: olag_pnsn_gds_dvcd
+    type: varchar
+    label: 노후연금상품구분코드
+    expr: olag_pnsn_gds_dvcd
+    description: 노후연금신탁의 이자지급방법 및 적립방법을 구분하는 코드
+  - name: xptr_issu_mtcd
+    type: varchar
+    label: 개발신탁발행방법코드
+    expr: xptr_issu_mtcd
+    description: 개발신탁의 발행방법을 구분하는 코드
+  - name: dia_gds_dvcd
+    type: varchar
+    label: 다이아몬드상품구분코드
+    expr: dia_gds_dvcd
+    description: 다이아몬드 상품을 구분하는 코드
+  - name: idvd_crpt_dvcd
+    type: varchar
+    label: 개인법인구분코드
+    expr: idvd_crpt_dvcd
+    description: 개인법인구분코드(P:개인,C:법인)
+  - name: dep_gds_ftr_cd
+    type: varchar
+    label: 수신상품특성코드
+    expr: dep_gds_ftr_cd
+    description: 수신상품특성코드
+  - name: ftmp_tbl_uz_yn
+    type: varchar
+    label: 정기성테이블사용여부
+    expr: ftmp_tbl_uz_yn
+    description: 정기성테이블사용여부 (Y/N)
+  - name: ondmnd_evdd_int_calc_yn
+    type: varchar
+    label: 요구불매일이자계산여부
+    expr: ondmnd_evdd_int_calc_yn
+    description: 요구불예금으로 매일 이자를 계산하는 상품인지 여부 (Y/N)
+  - name: scfc_tcfnd_mnin_aset_cd1
+    type: varchar
+    label: 특정금전신탁운용자산코드1
+    expr: scfc_tcfnd_mnin_aset_cd1
+    description: 특정_금전신탁_운용_자산코드
+  - name: scfc_tcfnd_mnin_aset_cd2
+    type: varchar
+    label: 특정금전신탁운용자산코드2
+    expr: scfc_tcfnd_mnin_aset_cd2
+    description: 특정_금전신탁_운용_자산코드
+  - name: scfc_tcfnd_mnin_aset_cd3
+    type: varchar
+    label: 특정금전신탁운용자산코드3
+    expr: scfc_tcfnd_mnin_aset_cd3
+    description: 특정_금전신탁_운용_자산코드
+  - name: gds_brnd_cd
+    type: varchar
+    label: 상품브랜드코드
+    expr: gds_brnd_cd
+    description: 광주은행 전체의 상품에 대하여 상품별 브랜드를 식별하기 위하여 부여한 코드이며, 상품업무유형코드(2)+일련번호(5)의 형태로 채번
+  - name: scfc_tcfnd_dvcd
+    type: varchar
+    label: 특정금전신탁구분코드
+    expr: scfc_tcfnd_dvcd
+    description: 특정금전신탁 상품을 구분하는 코드
+  - name: trst_fund_no
+    type: varchar
+    label: 신탁펀드번호
+    expr: trst_fund_no
+    description: 유가증권 기준가합동 펀드번호
+  - name: inx_itlk_mndp_gds_yn
+    type: varchar
+    label: 지수연동예금상품여부
+    expr: inx_itlk_mndp_gds_yn
+    description: 지수연동 정기예금 상품인지 여부 (Y/N)
+  - name: scfc_tcfnd_liqd_dt
+    type: varchar
+    label: 특정금전신탁청산일자
+    expr: scfc_tcfnd_liqd_dt
+    description: 특정금전신탁 상품의 청산일자
+  - name: bkdbt_acnt_dccd
+    type: varchar
+    label: 금융채계정세분류코드
+    expr: bkdbt_acnt_dccd
+    description: 금융채 상품의 계정을 세분류한 코드
+  - name: reg_brcd
+    type: varchar
+    label: 등록부점코드
+    expr: reg_brcd
+    description: 실시간 처리등록점
+  - name: reg_tlrno
+    type: varchar
+    label: 등록텔러번호
+    expr: reg_tlrno
+    description: 예상손실율 등록자 행번
+  - name: reg_dt
+    type: varchar
+    label: 등록일자
+    expr: reg_dt
+    description: 등록일자
+  - name: reg_time
+    type: varchar
+    label: 등록시각
+    expr: reg_time
+    description: 등록시각
+  - name: last_chng_brcd
+    type: varchar
+    label: 최종변경부점코드
+    expr: last_chng_brcd
+    description: 최종변경부점코드
+  - name: last_chng_tlrno
+    type: varchar
+    label: 최종변경텔러번호
+    expr: last_chng_tlrno
+    description: 최종변경텔러번호
+  - name: last_chng_dt
+    type: varchar
+    label: 최종변경일자
+    expr: last_chng_dt
+    description: 최종변경일자
+  - name: last_chng_time
+    type: varchar
+    label: 최종변경시각
+    expr: last_chng_time
+    description: 최종변경시각
+
+  measures:
+  - name: dep_new_posb_amt_mxvl
+    type: number
+    label: 수신신규가능금액최대값
+    expr: dep_new_posb_amt_mxvl
+    description: 수신상품의 계좌별 신규가능 금액의 최대금액
+  - name: dep_new_posb_amt_mnvl
+    type: number
+    label: 수신신규가능금액최소값
+    expr: dep_new_posb_amt_mnvl
+    description: 수신상품의 계좌별 신규가능 금액의 최소금액
+  - name: dep_new_posb_amt_unvl
+    type: number
+    label: 수신신규가능금액단위값
+    expr: dep_new_posb_amt_unvl
+    description: 수신상품의 계좌별 신규가능 금액의 단위금액
+  - name: dep_days_mhod_icdnd
+    type: number
+    label: 수신일수방식이자계산분모일수
+    expr: dep_days_mhod_icdnd
+    description: 이자계산 방식이 일수방식 이자계산을 하는 상품인 경우 분모의 일수 (360일-외화, 365일-원화,신탁)
+  - name: csrrt
+    type: number
+    label: 지급준비율
+    expr: csrrt
+    description: 지급준비율
+  - name: pb_line_cnt
+    type: number
+    label: 통장라인수
+    expr: pb_line_cnt
+    description: 통장라인수
+
 metrics:
-  - name: total_goods_count
-    metric_type: simple
-    type: integer
-    expr: COUNT_DISTINCT(wrppf_gdsbs_m__gds_cd_cnt)
-    label: 상품 수
-    description: 상품코드 수(중복 제거)
-  - name: total_goods_detail_count
-    metric_type: simple
-    type: integer
-    expr: COUNT_DISTINCT(wrppf_gdsbs_m__gds_dtls_cd_cnt)
-    label: 상품세부 수
-    description: 상품세부코드 수(중복 제거)
+- name: total_dep_new_posb_amt_mxvl
+  description: 총 수신신규가능금액최대값
+  type: number
+  metric_type: simple
+  label: 총 수신신규가능금액최대값
+  expr: SUM(goods__dep_new_posb_amt_mxvl)
+- name: total_dep_new_posb_amt_mnvl
+  description: 총 수신신규가능금액최소값
+  type: number
+  metric_type: simple
+  label: 총 수신신규가능금액최소값
+  expr: SUM(goods__dep_new_posb_amt_mnvl)
+- name: total_dep_new_posb_amt_unvl
+  description: 총 수신신규가능금액단위값
+  type: number
+  metric_type: simple
+  label: 총 수신신규가능금액단위값
+  expr: SUM(goods__dep_new_posb_amt_unvl)
+- name: total_dep_days_mhod_icdnd
+  description: 총 수신일수방식이자계산분모일수
+  type: number
+  metric_type: simple
+  label: 총 DEP_DAYS_MHOD_ICDND
+  expr: SUM(goods__dep_days_mhod_icdnd)
+- name: total_csrrt_gd
+  description: 총 지급준비율
+  type: number
+  metric_type: simple
+  label: 총 지급준비율
+  expr: SUM(goods__csrrt)
+- name: total_pb_line_cnt
+  description: 총 통장라인수
+  type: number
+  metric_type: simple
+  label: 총 통장라인수
+  expr: SUM(goods__pb_line_cnt)

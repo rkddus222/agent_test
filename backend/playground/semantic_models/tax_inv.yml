@@ -1,0 +1,265 @@
+semantic_models:
+  - name: tax_inv
+    table: branchq_daquv('branchq_get_all_inv_list')
+    description: 기업의 전자세금계산서 발행·수취 내역을 관리하는 모델. 전자세금계산서 단위의 공급자/공급받는자, 금액, 면세여부, 발행일자 등의 정보를 포함. 매출, 매입 포함된 키워드의 관련 질문을 하는 경우 전자세금계산서 내용을 먼저 확인
+
+    entities:
+      - name: tax_inv
+        type: primary
+        expr: appr_no
+      - name: tax_inv_item
+        type: foreign
+        expr: appr_no
+
+    dimensions:
+      - name: com_nm
+        type: varchar
+        label: 사업장명
+        description: 사업장명. "우리회사"/"내회사"같이 본인 회사를 조회할 경우는 filter에서 com_nm like '%씨엔에스%'
+
+      - name: deal_type
+        type: varchar
+        label: 매출입구분
+        description: 세금계산서의 매입/매출 구분. 가능한 값 = ['매입', '매출']. 질문에 '매출' or '%매입%' or '수취' or '발행' or '받' 이 포함될 경우 group_by의 deal_type과 filter를 선택하세요.  {user_question}에 '발행', '보낸'등이 포함됐으면 매출로, '수취', '받'등이 포함됐으면 매입으로 선택합니다. 수정세금계산서는 포함 안함.  ex) "매출 세금계산서 내역" → group_by = 'tax_inv__deal_type', filter = "tax_inv__deal_type = '매출'" , "매입세금계산서" → filter = "tax_inv__deal_type = "'매입'" , "발행한 세금계산서 내역" → group_by = 'tax_inv__deal_type', filter = "tax_inv__deal_type = '매출'", "받은/수취한 세금계산서 내역" → group_by = 'tax_inv__deal_type', filter = "tax_inv__deal_type = '매입'" , 세금계산서 발행 건수 → group_by = 'tax_inv__deal_type', filter = "tax_inv__deal_type = '매출'", "매출 세금계산서 목록" → filter = "tax_inv__deal_type = '매출'". 둘다 포함되어 있으면 → 매출/매입 합계 보여줘 filter ='tax_inv__deal_type in ('매출' , '매입')'
+
+      - name: tax_free_yn
+        type: varchar
+        label: 면세여부
+        description: 면세여부. 질문에 '면세', '과세' 포함될 경우 group_by와 filter에 tax_inv__tax_free_yn를 포함하세요. filter에 적용시 면세 = '면세', 과세 = '과세'로 처리하세요.  ex) "면세 세금계산서" → group_by = 'tax_free_yn', filter = "tax_free_yn = '면세'"
+
+      - name: appr_no
+        type: varchar
+        label: 승인번호
+        description: 승인번호. 세금계산서 고유 식별번호. **[치명적 금지 규칙]** 질문이 "가장 많은", "순위", "Top", "누구" 등 비교/집계 의도라면, group_by에 **절대 포함하지 마세요.** (승인번호가 들어가면 순위 집계가 불가능해기 때문이다.) 오직 "상세 내역", "목록 보여줘" 같은 단순 나열 질문에만 사용하세요. 승인번호 filter 생성시 반드시 LIKE 를 사용하여 생성하세요.
+
+      - name: inv_dt
+        type: varchar
+        label: 작성일자
+        description: 작성일자 (YYYMMDD). 발행 시점. 부가세 환급 예정금액 계산시 inv_dt 사용
+
+      - name: issue_dt
+        type: varchar
+        label: 발급일자
+        description: 발급일자. 실제 발급된 일자. (YYYMMDD).
+
+      - name: send_dt
+        type: varchar
+        label: 전송일자
+        description: 전송일자(국세청 신고 전송 기준일)(YYYMMDD)
+
+      - name: buyer_biz_reg_no
+        type: varchar
+        label: 공급받는자 사업자번호
+        description: 공급받는자 사업자번호. filter에 like로 검색
+
+      - name: buyer_biz_nm
+        type: varchar
+        label: 공급받는자 상호
+        description: 공급받는자 상호. 질문이 '매출(Sales)' 관련일 때만 '거래처'로 선택해 group_by에 포함하세요. filter에서 like 검색시 예시처럼 '(주)', '주식회사' 등은 제거하세요. ex)"(주)웹케시" → filter = "buyer_biz_nm like '%웹케시%'" "주식회사 비즈플레이" → filter = "buyer_biz_nm like '%비즈플레이%'"
+
+      - name: buyer_ceo_nm
+        type: varchar
+        label: 공급받는자 대표자명
+        description: 공급받는자 대표자명
+
+      - name: buyer_biz_addr
+        type: varchar
+        label: 공급받는자 주소
+        description: 공급받는자 주소. like 검색 필수
+
+      - name: buyer_biz_type
+        type: varchar
+        label: 공급받는자 업태
+        description: 공급받는자 업태. like 검색 필수
+
+      - name: buyer_biz_item
+        type: varchar
+        label: 공급받는자 종목
+        description: 공급받는자 종목. like 검색 필수
+
+      - name: buyer_email
+        type: varchar
+        label: 공급받는자 이메일1
+        description: 공급받는자 이메일1
+
+      - name: buyer_email2
+        type: varchar
+        label: 공급받는자 이메일2
+        description: 공급받는자 이메일2
+
+      - name: supplier_biz_reg_no
+        type: varchar
+        label: 공급자 사업자번호
+        description: 공급자 사업자번호
+
+      - name: supplier_biz_nm
+        type: varchar
+        label: 공급자 상호
+        description: 공급자 상호. 질문이 '매입(Purchase)', '지출', '비용' 관련일 때만 '거래처'로 선택해 group_by에 포함하세요. '매출(Sales)' 질문에는 절대 사용하지 마세요. filter에서 like 검색시 예시처럼 '(주)', '주식회사' 등은 제거하세요. ex)"(주) 씨앤에스" → filter = "supplier_biz_nm like '%씨앤에스%'"
+
+      - name: supplier_ceo_nm
+        type: varchar
+        label: 공급자 대표자명
+        description: 공급자 대표자명
+
+      - name: supplier_biz_addr
+        type: varchar
+        label: 공급자 주소
+        description: 공급자 주소
+
+      - name: supplier_biz_type
+        type: varchar
+        label: 공급자 업태
+        description: 공급자 업태
+
+      - name: supplier_biz_item
+        type: varchar
+        label: 공급자 종목
+        description: 공급자 종목
+
+      - name: supplier_email
+        type: varchar
+        label: 공급자 이메일
+        description: 공급자 이메일
+
+      - name: repr_item_nm
+        type: varchar
+        label: 대표품목명
+        description: 대표품목명. 전자세금계산서가 다품목인데 대표품목만 표시된 경우 이 값으로 1차 분류.
+
+      - name: rcpt_cls
+        type: varchar
+        label: 영수/청구
+        description: 영수/청구 구분
+
+      - name: inv_type
+        type: varchar
+        label: 계산서종류
+        description: 계산서종류. 전자세금계산서 관련 질문시 반드시 group_by 포함, 단 합계 관련일땐 제외. '수정세금계산서' , '수정 세금계산서' 관련 질문일때 사용 ex) inv_type like '%수정%'
+
+      - name: modify_reason
+        type: varchar
+        label: 수정사유
+        description: 수정사유.
+
+      - name: note1
+        type: varchar
+        label: 비고
+        description: 비고. like 검색.
+
+      - name: remark
+        type: varchar
+        label: 적요
+        description: 적요. like 검색.
+
+    measures:
+      - name: supply_amt_tax_inv
+        type: decimal
+        label: 공급가액
+        description: 공급가액
+        expr: supply_amt
+
+      - name: vat_amt_tax_inv
+        type: decimal
+        label: 세액
+        description: 세액
+        expr: vat_amt
+
+      - name: amt_tax_inv
+        type: decimal
+        label: 합계금액
+        description: 합계금액 (공급가액 + 세액) 공급가액이나 새액을 언급하지 않는 경우에는 합계금액을 기본으로 합니다.
+        expr: amt
+
+      - name: cash_amt_tax_inv
+        type: decimal
+        label: 현금금액
+        description: 현금금액
+        expr: cash_amt
+
+      - name: check_amt_tax_inv
+        type: decimal
+        label: 수표금액
+        description: 수표금액
+        expr: check_amt
+
+      - name: draft_amt_tax_inv
+        type: decimal
+        label: 어음금액
+        description: 어음금액
+        expr: draft_amt
+
+      - name: inv_count_tax_inv
+        type: integer
+        label: 전자세금계산서 건수
+        description: 전자세금계산서 건수
+        expr: appr_no
+
+      - name: vat_amt_in_tax_inv
+        type: float
+        label: 매출세액
+        description: 매출세액
+        expr: (CASE WHEN deal_type = '매출' THEN vat_amt ELSE 0 END)
+
+      - name: vat_amt_out_tax_inv
+        type: float
+        label: 매입세액
+        description: 매입세액
+        expr: (CASE WHEN deal_type = '매입' THEN vat_amt ELSE 0 END)
+
+metrics:
+  - name: total_tax_inv_supply_amt
+    description: 총 공급가액. "공급가액"을 물어볼 때 추가하세요. 이 메트릭이 선택되면, `total_tax_inv_vat_amt`(세액)와 `total_tax_inv_amt`(합계)도 반드시 함께 선택해야 합니다. (Set 구성)
+    type: decimal
+    metric_type: simple
+    label: 공급가액
+    expr: SUM(tax_inv__supply_amt_tax_inv)
+
+  - name: total_tax_inv_vat_amt
+    description: 총 세액(부가가치세, 부가세). "세액"을 특정해서 묻거나, `supply_amt`가 선택될 때 자동 포함.
+    type: decimal
+    metric_type: simple
+    label: 세액
+    expr: SUM(tax_inv__vat_amt_tax_inv)
+
+  - name: total_tax_inv_amt
+    description: 합계금액(세액 포함). “총금액”, “합계”, “세금 포함금액”, "총매출액", "총매입액" 을 묻거나, `supply_amt`가 선택될 때 자동 포함.
+    type: decimal
+    metric_type: simple
+    label: 합계금액
+    expr: SUM(tax_inv__amt_tax_inv)
+
+  - name: total_tax_inv_count
+    description: 전자세금계산서 발행/수취 건수.  "몇 건?", "건수는?"등 건수를 물어보거나, 순위/비교 질문시(ex. "가장 많은 업체") metrics에 추가하세요.
+    type: integer
+    metric_type: simple
+    label: 전자세금계산서 건수
+    expr: COUNT(DISTINCT tax_inv__inv_count_tax_inv)
+
+  - name: avg_tax_inv_unit_price
+    description: 전자세금계산서 1건당 평균 단가. (공급가액 기준)
+    type: decimal
+    metric_type: derived
+    label: 평균 단가
+    expr: total_tax_inv_supply_amt / NULLIF(total_tax_inv_count, 0)
+
+  - name: total_tax_inv_vat_amt_in
+    description: 총 매출세액(부가가치세, 부가세).
+    type: decimal
+    metric_type: simple
+    label: 총 매출세액
+    expr: SUM(tax_inv__vat_amt_in_tax_inv)
+
+  - name: total_tax_inv_vat_amt_out
+    description: 총 매입세액(부가가치세, 부가세).
+    type: decimal
+    metric_type: simple
+    label: 총 매입세액
+    expr: SUM(tax_inv__vat_amt_out_tax_inv)
+
+  - name: total_tax_inv_vat_refund_amt
+    description: 총 환급세액. 부가세 환급 세액 질문시 사용 metrics
+    type: decimal
+    metric_type: derived
+    label: 총 환급세액
+    expr: total_tax_inv_vat_amt_in - total_tax_inv_vat_amt_out

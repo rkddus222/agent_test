@@ -1,376 +1,376 @@
 semantic_models:
-  - name: branch
-    table: kjbank_daquv('wapco_brncd_cn')
-    description: 부점코드(brcd)를 기준으로 영업점 단위 예수금·여신 및 한도 분석에 사용되는 semantic 모델
-    defaults:
-      agg_time_dimension: base_dt
-    entities:
-      - name: branch1
-        type: primary
-        expr: brcd
-      - name: branch2
-        type: primary
-        expr: base_dt
-    dimensions:
-      - name: base_dt
-        type: varchar
-        expr: base_dt
-        label: 기준일자
-        description: 기준조회일자
-      - name: brcd
-        type: varchar
-        expr: brcd
-        label: 부점코드
-        description: 부점코드.(점번) 코드만 보면 어떤 부점인지 알 수 업습니다. group by에 부점한글명과 같이 출력해주세요.
-      - name: com_tx_dt
-        type: varchar
-        expr: com_tx_dt
-        label: 공통거래일자
-        description: 시스템 공통 속성으로 모든 테이블에 등록되는 공통 거래일자
-      - name: brn_stcd
-        type: varchar
-        expr: brn_stcd
-        label: 부점상태코드
-        description: 부점상태코드
-      - name: bank_cd
-        type: varchar
-        expr: bank_cd
-        label: 은행코드
-        description: 은행코드
-      - name: gir_cd
-        type: varchar
-        expr: gircd
-        label: 지로코드
-        description: 지로코드
-      - name: brn_new_dt
-        type: varchar
-        expr: brn_new_dt
-        label: 부점신규일자
-        description: 부점신규일자
-      - name: brn_clor_dt
-        type: varchar
-        expr: brn_clor_dt
-        label: 부점폐쇄일자
-        description: 부점폐쇄일자
-      - name: brn_move_dt
-        type: varchar
-        expr: brn_move_dt
-        label: 부점이전일자
-        description: 부점이전일자
-      - name: brn_prst_dt
-        type: varchar
-        expr: brn_prst_dt
-        label: 부점승격일자
-        description: 부점승격일자
-      - name: brn_dgrd_dt
-        type: varchar
-        expr: brn_dgrd_dt
-        label: 부점격하일자
-        description: 부점격하일자
-      - name: brn_kor_nm
-        type: varchar
-        expr: brn_kor_nm
-        label: 부점한글명
-        description: 부점한글명
-      - name: brn_ennm
-        type: varchar
-        expr: brn_ennm
-        label: 부점영문명
-        description: 부점영문명
-      - name: brn_addr
-        type: varchar
-        expr: brn_addr
-        label: 부점주소
-        description: 부점주소
-      - name: bob_ensn_addr1
-        type: varchar
-        expr: bob_ensn_addr1
-        label: 영업점영문주소1
-        description: 부점영문주소1
-      - name: bob_ensn_addr2
-        type: varchar
-        expr: bob_ensn_addr2
-        label: 영업점영문주소2
-        description: 부점영문주소2
-      - name: bob_ensn_addr3
-        type: varchar
-        expr: bob_ensn_addr3
-        label: 영업점영문주소3
-        description: 부점영문주소3
-      - name: brn_zpcd
-        type: varchar
-        expr: brn_zpcd
-        label: 부점우편번호
-        description: 부점우편번호
-      - name: brn_tlno
-        type: varchar
-        expr: brn_tlno
-        label: 부점전화번호
-        description: 전화번호
-      - name: fxno
-        type: varchar
-        expr: fxno
-        label: 팩스번호
-        description: 팩스번호
-      - name: brn_bisno
-        type: varchar
-        expr: brn_bisno
-        label: 부점사업자등록번호
-        description: 부점사업자등록번호
-      - name: bfr_brcd
-        type: varchar
-        expr: bfr_brcd
-        label: 이전부점코드
-        description: 이전부점코드
-      - name: brn_abbr_nm
-        type: varchar
-        expr: brn_abbr_nm
-        label: 부점약어명
-        description: 부점약어명
-      - name: hq_dvcd
-        type: varchar
-        expr: hq_dvcd
-        label: 본부구분코드
-        description: 본부구분코드
-      - name: mth_brcd
-        type: varchar
-        expr: mth_brcd
-        label: 모부점코드
-        description: 모부점코드
-      - name: subrn_dvcd
-        type: varchar
-        expr: subrn_dvcd
-        label: 출장소구분코드
-        description: 출장소구분코드
-      - name: area_dvcd
-        type: varchar
-        expr: area_dvcd
-        label: 지역구분코드
-        description: 지역구분코드
-      - name: brn_gpcd
-        type: varchar
-        expr: brn_gpcd
-        label: 부점그룹코드
-        description: 부점그룹코드
-      - name: brn_dvcd
-        type: varchar
-        expr: brn_dvcd
-        label: 부점구분코드
-        description: 부점구분코드
-      - name: brn_lctn_dvcd
-        type: varchar
-        expr: brn_lctn_dvcd
-        label: 부점소재지구분코드
-        description: 부점소재지구분코드
-      - name: brmgr_acof_dt
-        type: varchar
-        expr: brmgr_acof_dt
-        label: 부점장부임일자
-        description: 부점장부임일자
-      - name: brmgr_empno
-        type: varchar
-        expr: brmgr_empno
-        label: 부점장직원번호
-        description: 부점장직원번호
-      - name: brmgr_nm
-        type: varchar
-        expr: brmgr_nm
-        label: 부점장명
-        description: 부점장명
-      - name: holday_tx_clcd
-        type: varchar
-        expr: holday_tx_clcd
-        label: 휴일거래분류코드
-        description: 근로자휴일거래여부
-      - name: draf_chbt_cd
-        type: varchar
-        expr: draf_chbt_cd
-        label: 어음교환소코드
-        description: 어음교환소코드
-      - name: same_draf_exch_area_cd
-        type: varchar
-        expr: same_draf_exch_area_cd
-        label: 동일어음교환지역코드
-        description: 동일어음교환지역코드
-      - name: nttr_agsr_xn
-        type: varchar
-        expr: nttr_agsr_xn
-        label: 국고대리점유무
-        description: 국고대리점유무 (Y/N)
-      - name: nttr_uncn_brcd
-        type: varchar
-        expr: nttr_uncn_brcd
-        label: 국고통할부점코드
-        description: 국고통할부점코드
-      - name: nttr_setl_mth_brcd
-        type: varchar
-        expr: nttr_setl_mth_brcd
-        label: 국고결제모부점코드
-        description: 국고결제모부점코드
-      - name: rvst_setl_mth_brcd
-        type: varchar
-        expr: rvst_setl_mth_brcd
-        label: 수입인지결제모부점코드
-        description: 수입인지결제모부점코드
-      - name: rvcp_setl_mth_brcd
-        type: varchar
-        expr: rvcp_setl_mth_brcd
-        label: 수입증지결제모부점코드
-        description: 수입증지결제모부점코드
-      - name: cschq_setl_mth_brcd
-        type: varchar
-        expr: cschq_setl_mth_brcd
-        label: 자기앞수표결제모부점코드
-        description: 자기앞수표결제모부점코드
-      - name: fx_stor_yn
-        type: varchar
-        expr: fx_stor_yn
-        label: 외환점포여부
-        description: 외환점포여부
-      - name: fx_brcd
-        type: varchar
-        expr: fx_brcd
-        label: 외환부점코드
-        description: 외환부점코드
-      - name: fxccy_posn_cntz_brcd
-        type: varchar
-        expr: fxccy_posn_cntz_brcd
-        label: 외화포지션집중부점코드
-        description: 외화포지션집중부점코드
-      - name: antt_brcd
-        type: varchar
-        expr: antt_brcd
-        label: 계정처리부점코드
-        description: 계정처리부점코드
-      - name: intg_brn_dvcd
-        type: varchar
-        expr: intg_brn_dvcd
-        label: 통합부점구분코드
-        description: 통합부점구분코드
-      - name: intg_brcd
-        type: varchar
-        expr: intg_brcd
-        label: 통합부점코드
-        description: 통합부점코드
-      - name: bs_hold_dvcd
-        type: varchar
-        expr: bs_hold_dvcd
-        label: BS보유구분코드
-        description: BS보유구분코드
-      - name: aset_clcd
-        type: varchar
-        expr: aset_clcd
-        label: 자산분류코드
-        description: 자산분류코드
-      - name: gd_no
-        type: integer
-        expr: gd_no
-        label: 물건번호
-        description: 물건번호
-      - name: brn_road_nm_addr
-        type: varchar
-        expr: brn_road_nm_addr
-        label: 부점도로명주소
-        description: 부점도로명주소
-      - name: brn_road_nm_ensn_addr
-        type: varchar
-        expr: brn_road_nm_ensn_addr
-        label: 부점도로명영문주소
-        description: 부점도로명영문주소
-      - name: acon_occu_brn_yn
-        type: varchar
-        expr: acon_occu_brn_yn
-        label: 계리발생부점여부
-        description: 계리발생부점여부
-      - name: dmfr_dvcd
-        type: varchar
-        expr: dmfr_dvcd
-        label: 국내외구분코드
-        description: 국내외구분코드
-      - name: adup_brcd
-        type: varchar
-        expr: adup_brcd
-        label: 합산부점코드
-        description: 합산부점코드
-      - name: tx_brcd
-        type: varchar
-        expr: tx_brcd
-        label: 거래부점코드
-        description: 거래부점코드
-      - name: reg_dt
-        type: varchar
-        expr: reg_dt
-        label: 등록일자
-        description: 등록일자
-      - name: reg_empno
-        type: varchar
-        expr: reg_empno
-        label: 등록직원번호
-        description: 등록직원번호
-      - name: last_chng_dt
-        type: varchar
-        expr: last_chng_dt
-        label: 최종변경일자
-        description: 최종변경일자
-      - name: last_chng_empno
-        type: varchar
-        expr: last_chng_empno
-        label: 최종변경직원번호
-        description: 최종변경직원번호
-    measures:
-      - name: brcd_count
-        type: varchar
-        expr: brcd
-        label: 부점코드
-        description: 부점코드
-      - name: cash_hold_limt_amt
-        type: integer
-        expr: cash_hold_limt_amt
-        label: 현금보유한도금액
-        description: 현금보유한도금액
-      - name: fxccy_cshn_hold_limt_amt
-        type: integer
-        expr: fxccy_cshn_hold_limt_amt
-        label: 외화시재보유한도금액
-        description: 외화시재보유한도금액
-      - name: mnrc_limt_amt
-        type: integer
-        expr: mnrc_limt_amt
-        label: 입금한도금액
-        description: 영업점의 입금한도금액을 정의하는부분
-      - name: wdl_limt_amt
-        type: integer
-        expr: wdl_limt_amt
-        label: 출금한도금액
-        description: 영업점의 출금한도금액을 정의하는부분
-metrics:
-  - name: total_brn_cnt
-    metric_type: simple
+- name: branch
+  table: kjbank_daquv('wapco_brncd_cn')
+  description: >
+    부점코드(brcd)와 기준일자(base_dt) 기준으로 관리되는 영업점(지점/부점) 스냅샷 모델이다.
+    본 모델은 base_dt가 있는 이력/스냅샷 테이블이므로, 날짜가 포함된 질의에서는 반드시 base_dt에 동일한 날짜 필터를 적용하여 조회한다.
+
+  entities:
+  - name: branch_cd
+    type: primary
+    expr: brcd
+  - name: branch_dt
+    type: primary
+    expr: base_dt
+
+  dimensions:
+  - name: base_dt
+    type: varchar
+    label: 기준일자
+    expr: base_dt
+    description: 기준조회일자
+  - name: brcd
+    label: 부점코드
+    type: varchar
+    description: 부점코드. 부점코드는 항상 brn_nm (부점한글명)과 같이 group_by에 넣어주세요.
+    expr: brcd
+  - name: com_tx_dt
+    label: 공통거래일자
+    type: varchar
+    description: 시스템 공통 속성으로 모든 테이블에 등록되는 공통 거래일자
+    expr: com_tx_dt
+  - name: brn_stcd
+    label: 부점상태코드
+    type: varchar
+    description: 부점상태코드
+    expr: brn_stcd
+  - name: bank_cd
+    label: 은행코드
+    type: varchar
+    description: 은행코드
+    expr: bank_cd
+  - name: gir_cd
+    label: 지로코드
+    type: varchar
+    description: 지로코드
+    expr: gircd
+  - name: brn_new_dt
+    label: 부점신규일자
+    type: varchar
+    description: 부점신규일자
+    expr: brn_new_dt
+  - name: brn_clor_dt
+    label: 부점폐쇄일자
+    type: varchar
+    description: 부점폐쇄일자
+    expr: brn_clor_dt
+  - name: brn_move_dt
+    label: 부점이전일자
+    type: varchar
+    description: 부점이전일자
+    expr: brn_move_dt
+  - name: brn_prst_dt
+    label: 부점승격일자
+    type: varchar
+    description: 부점승격일자
+    expr: brn_prst_dt
+  - name: brn_dgrd_dt
+    label: 부점격하일자
+    type: varchar
+    description: 부점격하일자
+    expr: brn_dgrd_dt
+  - name: brn_nm
+    label: 부점한글명
+    type: varchar
+    description: 부점한글명
+    expr: brn_kor_nm
+  - name: brn_ennm
+    label: 부점영문명
+    type: varchar
+    description: 부점영문명
+    expr: brn_ennm
+  - name: brn_addr
+    label: 부점주소
+    type: varchar
+    description: 부점주소
+    expr: brn_addr
+  - name: bob_ensn_addr1
+    label: 영업점영문주소1
+    type: varchar
+    description: 부점영문주소1
+    expr: bob_ensn_addr1
+  - name: bob_ensn_addr2
+    label: 영업점영문주소2
+    type: varchar
+    description: 부점영문주소2
+    expr: bob_ensn_addr2
+  - name: bob_ensn_addr3
+    label: 영업점영문주소3
+    type: varchar
+    description: 부점영문주소3
+    expr: bob_ensn_addr3
+  - name: brn_zpcd
+    label: 부점우편번호
+    type: varchar
+    description: 부점우편번호
+    expr: brn_zpcd
+  - name: brn_tlno
+    label: 부점전화번호
+    type: varchar
+    description: 전화번호
+    expr: brn_tlno
+  - name: fxno
+    label: 팩스번호
+    type: varchar
+    description: 팩스번호
+    expr: fxno
+  - name: brn_bisno
+    label: 부점사업자등록번호
+    type: varchar
+    description: 부점사업자등록번호
+    expr: brn_bisno
+  - name: bfr_brcd
+    label: 이전부점코드
+    type: varchar
+    description: 이전부점코드
+    expr: bfr_brcd
+  - name: brn_abbr_nm
+    label: 부점약어명
+    type: varchar
+    description: 부점약어명
+    expr: brn_abbr_nm
+  - name: hq_dvcd
+    label: 본부구분코드
+    type: varchar
+    description: 본부구분코드
+    expr: hq_dvcd
+  - name: mth_brcd
+    label: 모부점코드
+    type: varchar
+    description: 모부점코드
+    expr: mth_brcd
+  - name: subrn_dvcd
+    label: 출장소구분코드
+    type: varchar
+    description: 출장소구분코드
+    expr: subrn_dvcd
+  - name: area_dvcd
+    label: 지역구분코드
+    type: varchar
+    description: 지역구분코드
+    expr: area_dvcd
+  - name: brn_gpcd
+    label: 부점그룹코드
+    type: varchar
+    description: 부점그룹코드
+    expr: brn_gpcd
+  - name: brn_dvcd
+    label: 부점구분코드
+    type: varchar
+    description: 부점구분코드
+    expr: brn_dvcd
+  - name: brn_lctn_dvcd
+    label: 부점소재지구분코드
+    type: varchar
+    description: 부점소재지구분코드
+    expr: brn_lctn_dvcd
+  - name: brmgr_acof_dt
+    label: 부점장부임일자
+    type: varchar
+    description: 부점장부임일자
+    expr: brmgr_acof_dt
+  - name: brmgr_empno
+    label: 부점장직원번호
+    type: varchar
+    description: 부점장직원번호
+    expr: brmgr_empno
+  - name: brmgr_nm
+    label: 부점장명
+    type: varchar
+    description: 부점장명
+    expr: brmgr_nm
+  - name: holday_tx_clcd
+    label: 휴일거래분류코드
+    type: varchar
+    description: 근로자휴일거래여부
+    expr: holday_tx_clcd
+  - name: draf_chbt_cd
+    label: 어음교환소코드
+    type: varchar
+    description: 어음교환소코드
+    expr: draf_chbt_cd
+  - name: same_draf_exch_area_cd
+    label: 동일어음교환지역코드
+    type: varchar
+    description: 동일어음교환지역코드
+    expr: same_draf_exch_area_cd
+  - name: nttr_agsr_xn
+    label: 국고대리점유무
+    type: varchar
+    description: 국고대리점유무 (Y/N)
+    expr: nttr_agsr_xn
+  - name: nttr_uncn_brcd
+    label: 국고통할부점코드
+    type: varchar
+    description: 국고통할부점코드
+    expr: nttr_uncn_brcd
+  - name: nttr_setl_mth_brcd
+    label: 국고결제모부점코드
+    type: varchar
+    description: 국고결제모부점코드
+    expr: nttr_setl_mth_brcd
+  - name: rvst_setl_mth_brcd
+    label: 수입인지결제모부점코드
+    type: varchar
+    description: 수입인지결제모부점코드
+    expr: rvst_setl_mth_brcd
+  - name: rvcp_setl_mth_brcd
+    label: 수입증지결제모부점코드
+    type: varchar
+    description: 수입증지결제모부점코드
+    expr: rvcp_setl_mth_brcd
+  - name: cschq_setl_mth_brcd
+    label: 자기앞수표결제모부점코드
+    type: varchar
+    description: 자기앞수표결제모부점코드
+    expr: cschq_setl_mth_brcd
+  - name: fx_stor_yn
+    label: 외환점포여부
+    type: varchar
+    description: 외환점포여부
+    expr: fx_stor_yn
+  - name: fx_brcd
+    label: 외환부점코드
+    type: varchar
+    description: 외환부점코드
+    expr: fx_brcd
+  - name: fxccy_posn_cntz_brcd
+    label: 외화포지션집중부점코드
+    type: varchar
+    description: 외화포지션집중부점코드
+    expr: fxccy_posn_cntz_brcd
+  - name: antt_brcd
+    label: 계정처리부점코드
+    type: varchar
+    description: 계정처리부점코드
+    expr: antt_brcd
+  - name: intg_brn_dvcd
+    label: 통합부점구분코드
+    type: varchar
+    description: 통합부점구분코드
+    expr: intg_brn_dvcd
+  - name: intg_brcd
+    label: 통합부점코드
+    type: varchar
+    description: 통합부점코드
+    expr: intg_brcd
+  - name: bs_hold_dvcd
+    label: BS보유구분코드
+    type: varchar
+    description: BS보유구분코드
+    expr: bs_hold_dvcd
+  - name: aset_clcd
+    label: 자산분류코드
+    type: varchar
+    description: 자산분류코드
+    expr: aset_clcd
+  - name: gd_no
+    label: 물건번호
     type: integer
-    expr: COUNT(DISTINCT branch__brcd_count)
-    label: 총 지점 수
-    description: 총 지점 수(중복 제거)
-  - name: total_cash_hold_limt_amt
-    metric_type: ''
+    description: 물건번호
+    expr: gd_no
+  - name: brn_road_nm_addr
+    label: 부점도로명주소
+    type: varchar
+    description: 부점도로명주소
+    expr: brn_road_nm_addr
+  - name: brn_road_nm_ensn_addr
+    label: 부점도로명영문주소
+    type: varchar
+    description: 부점도로명영문주소
+    expr: brn_road_nm_ensn_addr
+  - name: acon_occu_brn_yn
+    label: 계리발생부점여부
+    type: varchar
+    description: 계리발생부점여부
+    expr: acon_occu_brn_yn
+  - name: dmfr_dvcd
+    label: 국내외구분코드
+    type: varchar
+    description: 국내외구분코드
+    expr: dmfr_dvcd
+  - name: adup_brcd
+    label: 합산부점코드
+    type: varchar
+    description: 합산부점코드
+    expr: adup_brcd
+  - name: tx_brcd
+    label: 거래부점코드
+    type: varchar
+    description: 거래부점코드
+    expr: tx_brcd
+  - name: reg_dt
+    label: 등록일자
+    type: varchar
+    description: 등록일자
+    expr: reg_dt
+  - name: reg_empno
+    label: 등록직원번호
+    type: varchar
+    description: 등록직원번호
+    expr: reg_empno
+  - name: last_chng_dt
+    label: 최종변경일자
+    type: varchar
+    description: 최종변경일자
+    expr: last_chng_dt
+  - name: last_chng_empno
+    label: 최종변경직원번호
+    type: varchar
+    description: 최종변경직원번호
+    expr: last_chng_empno
+
+  measures:
+  - name: brcd_count
+    label: 부점코드
+    type: varchar
+    description: 부점코드
+    expr: brcd
+  - name: cash_hold_limt_amt
+    label: 현금보유한도금액
     type: integer
-    expr: SUM(branch__cash_hold_limt_amt)
-    label: 총 현금보유한도금액
-    description: 총 현금보유한도금액
-  - name: total_fxccy_cshn_hold_limt_amt
-    metric_type: ''
+    description: 현금보유한도금액
+    expr: cash_hold_limt_amt
+  - name: fxccy_cshn_hold_limt_amt
+    label: 외화시재보유한도금액
     type: integer
-    expr: SUM(branch__fxccy_cshn_hold_limt_amt)
-    label: 총 외화시재보유한도금액
-    description: 총 외화시재보유한도금액
-  - name: total_mnrc_limt_amt
-    metric_type: ''
+    description: 외화시재보유한도금액
+    expr: fxccy_cshn_hold_limt_amt
+  - name: mnrc_limt_amt
+    label: 입금한도금액
     type: integer
-    expr: SUM(branch__mnrc_limt_amt)
-    label: 총 입금한도금액
-    description: 영업점의 총 입금한도금액을 정의하는부분
-  - name: total_wdl_limt_amt
-    metric_type: ''
-    type: integer
-    expr: SUM(branch__wdl_limt_amt)
+    description: 영업점의 입금한도금액을 정의하는부분
+    expr: mnrc_limt_amt
+  - name: wdl_limt_amt
     label: 출금한도금액
+    type: integer
     description: 영업점의 출금한도금액을 정의하는부분
+    expr: wdl_limt_amt
+    
+metrics:
+- name: total_branch_count
+  description: 총 지점 수(중복 제거)
+  type: integer
+  metric_type: simple
+  label: 총 지점 수
+  expr: COUNT(DISTINCT branch__brcd_count)
+- name: total_cash_hold_limt_amt
+  label: 총 현금보유한도금액
+  type: integer
+  description: 총 현금보유한도금액
+  expr: SUM(branch__cash_hold_limt_amt)
+- name: total_fxccy_cshn_hold_limt_amt
+  label: 총 외화시재보유한도금액
+  type: integer
+  description: 총 외화시재보유한도금액
+  expr: SUM(branch__fxccy_cshn_hold_limt_amt)
+- name: total_mnrc_limt_amt
+  label: 총 입금한도금액
+  type: integer
+  description: 영업점의 총 입금한도금액을 정의하는부분
+  expr: SUM(branch__mnrc_limt_amt)
+- name: total_wdl_limt_amt
+  label: 출금한도금액
+  type: integer
+  description: 영업점의 출금한도금액을 정의하는부분
+  expr: SUM(branch__wdl_limt_amt)

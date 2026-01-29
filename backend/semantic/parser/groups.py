@@ -9,7 +9,10 @@ def parse_groups(parsed_smq, values, semantic_manifest, dialect):
         # 1) 해당 value가 dimension인 경우
         if "__" in parsed_value.name:
             table_name, column_name = parsed_value.name.split("__")
-            value_to_append = exp.Column(this=exp.Identifier(this=column_name))
+            value_to_append = exp.Column(
+                this=exp.Identifier(this=column_name),
+                table=exp.Identifier(this=table_name)
+            )
             parsed_smq = append_node(
                 parsed_smq,
                 "agg",

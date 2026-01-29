@@ -10,6 +10,8 @@ from .utils import (
     find_table_of_column_from_original_smq,
     replace_from_with_real_table,
     derived_metric_in_expr,
+    add_table_prefix_to_columns,
+    remove_table_prefix_from_columns,
 )
 
 __all__ = [
@@ -24,4 +26,6 @@ __all__ = [
     find_table_of_column_from_original_smq,
     replace_from_with_real_table,
     derived_metric_in_expr,
+    add_table_prefix_to_columns,
+    remove_table_prefix_from_columns,
 ]

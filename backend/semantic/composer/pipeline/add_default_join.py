@@ -32,7 +32,7 @@ def add_default_join(parsed_smq, original_smq, semantic_manifest, dialect):
                 parsed_smq,
                 table_name,
                 "metrics",
-                exp.Column(this=exp.Identifier(this=column_name)),
+                exp.Column(this=exp.Identifier(this=column_name, quoted=col.this.quoted)),
             )
 
     parsed_smq = append_node(parsed_smq, "agg", "joins", join_node)
@@ -71,10 +71,13 @@ def _primary_lookup(sm) -> Dict[str, str]:
     return result
 
 
-def find_join_path(sm1, sm2) -> Optional[List[Tuple[str, str, str, str]]]:
+def find_join_path(
+    sm1, sm2
+) -> Optional[Tuple[str, str, List[Tuple[str, str]]]]:
     """
-    복합 키를 지원하는 JOIN 경로 찾기
-    Returns: List of (lhm, lhe, rhm, rhe) tuples - 복합 키의 경우 여러 튜플 반환, 단일 키는 하나의 튜플만 포함
+    (lhm, rhm, [(lhe1, rhe1), (lhe2, rhe2), ...]) or None
+    - 매칭되는 모든 PK/FK 쌍을 반환하여 복합 키 조인 지원
+    - 항상 LEFT JOIN 사용
     """
     # 딕셔너리와 객체 둘 다 지원
     sm1_name = sm1.get("name") if isinstance(sm1, dict) else sm1.name
@@ -90,57 +93,35 @@ def find_join_path(sm1, sm2) -> Optional[List[Tuple[str, str, str, str]]]:
         else getattr(sm2, "entities", [])
     )
 
+    # sm1.foreign -> sm2.primary 매칭 수집
     right_primary = _primary_lookup(sm2)
-    left_primary = _primary_lookup(sm1)
+    join_pairs: List[Tuple[str, str]] = []
 
-    # 문제 3 해결: 복합 키 지원
-    # sm1의 foreign key들이 sm2의 모든 primary key와 매칭되는지 확인
-    sm1_foreign_keys = {}
     for e in sm1_entities:
         e_type = e.get("type") if isinstance(e, dict) else getattr(e, "type", None)
-        if e_type == "foreign":
-            e_name = e.get("name") if isinstance(e, dict) else e.name
-            e_expr = e.get("expr") if isinstance(e, dict) else getattr(e, "expr", None)
-            if e_name in right_primary:
-                sm1_foreign_keys[e_name] = e_expr or e_name
+        e_name = e.get("name") if isinstance(e, dict) else e.name
+        e_expr = e.get("expr") if isinstance(e, dict) else getattr(e, "expr", None)
 
-    # sm2의 foreign key들이 sm1의 모든 primary key와 매칭되는지 확인
-    sm2_foreign_keys = {}
+        if e_type == "foreign" and e_name in right_primary:
+            join_pairs.append((e_expr or e_name, right_primary[e_name]))
+
+    if join_pairs:
+        return (sm1_name, sm2_name, join_pairs)
+
+    # sm2.foreign -> sm1.primary 매칭 수집
+    left_primary = _primary_lookup(sm1)
+    join_pairs = []
+
     for e in sm2_entities:
         e_type = e.get("type") if isinstance(e, dict) else getattr(e, "type", None)
-        if e_type == "foreign":
-            e_name = e.get("name") if isinstance(e, dict) else e.name
-            e_expr = e.get("expr") if isinstance(e, dict) else getattr(e, "expr", None)
-            if e_name in left_primary:
-                sm2_foreign_keys[e_name] = e_expr or e_name
+        e_name = e.get("name") if isinstance(e, dict) else e.name
+        e_expr = e.get("expr") if isinstance(e, dict) else getattr(e, "expr", None)
 
-    # sm1 -> sm2 방향 조인 (sm1의 foreign key 사용)
-    if sm1_foreign_keys:
-        join_keys = []
-        for fk_name, fk_expr in sm1_foreign_keys.items():
-            if fk_name in right_primary:
-                join_keys.append((
-                    sm1_name,
-                    fk_expr,
-                    sm2_name,
-                    right_primary[fk_name],
-                ))
-        if join_keys:
-            return join_keys
+        if e_type == "foreign" and e_name in left_primary:
+            join_pairs.append((e_expr or e_name, left_primary[e_name]))
 
-    # sm2 -> sm1 방향 조인 (sm2의 foreign key 사용)
-    if sm2_foreign_keys:
-        join_keys = []
-        for fk_name, fk_expr in sm2_foreign_keys.items():
-            if fk_name in left_primary:
-                join_keys.append((
-                    sm2_name,
-                    fk_expr,
-                    sm1_name,
-                    left_primary[fk_name],
-                ))
-        if join_keys:
-            return join_keys
+    if join_pairs:
+        return (sm2_name, sm1_name, join_pairs)
 
     return None
 
@@ -150,12 +131,12 @@ def find_join_path(sm1, sm2) -> Optional[List[Tuple[str, str, str, str]]]:
 
 def _build_join_graph_and_paths_by_name(
     sms: List,
-) -> Tuple[Dict[frozenset, List[Tuple[str, str, str, str]]], Dict[str, Set[str]]]:
-    """name 기반 그래프 생성 - 복합 키 지원"""
+) -> Tuple[Dict[frozenset, Tuple[str, str, List[Tuple[str, str]]]], Dict[str, Set[str]]]:
+    """name 기반 그래프 생성 - 복합 키 조인 지원"""
     name_of = {sm["name"]: sm for sm in sms}
     names = list(name_of.keys())
 
-    edges: Dict[frozenset, List[Tuple[str, str, str, str]]] = {}
+    edges: Dict[frozenset, Tuple[str, str, List[Tuple[str, str]]]] = {}
     adj: Dict[str, Set[str]] = {n: set() for n in names}
 
     n = len(names)
@@ -197,10 +178,10 @@ def _connected_components_names(
 
 def _build_join_sequence_for_connected_component(
     comp: List[str],
-    edges: Dict[frozenset, List[Tuple[str, str, str, str]]],
+    edges: Dict[frozenset, Tuple[str, str, List[Tuple[str, str]]]],
     adj: Dict[str, Set[str]],
-) -> List[List[Tuple[str, str, str, str]]]:
-    """BFS를 사용하여 조인 순서를 결정 - 복합 키 지원"""
+) -> List[Tuple[str, str, List[Tuple[str, str]]]]:
+    """BFS를 사용하여 조인 순서를 결정 - 복합 키 조인 지원"""
     if len(comp) < 2:
         return []
 
@@ -209,7 +190,7 @@ def _build_join_sequence_for_connected_component(
         path = edges.get(key)
         return [path] if path else []
 
-    join_sequence: List[List[Tuple[str, str, str, str]]] = []
+    join_sequence: List[Tuple[str, str, List[Tuple[str, str]]]] = []
     joined: Set[str] = {comp[0]}
     queue: List[str] = [comp[0]]
 
@@ -222,18 +203,18 @@ def _build_join_sequence_for_connected_component(
                 path = edges.get(key)
 
                 if path:
-                    # path는 이미 List[Tuple[str, str, str, str]] 형태
+                    lhm, rhm, join_pairs = path
+
                     # current가 left가 되도록 조정
-                    adjusted_path = []
-                    for lhm, lhe, rhm, rhe in path:
-                        if current == lhm and neighbor == rhm:
-                            adjusted_path.append((lhm, lhe, rhm, rhe))
-                        elif current == rhm and neighbor == lhm:
-                            adjusted_path.append((rhm, rhe, lhm, lhe))
-                        else:
-                            adjusted_path.append((lhm, lhe, rhm, rhe))
+                    if current == lhm and neighbor == rhm:
+                        join_sequence.append((lhm, rhm, join_pairs))
+                    elif current == rhm and neighbor == lhm:
+                        # 조인 쌍의 좌우를 바꿔줌
+                        swapped_pairs = [(rhe, lhe) for lhe, rhe in join_pairs]
+                        join_sequence.append((rhm, lhm, swapped_pairs))
+                    else:
+                        join_sequence.append(path)
                     
-                    join_sequence.append(adjusted_path)
                     joined.add(neighbor)
                     queue.append(neighbor)
 
@@ -252,14 +233,14 @@ def _build_join_sequence_for_connected_component(
 
 def generate_join_sql(semantic_manifest: list, models: list[str]) -> str:
     """
-    모델 이름 리스트로부터 SQL JOIN 절 생성
+    모델 이름 리스트로부터 SQL JOIN 절 생성 (복합 키 조인 지원)
 
     Args:
         semantic_models: 전체 semantic model 리스트
         models: 조인할 모델 이름들 (예: ["acct_installment_saving_src", "acct_installment_saving_daily"])
 
     Returns:
-        SQL JOIN 절 문자열 (예: "FROM acct_installment_saving_src A LEFT JOIN acct_installment_saving_daily B ON A.계좌번호 = B.계좌번호")
+        SQL JOIN 절 문자열 (예: "FROM A LEFT JOIN B ON A.계좌번호 = B.계좌번호 AND A.기준일자 = B.기준일자")
 
     Raises:
         JoinError: 모델들을 조인할 수 없는 경우
@@ -316,26 +297,15 @@ def generate_join_sql(semantic_manifest: list, models: list[str]) -> str:
 
     # SQL 생성: 전체 테이블 이름을 alias로 사용
     # 첫 번째 모델로 FROM 시작
-    first_join_keys = join_sequence[0]  # 첫 번째 조인의 키 리스트
-    first_model = first_join_keys[0][0]  # lhm of first join
+    first_model = join_sequence[0][0]  # lhm of first join
     sql_parts = [f"FROM {first_model}"]
 
-    # 각 조인 추가 (모두 LEFT JOIN 사용)
-    # 문제 3 해결: 복합 키 지원 - 모든 키를 AND로 연결
-    for join_keys in join_sequence:
-        # join_keys는 List[Tuple[str, str, str, str]] 형태
-        if not join_keys:
-            continue
-        
-        # 첫 번째 키에서 테이블 정보 추출
-        lhm, _, rhm, _ = join_keys[0]
-        
-        # 모든 키를 AND로 연결
-        on_conditions = []
-        for lhm_key, lhe, rhm_key, rhe in join_keys:
-            on_conditions.append(f"{lhm_key}.{lhe} = {rhm_key}.{rhe}")
-        
-        join_clause = f"LEFT JOIN {rhm} ON {' AND '.join(on_conditions)}"
+    # 각 조인 추가 (모두 LEFT JOIN 사용, 복합 키 지원)
+    for lhm, rhm, join_pairs in join_sequence:
+        # 모든 조인 조건을 AND로 연결
+        on_conditions = [f"{lhm}.{lhe} = {rhm}.{rhe}" for lhe, rhe in join_pairs]
+        on_clause = " AND ".join(on_conditions)
+        join_clause = f"LEFT JOIN {rhm} ON {on_clause}"
         sql_parts.append(join_clause)
 
     return " ".join(sql_parts)

@@ -127,11 +127,19 @@ def check_prerequisite_of_deriv_layer_and_complete(
             if node_name in agg_layer_columns_in_str:
                 continue
             else:
+                # node에 table 정보가 있으면 함께 추가 (ambiguous column 방지)
+                if node.table:
+                    column_to_append = exp.Column(
+                        this=exp.Identifier(this=node_name),
+                        table=node.table
+                    )
+                else:
+                    column_to_append = exp.Column(this=exp.Identifier(this=node_name))
                 parsed_smq = append_node(
                     parsed_smq,
                     "agg",
                     "metrics",
-                    exp.Column(this=exp.Identifier(this=node_name)),
+                    column_to_append,
                 )
             # 주의) agg layer에 없는 걸 proj layer에 추가하는 건 아마 필요 없는 듯합니다..?
 

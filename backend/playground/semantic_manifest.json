@@ -2525,14 +2525,14 @@
           "type": "varchar",
           "label": "기준일자",
           "expr": "base_dt",
-          "description": "기준조회일자 (YYYYMMDD). varchar type",
+          "description": "기준조회일자 (YYYYMMDD). varchar type. 사용자의 질문에서 해석된 기준일자가 현재 시스템 기준일({today})보다 미래인 경우, 해당 날짜는 아직 도래하지 않은 시점으로 판단하여 **자동으로 전년도 동일 일자(YYYYMMDD)로 보정하여 조회한다**. (예 - 오늘이 2026-01-28일 때 '2026년 7월' → 2025-07-31로 변환) 단, 사용자가 연도를 명시적으로 지정한 경우(예 - '2027년 6월 30일')에는 보정하지 않고 해당 연도를 그대로 사용한다.",
           "type_params": null
         },
         {
           "name": "base_month",
           "type": "varchar",
           "label": "기준년월",
-          "expr": "SUBSTR(deposit__base_dt, 1, 6)",
+          "expr": "SUBSTR(base_dt, 1, 6)",
           "description": "기준년월 (YYYYMM). varchar type",
           "type_params": null
         },
@@ -2562,9 +2562,9 @@
         },
         {
           "name": "gds_code",
-          "label": "상품 코드? (확인 필요)",
+          "label": "상품 타입? (확인 필요)",
           "type": "varchar",
-          "description": "상품 코드?",
+          "description": "상품 타입?",
           "expr": "SUBSTR(gds_cd, 1, 9)",
           "type_params": null
         },
@@ -3605,14 +3605,14 @@
           "type": "varchar",
           "label": "기준일자",
           "expr": "base_dt",
-          "description": "기준조회일자",
+          "description": "기준조회일자. 날짜 관련 규칙 참고하여 출력.",
           "type_params": null
         },
         {
           "name": "base_month",
           "type": "varchar",
           "label": "기준년월",
-          "expr": "SUBSTR(loan__base_dt, 1, 6)",
+          "expr": "SUBSTR(base_dt, 1, 6)",
           "description": "기준년월 (YYYYMM). varchar type",
           "type_params": null
         },
@@ -3981,7 +3981,7 @@
           "label": "대출상품군",
           "type": "varchar",
           "description": "대출상품군.",
-          "expr": "CASE WHEN pcpl_repay_mtcd='01' AND lnbz_prgr_cd='01601' THEN '1.일반_일시' \n     WHEN pcpl_repay_mtcd='05' AND lnbz_prgr_cd='01601' THEN '2.일반_분할' \n     WHEN pcpl_repay_mtcd='01' AND lnbz_prgr_cd='01603' THEN '3.대환_일시' \n     WHEN pcpl_repay_mtcd='05' AND lnbz_prgr_cd='01603' THEN '4.대환_분할' \nEND\n",
+          "expr": "CASE WHEN loan__pcpl_repay_mtcd='01' AND loan__lnbz_prgr_cd='01601' THEN '1.일반_일시' \n     WHEN loan__pcpl_repay_mtcd='05' AND loan__lnbz_prgr_cd='01601' THEN '2.일반_분할' \n     WHEN loan__pcpl_repay_mtcd='01' AND loan__lnbz_prgr_cd='01603' THEN '3.대환_일시' \n     WHEN loan__pcpl_repay_mtcd='05' AND loan__lnbz_prgr_cd='01603' THEN '4.대환_분할' \nEND\n",
           "type_params": null
         },
         {
@@ -3989,7 +3989,7 @@
           "label": "상품 구분?",
           "type": "varchar",
           "description": "상품 구분?",
-          "expr": "CASE WHEN lnbz_prgr_cd IN ('01138','01139','01153','01156','01157','01158','01159','01160','01169','01170','01171','01172','01173','01174','01175','01176','01177') THEN 'PPL' \n     WHEN lnbz_prgr_cd IN ('01131','01132','01151','01154','01161','01162','01163','01165','01167') THEN 'MPL' \n     WHEN lnbz_prgr_cd IN ('01544','01579','01585') THEN '비대면주담대(333점)' \n     WHEN lnbz_prgr_cd IN ('01535') THEN '햇살론뱅크(모바일)' \n     WHEN lnbz_prgr_cd IN ('01583') THEN '햇살론15II(모바일)' \n     WHEN lnbz_prgr_cd IN ('01572') THEN '비상금대출' \n     WHEN lnbz_prgr_cd IN ('01709') THEN '햇살론유스(모바일)' \n     WHEN lnbz_prgr_cd IN ('01546','01547') THEN '최저신용자' \n     WHEN lnbz_prgr_cd IN ('01706') THEN '자동차담보대출' \n     WHEN lnbz_prgr_cd IN ('01092') THEN '사잇돌중금리' \nEND\n",
+          "expr": "CASE WHEN loan__lnbz_prgr_cd IN ('01138','01139','01153','01156','01157','01158','01159','01160','01169','01170','01171','01172','01173','01174','01175','01176','01177') THEN 'PPL' \n     WHEN loan__lnbz_prgr_cd IN ('01131','01132','01151','01154','01161','01162','01163','01165','01167') THEN 'MPL' \n     WHEN loan__lnbz_prgr_cd IN ('01544','01579','01585') THEN '비대면주담대(333점)' \n     WHEN loan__lnbz_prgr_cd IN ('01535') THEN '햇살론뱅크(모바일)' \n     WHEN loan__lnbz_prgr_cd IN ('01583') THEN '햇살론15II(모바일)' \n     WHEN loan__lnbz_prgr_cd IN ('01572') THEN '비상금대출' \n     WHEN loan__lnbz_prgr_cd IN ('01709') THEN '햇살론유스(모바일)' \n     WHEN loan__lnbz_prgr_cd IN ('01546','01547') THEN '최저신용자' \n     WHEN loan__lnbz_prgr_cd IN ('01706') THEN '자동차담보대출' \n     WHEN loan__lnbz_prgr_cd IN ('01092') THEN '사잇돌중금리' \nEND\n",
           "type_params": null
         }
       ],
@@ -4497,7 +4497,7 @@
       "type": "integer",
       "metric_type": "simple",
       "label": "가중평균 금리",
-      "expr": "ROUND(SUM(deposit__bs_bal * deposit__aply_rt) / (SUM(deposit__bs_bal) * 100),3)"
+      "expr": "SUM(deposit__bs_bal * deposit__aply_rt) / (SUM(deposit__bs_bal) * 100)"
     },
     {
       "name": "avg_interest_rate",
@@ -4505,7 +4505,7 @@
       "type": "integer",
       "metric_type": "simple",
       "label": "평균취급금리",
-      "expr": "ROUND(SUM(deposit__ftmp_dsam * deposit__aply_rt) / SUM(deposit__ftmp_dsam), 2)"
+      "expr": "SUM(deposit__ftmp_dsam * deposit__aply_rt) / SUM(deposit__ftmp_dsam)"
     },
     {
       "name": "avg_contract_month",
@@ -4513,7 +4513,7 @@
       "type": "integer",
       "metric_type": "simple",
       "label": "평균계약개월수",
-      "expr": "ROUND(SUM(deposit__cntr_mcnt) / COUNT(*), 2)"
+      "expr": "SUM(deposit__cntr_mcnt) / COUNT(*)"
     },
     {
       "name": "total_pref_rt",

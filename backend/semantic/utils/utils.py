@@ -1,3 +1,4 @@
+from typing import List
 from sqlglot import expressions as exp
 import sqlglot
 from backend.utils.logger import setup_logger
@@ -218,3 +219,75 @@ def replace_from_with_real_table(base_select, semantic_manifest, dialect):
     base_select.set("from", exp.From(this=table_expr))
 
     return base_select
+
+
+def add_table_prefix_to_columns(
+    metrics: List[exp.Expression], base_layers: List[str]
+) -> List[exp.Expression]:
+    """
+    agg 레이어의 expressions에서 테이블 프리픽스를 처리합니다.
+
+    - base_layers에 있는 테이블: 그대로 유지 (table.column)
+    - base_layers에 없는 테이블: 프리픽스 제거 (column)
+
+    Args:
+        metrics: List[exp.Expression] - 처리할 expressions 리스트
+        base_layers: List[str] - proj 레이어 이름 리스트
+
+    Returns:
+        List[exp.Expression] - 처리된 expressions 리스트
+    """
+    processed_metrics = []
+    for metric in metrics:
+        # 이미 Alias가 있는 경우 (예: SUM(...) AS total) 그대로 유지
+        if isinstance(metric, exp.Alias):
+            processed_metrics.append(metric)
+            continue
+
+        # Column인 경우 테이블 프리픽스 확인
+        if isinstance(metric, exp.Column):
+            if metric.table:
+                table_name = (
+                    metric.table.name
+                    if hasattr(metric.table, "name")
+                    else str(metric.table)
+                )
+                if table_name in base_layers:
+                    # base_layers에 있으면 그대로 유지
+                    processed_metrics.append(metric)
+                    continue
+                # base_layers에 없으면 프리픽스 제거
+                processed_metrics.append(exp.Column(this=metric.this, table=None))
+                continue
+
+        # 그 외의 경우 그대로 유지
+        processed_metrics.append(metric)
+
+    return processed_metrics
+
+
+def remove_table_prefix_from_columns(
+    metrics: List[exp.Expression],
+) -> List[exp.Expression]:
+    """
+    uppermost(deriv) 레이어의 expressions에서 테이블 프리픽스를 제거합니다.
+    FROM agg 서브쿼리를 참조할 때, 서브쿼리 결과 컬럼명으로 접근해야 합니다.
+
+    예: account.account_no → account_no
+
+    agg 서브쿼리의 결과 컬럼명은 테이블 프리픽스 없이 컬럼명만 됩니다.
+    """
+
+    def _transform_column(node: exp.Expression) -> exp.Expression:
+        if isinstance(node, exp.Column):
+            if node.table:
+                # 테이블 프리픽스 제거, 컬럼명만 유지
+                return exp.Column(this=node.this, table=None)
+        return node
+
+    processed_metrics = []
+    for metric in metrics:
+        processed_metric = metric.transform(_transform_column)
+        processed_metrics.append(processed_metric)
+
+    return processed_metrics

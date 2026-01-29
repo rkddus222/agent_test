@@ -29,7 +29,13 @@ class Proposal:
 @dataclass
 class DraftResponse:
     """Draft 생성 응답"""
-    proposals: List[Proposal]
+    path: str = ""
+    generatedAt: str = ""
+    proposals: List[Proposal] = None
+    
+    def __post_init__(self):
+        if self.proposals is None:
+            self.proposals = []
 
 
 class SemanticModelPathRequest(BaseModel):

@@ -46,6 +46,14 @@ def _parse_single_value(parsed_smq, value, semantic_manifest, dialect):
     else:
         idents = _find_all_identifiers_except_subquery_child(parsed_value)
 
+        # [Fix] 만약 identifier가 없고 literal만 있는데 __가 포함된 경우 identifier로 변환합니다.
+        if not idents:
+            for literal in parsed_value.find_all(exp.Literal):
+                if isinstance(literal.this, str) and "__" in literal.this:
+                    new_ident = exp.Identifier(this=literal.this, quoted=False)
+                    literal.replace(new_ident)
+                    idents.append(new_ident)
+
         # 3-1) 우선 parsed_value에 있는 모든 칼럼들을 expr이 있는 경우 expr로 바꿔줍니다. (이 과정에서 table_name_set을 모아서 추후 분기에 활용합니다.)
         table_names_set = set()
         for ident in idents:
@@ -96,11 +104,13 @@ def _parse_single_value(parsed_smq, value, semantic_manifest, dialect):
                 "filters",
                 parsed_value,
             )
-        # 3-3) 만약 tasbe_name이 1개이면 해당 table의 proj layer에 붙입니다.
+        # 3-3) 만약 table_name이 1개이면 해당 table의 proj layer에 붙입니다.
         else:
+            # table_names_set이 비어있는 경우 (상수 필터 등) deriv에 추가합니다.
+            target_table = list(table_names_set)[0] if table_names_set else "deriv"
             parsed_smq = append_node(
                 parsed_smq,
-                table_name,
+                target_table,
                 "filters",
                 parsed_value,
             )

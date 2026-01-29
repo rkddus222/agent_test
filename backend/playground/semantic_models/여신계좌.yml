@@ -16,11 +16,11 @@ semantic_models:
     type: varchar
     label: 기준일자
     expr: base_dt
-    description: 기준조회일자
+    description: 기준조회일자. 날짜 관련 규칙 참고하여 출력.
   - name: base_month
     type: varchar
     label: 기준년월
-    expr: SUBSTR(loan__base_dt, 1, 6)
+    expr: SUBSTR(base_dt, 1, 6)
     description: 기준년월 (YYYYMM). varchar type
   - name: acno
     label: 계좌번호
@@ -252,26 +252,26 @@ semantic_models:
     type: varchar
     description: 대출상품군.
     expr: >
-      CASE WHEN pcpl_repay_mtcd='01' AND lnbz_prgr_cd='01601' THEN '1.일반_일시' 
-           WHEN pcpl_repay_mtcd='05' AND lnbz_prgr_cd='01601' THEN '2.일반_분할' 
-           WHEN pcpl_repay_mtcd='01' AND lnbz_prgr_cd='01603' THEN '3.대환_일시' 
-           WHEN pcpl_repay_mtcd='05' AND lnbz_prgr_cd='01603' THEN '4.대환_분할' 
+      CASE WHEN loan__pcpl_repay_mtcd='01' AND loan__lnbz_prgr_cd='01601' THEN '1.일반_일시' 
+           WHEN loan__pcpl_repay_mtcd='05' AND loan__lnbz_prgr_cd='01601' THEN '2.일반_분할' 
+           WHEN loan__pcpl_repay_mtcd='01' AND loan__lnbz_prgr_cd='01603' THEN '3.대환_일시' 
+           WHEN loan__pcpl_repay_mtcd='05' AND loan__lnbz_prgr_cd='01603' THEN '4.대환_분할' 
       END
   - name: loan_goods_type
     label: 상품 구분?
     type: varchar
     description: 상품 구분?
     expr: >
-      CASE WHEN lnbz_prgr_cd IN ('01138','01139','01153','01156','01157','01158','01159','01160','01169','01170','01171','01172','01173','01174','01175','01176','01177') THEN 'PPL' 
-           WHEN lnbz_prgr_cd IN ('01131','01132','01151','01154','01161','01162','01163','01165','01167') THEN 'MPL' 
-           WHEN lnbz_prgr_cd IN ('01544','01579','01585') THEN '비대면주담대(333점)' 
-           WHEN lnbz_prgr_cd IN ('01535') THEN '햇살론뱅크(모바일)' 
-           WHEN lnbz_prgr_cd IN ('01583') THEN '햇살론15II(모바일)' 
-           WHEN lnbz_prgr_cd IN ('01572') THEN '비상금대출' 
-           WHEN lnbz_prgr_cd IN ('01709') THEN '햇살론유스(모바일)' 
-           WHEN lnbz_prgr_cd IN ('01546','01547') THEN '최저신용자' 
-           WHEN lnbz_prgr_cd IN ('01706') THEN '자동차담보대출' 
-           WHEN lnbz_prgr_cd IN ('01092') THEN '사잇돌중금리' 
+      CASE WHEN loan__lnbz_prgr_cd IN ('01138','01139','01153','01156','01157','01158','01159','01160','01169','01170','01171','01172','01173','01174','01175','01176','01177') THEN 'PPL' 
+           WHEN loan__lnbz_prgr_cd IN ('01131','01132','01151','01154','01161','01162','01163','01165','01167') THEN 'MPL' 
+           WHEN loan__lnbz_prgr_cd IN ('01544','01579','01585') THEN '비대면주담대(333점)' 
+           WHEN loan__lnbz_prgr_cd IN ('01535') THEN '햇살론뱅크(모바일)' 
+           WHEN loan__lnbz_prgr_cd IN ('01583') THEN '햇살론15II(모바일)' 
+           WHEN loan__lnbz_prgr_cd IN ('01572') THEN '비상금대출' 
+           WHEN loan__lnbz_prgr_cd IN ('01709') THEN '햇살론유스(모바일)' 
+           WHEN loan__lnbz_prgr_cd IN ('01546','01547') THEN '최저신용자' 
+           WHEN loan__lnbz_prgr_cd IN ('01706') THEN '자동차담보대출' 
+           WHEN loan__lnbz_prgr_cd IN ('01092') THEN '사잇돌중금리' 
       END
     
   measures:

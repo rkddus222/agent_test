@@ -41,12 +41,21 @@ function SMQTest() {
       })
 
       if (response.data.success) {
-        setResult({
+        const newResult = {
           sql: response.data.sql,
           metadata: response.data.metadata,
           all_queries: response.data.all_queries
-        })
+        }
+        setResult(newResult)
         setError(null)
+        
+        // 변환 성공 후 자동으로 실행
+        if (response.data.sql) {
+          // 약간의 지연 후 실행 (UI 업데이트를 위해)
+          setTimeout(() => {
+            handleExecuteWithSQL(response.data.sql)
+          }, 100)
+        }
       } else {
         // SMQ 변환 실패 시 명확한 에러 메시지 표시
         const errorMessage = response.data.error || 'SMQ 변환에 실패했습니다.'
@@ -120,8 +129,8 @@ function SMQTest() {
       })
   }
 
-  const handleExecute = async () => {
-    if (!result || !result.sql) {
+  const handleExecuteWithSQL = async (sql) => {
+    if (!sql) {
       setExecuteError('실행할 SQL 쿼리가 없습니다.')
       return
     }
@@ -132,7 +141,7 @@ function SMQTest() {
 
     try {
       const response = await axios.post('/api/smq/execute', {
-        sql: result.sql
+        sql: sql
       })
 
       if (response.data.success) {
@@ -167,6 +176,14 @@ function SMQTest() {
     } finally {
       setExecuting(false)
     }
+  }
+
+  const handleExecute = async () => {
+    if (!result || !result.sql) {
+      setExecuteError('실행할 SQL 쿼리가 없습니다.')
+      return
+    }
+    await handleExecuteWithSQL(result.sql)
   }
 
   return (

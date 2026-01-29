@@ -28,10 +28,15 @@ from backend.semantic_agent import SemanticAgent
 from backend.smq_agent import SMQAgent
 from backend.langgraph_agent import LangGraphAgent
 from backend.tools import parse_semantic_models, read_file, edit_file, convert_smq_to_sql
+from backend.routers import semantic_router, semantic_router_v2
 
 load_dotenv()
 
 app = FastAPI(title="Semantic Agent API")
+
+# Routers 등록
+app.include_router(semantic_router)
+app.include_router(semantic_router_v2)
 
 # CORS 설정
 app.add_middleware(
